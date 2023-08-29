@@ -832,30 +832,12 @@ var ChannelsDB;
                 React.createElement("div", { className: 'channelsdb-api-docs' },
                     React.createElement("h2", { className: 'featurette-heading' }, "API "),
                     React.createElement("p", null,
-                        " The entire database is powered by the API running on the ",
-                        React.createElement("a", { href: 'https://webchem.ncbr.muni.cz', target: '_blank' }, "webchem server"),
-                        ". Therefore, all the channel-related information can be programmatically retrieved and used for further processing. The returned content is ",
+                        " The entire database is powered by the API with an interactive ",
+                        React.createElement("a", { href: "/api" }, "documentation"),
+                        " available. Therefore, all the channel-related information can be programmatically retrieved and used for further processing. The returned content is ",
                         React.createElement("i", null, "application/json"),
                         " object and all the properties are self-explanatory. Should you have further questions or comments, do not hesitate to ",
-                        React.createElement("a", { href: 'mailto:webchemistryhelp@gmail.com?subject=ChannelsDB - API' }, "contact us.")),
-                    React.createElement("h4", null,
-                        "Channel position information ",
-                        React.createElement("span", null, "/PDB/<PDB id>"),
-                        React.createElement("br", null),
-                        React.createElement("small", null, "Retrieves channels identified in the PDB entry.")),
-                    React.createElement("h5", null, "Examples"),
-                    React.createElement("a", { href: 'https://webchem.ncbr.muni.cz/API/ChannelsDB/PDB/3tbg', target: '_blank' }, "/API/ChannelsDB/PDB/3tbg"),
-                    React.createElement("br", null),
-                    React.createElement("a", { href: 'https://webchem.ncbr.muni.cz/API/ChannelsDB/PDB/5an8', target: '_blank' }, "/API/ChannelsDB/PDB/5an8"),
-                    React.createElement("h4", null,
-                        "Additional annotations ",
-                        React.createElement("span", null, "/Annotations/<PDB id>"),
-                        React.createElement("br", null),
-                        React.createElement("small", null, "Retrieves PDB level information (name, function, catalyzed reactions) and important residues annotations.")),
-                    React.createElement("h5", null, "Examples"),
-                    React.createElement("a", { href: 'https://webchem.ncbr.muni.cz/API/ChannelsDB/Annotations/3tbg', target: '_blank' }, "/API/ChannelsDB/Annotations/3tbg"),
-                    React.createElement("br", null),
-                    React.createElement("a", { href: 'https://webchem.ncbr.muni.cz/API/ChannelsDB/Annotations/1ymg', target: '_blank' }, "/API/ChannelsDB/Annotations/1ymg")),
+                        React.createElement("a", { href: 'mailto:webchemistryhelp@gmail.com?subject=ChannelsDB2 - API' }, "contact us."))),
                 React.createElement(ChannelsDB.ScrollButton, { scrollStepInPx: '50', delayInMs: '10' }));
         };
         return Documentation;
@@ -1277,14 +1259,16 @@ var ChannelsDB;
         }
         Entry.prototype.render = function () {
             var docs = this.props.docs;
-            var pdbContentMap = new Array('CSATunnels MOLE', 'CSATunnels Caver', 'ReviewedChannels MOLE', 'ReviewedChannels Caver', 'CofactorTunnels MOLE', 'CofactorTunnels Caver', 'TransmembranePores MOLE', 'TransmembranePores Caver', 'ProcognateTunnels MOLE', 'ProcagnateTunnels Caver');
-            var alphafillContentMap = new Array('AlphaFillTunnels MOLE', 'AlphaFillTunnels Caver');
+            var pdbContentMap = ['CSATunnels MOLE', 'CSATunnels Caver', 'ReviewedChannels MOLE', 'ReviewedChannels Caver',
+                'CofactorTunnels MOLE', 'CofactorTunnels Caver', 'TransmembranePores MOLE', 'TransmembranePores Caver', 'ProcognateTunnels MOLE',
+                'ProcagnateTunnels Caver'];
+            var alphafillContentMap = ['AlphaFillTunnels MOLE', 'AlphaFillTunnels Caver'];
             var pdb = this.props.state.dbContent.pdb[ChannelsDB.toLower(docs.pdb_id)];
             var alphafill = this.props.state.dbContent.alphafill[ChannelsDB.toLower(docs.pdb_id)];
             var numPdbChannels = pdb ? pdb.reduce(function (a, b) { return a + b; }, 0) : -1;
             var numAlphafillChannels = alphafill ? alphafill.reduce(function (a, b) { return a + b; }, 0) : -1;
-            var pdbContent = numPdbChannels > 0 ? pdb.map(function (el, index) { return el > 0 ? pdbContentMap[index] + ' (' + el + ')' : ''; }) : new Array();
-            var alphafillContent = numAlphafillChannels > 0 ? pdb.map(function (el, index) { return el > 0 ? alphafillContentMap[index] + ' (' + el + ')' : ''; }) : new Array();
+            var pdbContent = numPdbChannels > 0 ? pdb.map(function (el, index) { return el > 0 ? pdbContentMap[index] + ' (' + el + ')' : ''; }) : [];
+            var alphafillContent = numAlphafillChannels > 0 ? pdb.map(function (el, index) { return el > 0 ? alphafillContentMap[index] + ' (' + el + ')' : ''; }) : [];
             var msgPdb = numPdbChannels > 0 ? pdbContent.filter(function (a) { return a.length > 0; }).reduce(function (a, b) { return a + ', ' + b; }) : '';
             var msgAlphafill = numAlphafillChannels > 0 ? alphafillContent.filter(function (a) { return a.length > 0; }).reduce(function (a, b) { return a + ', ' + b; }) : '';
             return React.createElement("div", { className: 'well pdb-entry' },
@@ -1312,7 +1296,7 @@ var ChannelsDB;
                                 ? React.createElement("li", null,
                                     React.createElement("i", null, numAlphafillChannels + " channel" + (numAlphafillChannels !== 1 ? 's' : '') + "; " + msgAlphafill)) : void 0),
                 React.createElement("div", { className: 'pdb-entry-img-wrap' },
-                    React.createElement("img", { src: "https://webchem.ncbr.muni.cz/API/ChannelsDB/Download/" + docs.pdb_id.toLowerCase() + "?type=png" })));
+                    React.createElement("img", { src: "/api/download/pdb/" + docs.pdb_id.toLowerCase() + "/png" })));
         };
         return Entry;
     }(React.Component));
@@ -1416,9 +1400,13 @@ var ChannelsDB;
         function Intro() {
             var _this = _super !== null && _super.apply(this, arguments) || this;
             _this.sub = void 0;
-            _this.state = { statistics: _this.props.state.statistics };
+            _this.state = { statistics: _this.props.state.statistics, statisticsExpanded: false };
             return _this;
         }
+        Intro.prototype.toggle = function (e) {
+            e.preventDefault();
+            this.setState({ statisticsExpanded: !this.state.statisticsExpanded });
+        };
         Intro.prototype.componentDidMount = function () {
             var _this = this;
             if (!this.state.statistics) {
@@ -1432,6 +1420,7 @@ var ChannelsDB;
             }
         };
         Intro.prototype.render = function () {
+            var _this = this;
             var stats = this.state.statistics;
             var reference = {
                 borderLeft: '2px solid #AAA',
@@ -1439,70 +1428,63 @@ var ChannelsDB;
             };
             return React.createElement("div", null,
                 React.createElement("div", { className: 'row' },
-                    React.createElement("div", { className: 'col-lg-12 well well-sm text-center', style: { marginTop: '0', marginBottom: '40px' } },
-                        "ChannelsDB last update on ",
-                        React.createElement("b", null, stats ? stats.date : 'n/a'),
-                        "\u00A0",
-                        React.createElement("small", null, "contains:"),
-                        React.createElement("b", null,
-                            " ",
-                            stats ? stats.Total : 'n/a'),
-                        " entries",
-                        "\u00A0(",
-                        React.createElement("b", null, stats && stats.statistics.ReviewedChannels_MOLE ? stats.statistics.ReviewedChannels_MOLE : 'n/a'),
-                        " ",
-                        React.createElement("small", null, "reviewed MOLE |"),
-                        "\u00A0",
-                        React.createElement("b", null, stats && stats.statistics.ReviewedChannels_Caver ? stats.statistics.ReviewedChannels_Caver : 'n/a'),
-                        " ",
-                        React.createElement("small", null, "reviewed CAVER |"),
-                        "\u00A0",
-                        React.createElement("b", null, stats && stats.statistics.CSATunnels_MOLE ? stats.statistics.CSATunnels_MOLE : 'n/a'),
-                        " ",
-                        React.createElement("small", null,
-                            "with ",
-                            React.createElement("abbr", { title: 'Catalytic Site Atlas' }, "CSA"),
-                            " annotation MOLE |"),
-                        "\u00A0",
-                        React.createElement("b", null, stats && stats.statistics.CSATunnels_Caver ? stats.statistics.CSATunnels_Caver : 'n/a'),
-                        " ",
-                        React.createElement("small", null,
-                            "with ",
-                            React.createElement("abbr", { title: 'Catalytic Site Atlas' }, "CSA"),
-                            " annotation CAVER |"),
-                        "\u00A0",
-                        React.createElement("b", null, stats && stats.statistics.CofactorTunnels_MOLE ? stats.statistics.CofactorTunnels_MOLE : 'n/a'),
-                        " ",
-                        React.createElement("small", null, "with cofactor MOLE |"),
-                        "\u00A0",
-                        React.createElement("b", null, stats && stats.statistics.CofactorTunnels_Caver ? stats.statistics.CofactorTunnels_Caver : 'n/a'),
-                        " ",
-                        React.createElement("small", null, "with cofactor COVER |"),
-                        "\u00A0",
-                        React.createElement("b", null, stats && stats.statistics.TransmembranePores_MOLE ? stats.statistics.TransmembranePores_MOLE : 'n/a'),
-                        " ",
-                        React.createElement("small", null, "transmembrane pores MOLE |"),
-                        "\u00A0",
-                        React.createElement("b", null, stats && stats.statistics.TransmembranePores_Caver ? stats.statistics.TransmembranePores_Caver : 'n/a'),
-                        " ",
-                        React.createElement("small", null, "transmembrane pores CAVER |"),
-                        "\u00A0",
-                        React.createElement("b", null, stats && stats.statistics.ProcognateTunnels_MOLE ? stats.statistics.ProcognateTunnels_MOLE : 'n/a'),
-                        " ",
-                        React.createElement("small", null, "Cognate tunnels MOLE |"),
-                        "\u00A0",
-                        React.createElement("b", null, stats && stats.statistics.ProcagnateTunnels_Caver ? stats.statistics.ProcagnateTunnels_Caver : 'n/a'),
-                        " ",
-                        React.createElement("small", null, "Cognate tunnels CAVER |"),
-                        "\u00A0",
-                        React.createElement("b", null, stats && stats.statistics.AlphaFillTunnels_MOLE ? stats.statistics.AlphaFillTunnels_MOLE : 'n/a'),
-                        " ",
-                        React.createElement("small", null, "Alphafill tunnels MOLE |"),
-                        "\u00A0",
-                        React.createElement("b", null, stats && stats.statistics.AlphaFillTunnels_Caver ? stats.statistics.AlphaFillTunnels_Caver : 'n/a'),
-                        " ",
-                        React.createElement("small", null, "Alphafill tunnels CAVER"),
-                        ")"),
+                    React.createElement("div", { className: 'well row table-responsive', style: { marginTop: '0', marginBottom: '40px' } },
+                        React.createElement("div", { className: "text-center" },
+                            "ChannelsDB last update on ",
+                            React.createElement("b", null, stats ? stats.date : 'n/a'),
+                            "\u00A0",
+                            React.createElement("small", null, "contains:"),
+                            React.createElement("b", null,
+                                " ",
+                                stats ? stats.Total : 'n/a'),
+                            " entries \u00A0",
+                            React.createElement("a", { href: "_blank", onClick: function (e) { return _this.toggle(e); } }, "Show more/less")),
+                        React.createElement("table", { className: "table table-condensed active w-auto", style: { display: this.state.statisticsExpanded ? 'table' : 'none' } },
+                            React.createElement("thead", null,
+                                React.createElement("tr", null,
+                                    React.createElement("th", null,
+                                        React.createElement("b", null, "Channel type")),
+                                    React.createElement("th", null,
+                                        React.createElement("b", null, "MOLE")),
+                                    React.createElement("th", null,
+                                        React.createElement("b", null, "CAVER")))),
+                            React.createElement("tbody", null,
+                                React.createElement("tr", null,
+                                    React.createElement("td", null, "Reviewed"),
+                                    React.createElement("td", null,
+                                        React.createElement("b", null, stats && stats.statistics.ReviewedChannels_MOLE ? stats.statistics.ReviewedChannels_MOLE : 'n/a')),
+                                    React.createElement("td", null,
+                                        React.createElement("b", null, stats && stats.statistics.ReviewedChannels_Caver ? stats.statistics.ReviewedChannels_Caver : 'n/a'))),
+                                React.createElement("tr", null,
+                                    React.createElement("td", null, "CSA"),
+                                    React.createElement("td", null,
+                                        React.createElement("b", null, stats && stats.statistics.CSATunnels_MOLE ? stats.statistics.CSATunnels_MOLE : 'n/a')),
+                                    React.createElement("td", null,
+                                        React.createElement("b", null, stats && stats.statistics.CSATunnels_Caver ? stats.statistics.CSATunnels_Caver : 'n/a'))),
+                                React.createElement("tr", null,
+                                    React.createElement("td", null, "Cofactor"),
+                                    React.createElement("td", null,
+                                        React.createElement("b", null, stats && stats.statistics.CofactorTunnels_MOLE ? stats.statistics.CofactorTunnels_MOLE : 'n/a')),
+                                    React.createElement("td", null,
+                                        React.createElement("b", null, stats && stats.statistics.CofactorTunnels_Caver ? stats.statistics.CofactorTunnels_Caver : 'n/a'))),
+                                React.createElement("tr", null,
+                                    React.createElement("td", null, "Transmembrane pores"),
+                                    React.createElement("td", null,
+                                        React.createElement("b", null, stats && stats.statistics.TransmembranePores_MOLE ? stats.statistics.TransmembranePores_MOLE : 'n/a')),
+                                    React.createElement("td", null,
+                                        React.createElement("b", null, stats && stats.statistics.TransmembranePores_Caver ? stats.statistics.TransmembranePores_Caver : 'n/a'))),
+                                React.createElement("tr", null,
+                                    React.createElement("td", null, "Procognate"),
+                                    React.createElement("td", null,
+                                        React.createElement("b", null, stats && stats.statistics.ProcognateTunnels_MOLE ? stats.statistics.ProcognateTunnels_MOLE : 'n/a')),
+                                    React.createElement("td", null,
+                                        React.createElement("b", null, stats && stats.statistics.ProcagnateTunnels_Caver ? stats.statistics.ProcagnateTunnels_Caver : 'n/a'))),
+                                React.createElement("tr", null,
+                                    React.createElement("td", null, "AlphaFill"),
+                                    React.createElement("td", null,
+                                        React.createElement("b", null, stats && stats.statistics.AlphaFillTunnels_MOLE ? stats.statistics.AlphaFillTunnels_MOLE : 'n/a')),
+                                    React.createElement("td", null,
+                                        React.createElement("b", null, stats && stats.statistics.AlphaFillTunnels_Caver ? stats.statistics.AlphaFillTunnels_Caver : 'n/a')))))),
                     React.createElement("div", { className: 'col-lg-9', style: { textAlign: 'left', textJustify: 'inter-word', padding: '0' } },
                         React.createElement("p", { className: "lead" },
                             "ChannelsDB database is located at ",
@@ -2087,7 +2069,7 @@ var ChannelsDB;
             viewState: { kind: 'Info' },
             stateUpdated: new Rx.Subject(),
             fullSearch: new Rx.Subject(),
-            channelsUrl: "/api",
+            channelsUrl: "https://channelsdb2.biodata.ceitec.cz/api",
         };
         var interrupt = Rx.Observable.merge(state.searchTerm, state.fullSearch);
         state.searchTerm

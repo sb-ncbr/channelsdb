@@ -3,9 +3,14 @@
  */
 
 namespace ChannelsDB {
-    export class Intro extends React.Component<{ state: State }, { statistics: any }> {
+    export class Intro extends React.Component<{ state: State }, { statistics: any, statisticsExpanded: boolean }> {
         private sub: Rx.IDisposable | undefined = void 0;
-        state = { statistics: this.props.state.statistics };
+        state = { statistics: this.props.state.statistics, statisticsExpanded: false };
+
+        private toggle(e: React.MouseEvent<HTMLElement>) {
+            e.preventDefault();
+            this.setState({ statisticsExpanded: !this.state.statisticsExpanded });
+        }
 
         componentDidMount() {
             if (!this.state.statistics) {
@@ -29,22 +34,53 @@ namespace ChannelsDB {
 
             return <div>
                 <div className='row' >
-                    <div className='col-lg-12 well well-sm text-center' style={{ marginTop: '0', marginBottom: '40px' }}>
-                        ChannelsDB last update on <b>{stats ? stats.date : 'n/a'}</b>
-                        &nbsp;<small>contains:</small><b> {stats ? stats.Total : 'n/a'}</b> entries
-                        {/* TODO if 0 n/a or just 0 */}
-                        &nbsp;(<b>{stats && stats.statistics.ReviewedChannels_MOLE ? stats.statistics.ReviewedChannels_MOLE : 'n/a'}</b> <small>reviewed MOLE |</small>
-                        &nbsp;<b>{stats && stats.statistics.ReviewedChannels_Caver ? stats.statistics.ReviewedChannels_Caver : 'n/a'}</b> <small>reviewed CAVER |</small>
-                        &nbsp;<b>{stats && stats.statistics.CSATunnels_MOLE ? stats.statistics.CSATunnels_MOLE : 'n/a'}</b> <small>with <abbr title='Catalytic Site Atlas'>CSA</abbr> annotation MOLE |</small>
-                        &nbsp;<b>{stats && stats.statistics.CSATunnels_Caver ? stats.statistics.CSATunnels_Caver : 'n/a'}</b> <small>with <abbr title='Catalytic Site Atlas'>CSA</abbr> annotation CAVER |</small>
-                        &nbsp;<b>{stats && stats.statistics.CofactorTunnels_MOLE ? stats.statistics.CofactorTunnels_MOLE : 'n/a'}</b> <small>with cofactor MOLE |</small>
-                        &nbsp;<b>{stats && stats.statistics.CofactorTunnels_Caver ? stats.statistics.CofactorTunnels_Caver : 'n/a'}</b> <small>with cofactor COVER |</small>
-                        &nbsp;<b>{stats && stats.statistics.TransmembranePores_MOLE ? stats.statistics.TransmembranePores_MOLE : 'n/a'}</b> <small>transmembrane pores MOLE |</small>
-                        &nbsp;<b>{stats && stats.statistics.TransmembranePores_Caver ? stats.statistics.TransmembranePores_Caver : 'n/a'}</b> <small>transmembrane pores CAVER |</small>
-                        &nbsp;<b>{stats && stats.statistics.ProcognateTunnels_MOLE ? stats.statistics.ProcognateTunnels_MOLE : 'n/a'}</b> <small>Cognate tunnels MOLE |</small>
-                        &nbsp;<b>{stats && stats.statistics.ProcagnateTunnels_Caver ? stats.statistics.ProcagnateTunnels_Caver : 'n/a'}</b> <small>Cognate tunnels CAVER |</small>
-                        &nbsp;<b>{stats && stats.statistics.AlphaFillTunnels_MOLE ? stats.statistics.AlphaFillTunnels_MOLE : 'n/a'}</b> <small>Alphafill tunnels MOLE |</small>
-                        &nbsp;<b>{stats && stats.statistics.AlphaFillTunnels_Caver ? stats.statistics.AlphaFillTunnels_Caver : 'n/a'}</b> <small>Alphafill tunnels CAVER</small>)
+                    <div className='well row table-responsive' style={{ marginTop: '0', marginBottom: '40px' }}>
+                        <div className="text-center">
+                            ChannelsDB last update on <b>{stats ? stats.date : 'n/a'}</b>
+                            &nbsp;<small>contains:</small><b> {stats ? stats.Total : 'n/a'}</b> entries
+                            &nbsp;<a href="_blank" onClick={e => this.toggle(e)}>Show more/less</a>
+                        </div>
+                        <table className="table table-condensed active w-auto" style={{ display: this.state.statisticsExpanded ? 'table' : 'none' }}>
+                            <thead>
+                                <tr>
+                                    <th><b>Channel type</b></th>
+                                    <th><b>MOLE</b></th>
+                                    <th><b>CAVER</b></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Reviewed</td>
+                                    <td><b>{stats && stats.statistics.ReviewedChannels_MOLE ? stats.statistics.ReviewedChannels_MOLE : 'n/a'}</b></td>
+                                    <td><b>{stats && stats.statistics.ReviewedChannels_Caver ? stats.statistics.ReviewedChannels_Caver : 'n/a'}</b></td>
+                                </tr>
+                                <tr>
+                                    <td>CSA</td>
+                                    <td><b>{stats && stats.statistics.CSATunnels_MOLE ? stats.statistics.CSATunnels_MOLE : 'n/a'}</b></td>
+                                    <td><b>{stats && stats.statistics.CSATunnels_Caver ? stats.statistics.CSATunnels_Caver : 'n/a'}</b></td>
+                                </tr>
+                                <tr>
+                                    <td>Cofactor</td>
+                                    <td><b>{stats && stats.statistics.CofactorTunnels_MOLE ? stats.statistics.CofactorTunnels_MOLE : 'n/a'}</b></td>
+                                    <td><b>{stats && stats.statistics.CofactorTunnels_Caver ? stats.statistics.CofactorTunnels_Caver : 'n/a'}</b></td>
+                                </tr>
+                                <tr>
+                                    <td>Transmembrane pores</td>
+                                    <td><b>{stats && stats.statistics.TransmembranePores_MOLE ? stats.statistics.TransmembranePores_MOLE : 'n/a'}</b></td>
+                                    <td><b>{stats && stats.statistics.TransmembranePores_Caver ? stats.statistics.TransmembranePores_Caver : 'n/a'}</b></td>
+                                </tr>
+                                <tr>
+                                    <td>Procognate</td>
+                                    <td><b>{stats && stats.statistics.ProcognateTunnels_MOLE ? stats.statistics.ProcognateTunnels_MOLE : 'n/a'}</b></td>
+                                    <td><b>{stats && stats.statistics.ProcagnateTunnels_Caver ? stats.statistics.ProcagnateTunnels_Caver : 'n/a'}</b></td>
+                                </tr>
+                                <tr>
+                                    <td>AlphaFill</td>
+                                    <td><b>{stats && stats.statistics.AlphaFillTunnels_MOLE ? stats.statistics.AlphaFillTunnels_MOLE : 'n/a'}</b></td>
+                                    <td><b>{stats && stats.statistics.AlphaFillTunnels_Caver ? stats.statistics.AlphaFillTunnels_Caver : 'n/a'}</b></td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                     <div className='col-lg-9' style={{ textAlign: 'left', textJustify: 'inter-word', padding: '0' }}>
 
