@@ -12,6 +12,7 @@ TunnelModel = create_model('TunnelTypes', **{tunnel: (int, ...) for tunnel in CH
 
 class StatisticsModel(BaseModel):
     date: str
+    entries_count: int
     statistics: TunnelModel
 
 
