@@ -35,13 +35,18 @@ def save_statistics() -> None:
     pdb_stats = get_statistics(SourceDatabase.PDB)
     alphafill_stats = get_statistics(SourceDatabase.AlphaFill)
 
-    total = Counter({value: 0 for value in CHANNEL_TYPES.values()})
+    overall = Counter({value: 0 for value in CHANNEL_TYPES.values()})
+    total_entries = 0
     for stats in (pdb_stats, alphafill_stats):
-        for partial in stats.values():
-            total.update(partial)
+        for protein_stats in stats.values():
+            total_entries += 1
+            for channel_type, count in protein_stats.items():
+                if count:
+                    overall[channel_type] += 1
 
     statistics = {
-        'statistics': total,
+        'statistics': overall,
+        'entries_count': total_entries,
         'date': date.today().strftime('%d/%m/%Y')
     }
 
