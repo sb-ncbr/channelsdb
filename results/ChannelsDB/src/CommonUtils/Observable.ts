@@ -4,7 +4,9 @@
  * @author Dušan Veľký <dvelky@mail.muni.cz>
  */
 export class SimpleObservable {
-    constructor(private watcher: () => any, private onChange: (value: any) => void) {}
+	counter: number;
+
+    constructor(private watcher: () => any, private onChange: (value: any) => void, private defaultValue: any = {}) { this.counter = 0; }
   
     subscribe() {
       let currentValue = this.watcher();
@@ -17,6 +19,11 @@ export class SimpleObservable {
             clearInterval(intervalId);
             this.onChange(newValue);
           }
+		  if (this.counter >= 20) {
+			clearInterval(intervalId);
+			this.onChange(this.defaultValue)
+		  }
+          this.counter++;
         }, 100);
       }
     }

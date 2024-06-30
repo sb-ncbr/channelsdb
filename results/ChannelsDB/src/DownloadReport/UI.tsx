@@ -1,10 +1,17 @@
 
 import React from "react";
 import { GlobalRouter } from "../SimpleRouter";
+import { Context } from "../Context";
 
-export class DownloadReport extends React.Component<{}, {}> {
+export class DownloadReport extends React.Component<{}, {disabled: boolean}> {
+    state = { disabled: false };
 
+    private apiStatusWaitHandler(){
+        this.setState({disabled: true})
+    }
+    
     componentDidMount() {
+        Context.subscribeForApiStatus(this.apiStatusWaitHandler.bind(this));
     }
 
     componentWillUnmount(){
@@ -12,7 +19,7 @@ export class DownloadReport extends React.Component<{}, {}> {
 
     render() {
         return <div id="download-report" className="download-button">
-            <DownloadResultsMenu />
+            <DownloadResultsMenu disabled={this.state.disabled}/>
         </div>
     }
 }
@@ -33,10 +40,10 @@ class BootstrapDropDownMenuElementItem extends React.Component<{link: string, li
     }
 }
 
-class BootstrapDropDownMenuButton extends React.Component<{label: string, items: JSX.Element[]},{}>{
+class BootstrapDropDownMenuButton extends React.Component<{label: string, items: JSX.Element[], disabled: boolean},{}>{
     render(){
         return <div className="btn-group dropdown">
-                <button type="button" className="download dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <button type="button" className={this.props.disabled ? "download dropdown-toggle disabled" : "download dropdown-toggle"} data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                     {this.props.label} <span className="glyphicon glyphicon-download"></span>
                 </button>
                 <ul className="dropdown-menu">
@@ -46,7 +53,7 @@ class BootstrapDropDownMenuButton extends React.Component<{label: string, items:
     }
 }
 
-class DownloadResultsMenu extends React.Component<{},{}>{
+class DownloadResultsMenu extends React.Component<{disabled: boolean},{}>{
     render(){
         let pdbid = GlobalRouter.getCurrentPid();
         let subDB = GlobalRouter.getCurrentDB();
@@ -76,7 +83,7 @@ class DownloadResultsMenu extends React.Component<{},{}>{
             <BootstrapDropDownMenuItem linkText="chimera" link={`${linkBase}/chimera`} targetBlank={true} />
         );
         
-        return <BootstrapDropDownMenuButton label="Download report" items={items} />
+        return <BootstrapDropDownMenuButton label="Download report" items={items} disabled={this.props.disabled} />
     }
 }
 

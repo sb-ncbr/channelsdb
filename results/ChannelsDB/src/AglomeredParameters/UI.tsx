@@ -77,16 +77,12 @@ export class AglomeredParameters extends React.Component<{controller: Context },
     }
 
     render() {
-        if (this.state.data !== null) {
-            $('.init-agp-tooltip').tooltip({container:'body'});
-            return(
-                <div>
-                    <DGTable {...this.state} />
-                </div>
-                );
-        } 
-        
-        return <div className="aglomered-parameters" id="aglomered-parameters-ui"/>
+        $('.init-agp-tooltip').tooltip({container:'body'});
+        return(
+            <div>
+                <DGTable {...this.state} />
+            </div>
+            );
     }
 }  
 
@@ -164,8 +160,11 @@ class DGBody extends React.Component<State,{}>{
     }
     
     private generateRows(){
-        if(this.props.data === null){
-            return <tr><td colSpan={DGTABLE_COLS_COUNT} >There are no data to be displayed...</td></tr>;
+        if(this.props.data === null || this.props.data.length == 0){
+            return [
+                <tr><td colSpan={DGTABLE_COLS_COUNT} >There are no data to be displayed...</td></tr>,
+                <DGRowEmpty columnsCount={DGTABLE_COLS_COUNT}/>
+            ]
         }
 
         let rows = [];

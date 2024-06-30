@@ -48,35 +48,13 @@ export class ProteinAnnotations extends React.Component<{controller: Context }, 
     }
 
     render() {
-        if (this.state.data !== null) {
-            return(
-                <div>
-                    <DGTable {...this.state} />
-                </div>
-                );
-        } 
-        
-        return <div>
-                    <DGNoData {...this.state} />
-                </div>
+        return(
+            <div>
+                <DGTable {...this.state} />
+            </div>
+            );
     }
 }  
-
-class DGNoData extends React.Component<State,{}>{
-    render(){
-        return (<div className="datagrid" id="dg-protein-annotations">
-                    <div className="header">
-                        <DGHead {...this.props}/>			
-                    </div>
-                    <div className="body">
-                        <table>
-                            <DGNoDataInfoRow columnsCount={DGTABLE_COLS_COUNT}/>
-                            <DGRowEmpty columnsCount={DGTABLE_COLS_COUNT}/>
-                        </table>
-                    </div>
-                </div>);
-    }
-}
 
 class DGTable extends React.Component<State,{}>{
     render(){
@@ -144,8 +122,11 @@ class DGBody extends React.Component<State,{}>{
     }
 
     private generateRows(){
-        if(this.props.data === null){
-            return <DGNoDataInfoRow columnsCount={DGTABLE_COLS_COUNT}/>;
+        if(this.props.data === null || this.props.data.length == 0){
+            return [
+                <tr><td colSpan={DGTABLE_COLS_COUNT} >There are no data to be displayed...</td></tr>,
+                <DGRowEmpty columnsCount={DGTABLE_COLS_COUNT}/>
+            ]
         }
 
         let annotations = this.props.data;

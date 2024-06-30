@@ -109,6 +109,5 @@
     "src/App.tsx",
 
   ],
-  "include": ["src/sb-ncbr"],
   "exclude": ["node_modules"],
 }

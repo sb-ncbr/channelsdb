@@ -6,13 +6,22 @@
 import React from "react";
 import DownloadReport from "../DownloadReport/UI";
 import PdbIdSign from "../PdbIdSign/UI";
+import { Context } from "../Context";
 
-export class Controls extends React.Component<{}, {}> {
+export class Controls extends React.Component<{controller: Context}, {viewerExpanded: boolean}> {
+    state = { viewerExpanded: false };
+
+    componentDidMount() {
+        this.props.controller.plugin.layout.events.updated.subscribe(() => { this.setState({viewerExpanded: this.props.controller.plugin.layout.state.isExpanded}) });
+    }
+
     render() {
-        return <div className="channelsdb-controls">
+        return this.state.viewerExpanded
+        ? (<div></div>)
+        : (<div className="channelsdb-controls">
             <div className="home-button" title="Home"><a href="/"><span className="glyphicon glyphicon-home" /></a></div>
             <PdbIdSign />
             <DownloadReport />
-        </div>
+        </div>)
     }
 }

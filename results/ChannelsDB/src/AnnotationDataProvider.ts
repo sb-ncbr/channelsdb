@@ -206,17 +206,21 @@ export class AnnotationDataProvider{
     }
 
     private static handleChannelsAPIData(data:any){
-        let liningResidues = this.parseLiningResidues(data);
-        let channelsData = this.parseChannelsData(data.Annotations);
-        
-        return {liningResidues,channelsData};
+        if (Object.keys(data).length !== 0 ) {
+            let liningResidues = this.parseLiningResidues(data);
+            let channelsData = this.parseChannelsData(data.Annotations);
+            return {liningResidues,channelsData};
+        }
+        return {};
     }
 
     private static handleAnnotationsAPIData(data:any){
-        let proteinData = this.parseProteinData(data.EntryAnnotations);
-        let residueData = this.parseResidueData(data.ResidueAnnotations);
-        
-        return {proteinData,residueData};
+        if (Object.keys(data).length !== 0 ) {
+            let proteinData = this.parseProteinData(data.EntryAnnotations);
+            let residueData = this.parseResidueData(data.ResidueAnnotations);
+            return {proteinData,residueData};
+        }
+        return {}
     }
 
     public static subscribeToPluginContext(context: Context) {
@@ -235,24 +239,30 @@ export class AnnotationDataProvider{
         new Promise<Object>((res, rej) => {
           channelsAPIobserver = new SimpleObservable(
             () => context.data,
-            (moleData) => res(this.handleChannelsAPIData(moleData))
+            (moleData) => res(this.handleChannelsAPIData(moleData)),
+            {} as ChannelsDBData
           );
           channelsAPIobserver.subscribe();
         }).then((val: ChannelsAPIDataHandledPromiseResult) => {
-          this.liningResidues = val.liningResidues;
-          this.channelAnnotations = val.channelsData;
-      
-          return new Promise<Object>((res, rej) => {
+            if (Object.keys(val).length !== 0 ) {
+                this.liningResidues = val.liningResidues;
+                this.channelAnnotations = val.channelsData;
+            }
+        
+            return new Promise<Object>((res, rej) => {
             annotationsAPIobserver = new SimpleObservable(
-              () => context.annotations,
-              (annotationData) => res(this.handleAnnotationsAPIData(annotationData))
+                () => context.annotations,
+                (annotationData) => res(this.handleAnnotationsAPIData(annotationData)),
+                {} as Annotations.ChannelsDBData
             );
             annotationsAPIobserver.subscribe();
-          });
+            });
         }).then((val: AnnotationAPIDataHandledPromiseResult) => {
-          this.proteinAnnotations = val.proteinData;
-          this.residueAnnotations = val.residueData;
-      
+            if (Object.keys(val).length !== 0 ) {
+                this.proteinAnnotations = val.proteinData;
+                this.residueAnnotations = val.residueData;
+            }
+          
           this.dataReady = true;
           this.invokeHandlers();
         }).catch((err) => {

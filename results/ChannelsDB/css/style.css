@@ -117,7 +117,7 @@ body {
     height: 50px;
     position: fixed;
     right: 25vw;
-    z-index: 1;
+    z-index: 2;
 }
 
 /*
@@ -260,6 +260,7 @@ only screen and (max-height: 600px) {
 	height:66vh;
 	left:0;
 	top:0;
+    z-index: 1;
 }
 .plugin.bottom-panel-toggled{
 	height:33vh;

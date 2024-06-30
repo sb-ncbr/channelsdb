@@ -21,8 +21,8 @@ import { CifFile } from "molstar/lib/mol-io/reader/cif";
 import { Download, ParseCif } from "molstar/lib/mol-plugin-state/transforms/data";
 import { TrajectoryFromMmCif, ModelFromTrajectory, StructureFromModel, StructureComponent } from "molstar/lib/mol-plugin-state/transforms/model";
 import { StructureRepresentation3D } from "molstar/lib/mol-plugin-state/transforms/representation";
-import { TunnelFromRawData, TunnelShapeProvider } from "./sb-ncbr";
-import { Tunnel } from "./sb-ncbr/tunnels/data-model";
+import { TunnelFromRawData, TunnelShapeProvider } from "molstar/lib/extensions/sb-ncbr"
+import { Tunnel } from "molstar/lib/extensions/sb-ncbr/tunnels/data-model"
 
 export class Context {
   plugin: PluginUIContext;
@@ -39,10 +39,31 @@ export class Context {
   isHighlightColorUpdated = false;
   isSelectedColorUpdated = false;
 
+  apiError = false;
+  private static handlers: {handler:()=>void}[];
+
   constructor(MySpec: PluginUISpec) {
     this.plugin = new PluginUIContext(MySpec);
     this.plugin.init();
   }
+
+  //TODO: This is just hotfix, maybe it needs refactoring.
+    public static subscribeForApiStatus(handler:()=>void){
+        if(this.handlers === void 0){
+            this.handlers = [];
+        }
+        this.handlers.push({handler});
+    }
+
+    private static invokeHandlers(){
+        if(this.handlers === void 0){
+            console.log("no handlers attached... Skiping...");
+            return;
+        }
+        for(let h of this.handlers){
+            h.handler();
+        }
+    }
 
   async renderTunnel(data: Tunnel, color: Color): Promise<[Loci, string]> {
     const update = this.plugin.build();
@@ -108,6 +129,11 @@ export class Context {
 
   async loadChannelData(url:string, pid: string, subDB: string) {
     const response = await fetch(`${url}/channels/${subDB}/${pid}`);
+    if (!response.ok) { 
+        this.apiError = true;
+        Context.invokeHandlers()
+        return { Error: await response.json(), apiStatus: response.status };
+    }
     const data = await response.json();
     this.data = data;
     return data;
@@ -115,6 +141,10 @@ export class Context {
 
   async loadAnnotations(url:string, pid: string, subDB: string) {
     const response = await fetch(`${url}/annotations/${subDB}/${pid}`)
+    if (!response.ok) {
+        this.apiError = true;
+        return { Error: await response.json(), apiStatus: response.status };
+    }
     const data = await response.json();
     this.annotations = data;
     return data;

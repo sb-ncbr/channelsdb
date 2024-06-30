@@ -17,7 +17,6 @@ import {
     PluginUISpec,
   } from "molstar/lib/mol-plugin-ui/spec";
 import { PluginLayoutControlsDisplay } from "molstar/lib/mol-plugin/layout";
-import { SbNcbrPartialCharges } from "molstar/lib/extensions/sb-ncbr";
 import { DefaultPluginSpec, PluginSpec } from "molstar/lib/mol-plugin/spec";
 import { SelectionHelper } from "./CommonUtils/Selection";
 import { LayersVizualizerSettings, Vizualizer } from "./LayerVizualizer/Vizualizer";
@@ -25,7 +24,7 @@ import { Color } from "molstar/lib/mol-util/color";
 import { Controls } from "./Controls/UI";
 import ReactDOM from 'react-dom';
 import { Viewer } from "./MolViewer/UI";
-import { SbNcbrTunnels } from "./sb-ncbr/tunnels/behavior";
+import { SbNcbrTunnels } from "molstar/lib/extensions/sb-ncbr";
 
 (function() {
     const ROUTING_OPTIONS:any = {
@@ -102,6 +101,6 @@ import { SbNcbrTunnels } from "./sb-ncbr/tunnels/behavior";
 
     ReactDOM.render(<ProteinAnnotations controller={plugin}/>, document.getElementById('right-panel-tabs-1') !)
 
-    ReactDOM.render(<Controls />, document.getElementById('controls') !)
+    ReactDOM.render(<Controls controller={plugin}/>, document.getElementById('controls') !)
 
 })();

@@ -41,7 +41,7 @@
   },
   "dependencies": {
     "immutable": "^5.0.0-beta.5",
-    "molstar": "^4.2.0",
+    "molstar": "^4.3.0",
     "sass": "^1.63.6",
     "http-server": "^14.1.1"
   }

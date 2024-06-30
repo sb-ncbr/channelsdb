@@ -75,15 +75,11 @@ export class ChannelsDescriptions extends React.Component<{controller: Context }
     }
 
     render() {
-        if (this.state.data !== null) {
-            return(
-                <div>
-                    <DGTable {...this.state} />
-                </div>
-                );
-        } 
-        
-        return <div className="channels-descriptions" id="channels-descriptions-ui"/>
+        return(
+            <div>
+                <DGTable {...this.state} />
+            </div>
+            );
     }
 }  
 
@@ -120,7 +116,7 @@ class DGHead extends React.Component<State,{}>{
 class DGBody extends React.Component<State,{}>{
 
     private generateRows(){
-        if(this.props.data === null){
+        if(this.props.data === null || this.props.data.length == 0){
             return [
                 <tr><td colSpan={DGTABLE_COLS_COUNT} >There are no data to be displayed...</td></tr>,
                 <DGRowEmpty columnsCount={DGTABLE_COLS_COUNT}/>
@@ -153,13 +149,6 @@ class DGBody extends React.Component<State,{}>{
                     );
                 }
             }
-        }
-
-        if(rows.length===0){
-            return [
-                <tr><td colSpan={DGTABLE_COLS_COUNT} >There are no data to be displayed...</td></tr>,
-                <DGRowEmpty columnsCount={DGTABLE_COLS_COUNT}/>
-            ]
         }
 
         rows.push(<DGRowEmpty columnsCount={DGTABLE_COLS_COUNT}/>);

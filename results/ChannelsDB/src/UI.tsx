@@ -53,7 +53,7 @@ export class UI extends React.Component<{ plugin: Context }, { isLoading?: boole
         this.props.plugin.loadChannelData(channelsURL, this.currentProteinId.toLowerCase(), this.subDB)
             .then(data => {
                 if ((data as any).Error !== void 0){
-                    this.setState({ isLoading: false, error: (data as any).Error as string });
+                    this.setState({ isLoading: false, error: (data as any).Error.detail ? (data as any).Error.detail as string : JSON.stringify((data as any).Error), apiStatus: (data as any).apiStatus });
                 } else {
                     this.setState({ data: data });
                     AnnotationDataProvider.subscribeForData(this.defaultVisualsHandler.bind(this));
@@ -71,18 +71,18 @@ export class UI extends React.Component<{ plugin: Context }, { isLoading?: boole
     }
 
     render() {
-        if (this.state.data && !this.state.isLoading) {
+        if (this.state.data !== undefined && !this.state.isLoading) {
             return <Data data={this.state.data} plugin={this.props.plugin!} />
         } else {
             let controls = [];
-            if (this.state.isLoading || this.state.apiStatus === undefined) {
+            if (this.state.isLoading) {
                 controls.push(<h1>Loading...</h1>);
             } else {
                 if (this.state.error) {
                     let error = this.state.error as string|undefined;
                     let errorMessage:string = (error===void 0) ? "" : error;
                     if (this.state.apiStatus) {
-                        if (this.state.apiStatus === 404) {
+                        if (this.state.apiStatus !== 404) {
                             controls.push(
                                 <div className="error-message">
                                     <div>
