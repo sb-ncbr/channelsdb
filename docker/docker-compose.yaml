@@ -1,10 +1,22 @@
 name: channelsdb
 
 services:
+  database:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    networks:
+      - channelsdb-net
+    volumes:
+      - mongodb:/data/db
+
   api:
     build: ../api
     container_name: api
-    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --root-path /api --proxy-headers --workers 8
+    image: hahaha
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --root-path /api --proxy-headers
+    depends_on:
+      - database
     volumes:
       - ${CHANNELSDB_DATA:-/data}:/data:ro
     networks:
@@ -31,6 +43,19 @@ services:
       driver: journald
       options:
         tag: channelsdb-web
+
+  update:
+    depends_on:
+      - api
+      - database
+    image: hahaha
+    profiles: ['update']
+    networks:
+      - channelsdb-net
+    command: python3
+
+volumes:
+  mongodb:
 
 # Workaround for OpenStack networking
 # See: https://docs.e-infra.cz/compute/openstack/technical-reference/brno-site/faq/

@@ -4,6 +4,9 @@ from pydantic import AfterValidator
 from enum import Enum
 import requests
 from pydantic import BaseModel
+from collections import namedtuple
+
+ChannelInfo = namedtuple('ChannelInfo', ['type', 'software', 'name'])
 
 
 class IDError(BaseModel):
@@ -45,25 +48,25 @@ class SourceDatabase(Enum):
 
 
 CHANNEL_TYPES_PDB = {
-    'csa': 'CSATunnels_MOLE',
-    'cscaver': 'CSATunnels_Caver',
+    'csa': ChannelInfo('CSA', 'MOLE', 'CSATunnels_MOLE'),
+    'cscaver': ChannelInfo('CSA', 'Caver', 'CSATunnels_Caver'),
 
-    'authors': 'ReviewedChannels_MOLE',
-    'aucaver': 'ReviewedChannels_Caver',
+    'authors': ChannelInfo('Reviewed', 'MOLE', 'ReviewedChannels_MOLE'),
+    'aucaver': ChannelInfo('Reviewed', 'Caver', 'ReviewedChannels_Caver'),
 
-    'cofactors': 'CofactorTunnels_MOLE',
-    'cocaver': 'CofactorTunnels_Caver',
+    'cofactors': ChannelInfo('Cofactor', 'MOLE', 'CofactorTunnels_MOLE'),
+    'cocaver': ChannelInfo('Cofactor', 'Caver', 'CofactorTunnels_Caver'),
 
-    'pores': 'TransmembranePores_MOLE',
-    'pocaver': 'TransmembranePores_Caver',
+    'pores': ChannelInfo('Pore', 'MOLE', 'TransmembranePores_MOLE'),
+    'pocaver': ChannelInfo('Pore', 'Caver', 'TransmembranePores_Caver'),
 
-    'procognate': 'ProcognateTunnels_MOLE',
-    'procaver': 'ProcognateTunnels_Caver'
+    'procognate': ChannelInfo('Procognate', 'MOLE', 'ProcognateTunnels_MOLE'),
+    'procaver': ChannelInfo('Procognate', 'Caver', 'ProcognateTunnels_Caver')
 }
 
 CHANNEL_TYPES_ALPHAFILL = {
-    'alphafill': 'AlphaFillTunnels_MOLE',
-    'alphacaver': 'AlphaFillTunnels_Caver'
+    'alphafill': ChannelInfo('AlphaFill', 'MOLE', 'AlphaFillTunnels_MOLE'),
+    'alphacaver': ChannelInfo('AlphaFill', 'Caver', 'AlphaFillTunnels_Caver')
 }
 
 CHANNEL_TYPES = CHANNEL_TYPES_PDB | CHANNEL_TYPES_ALPHAFILL

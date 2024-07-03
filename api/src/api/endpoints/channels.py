@@ -10,7 +10,7 @@ from api.config import config
 from api.common import SourceDatabase, PDB_ID_Type, Uniprot_ID_Type, pdb_id_404_response, uniprot_id_404_response
 
 
-ChannelModel = create_model('ChannelModel', **{tunnel: (list, []) for tunnel in CHANNEL_TYPES.values()})
+ChannelModel = create_model('ChannelModel', **{tunnel: (list, []) for tunnel in (x.name for x in CHANNEL_TYPES.values())})
 
 
 class Channels(BaseModel):
@@ -53,7 +53,7 @@ def get_channels(source_db: SourceDatabase, protein_id: str):
                         res = []
                         for key in ('Paths', 'Tunnels', 'Pores', 'MergedPores'):
                             res.extend(orig['Channels'][key])
-                        data['Channels'][channel_types[name]] = res
+                        data['Channels'][channel_types[name].name] = res
                     except json.decoder.JSONDecodeError:
                         print(f'{protein_id} / {json_file} not a correct JSON')
                         continue
