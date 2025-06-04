@@ -55,10 +55,10 @@ class BootstrapDropDownMenuButton extends React.Component<{label: string, items:
 
 class DownloadResultsMenu extends React.Component<{disabled: boolean},{}>{
     render(){
-        let pdbid = GlobalRouter.getCurrentPid();
+        let protein_id = GlobalRouter.getCurrentPid();
         let subDB = GlobalRouter.getCurrentDB();
         let url = GlobalRouter.getChannelsURL();
-        let linkBase = subDB === "pdb" ? `${url}/download/${subDB}/${pdbid}` : `${url}/download/${subDB}/${pdbid.toLowerCase()}`;
+        let linkBase = `${url}/download/${subDB}/${protein_id}`;
         let items:JSX.Element[] = [];
     
         items.push(

@@ -50,7 +50,7 @@ export class UI extends React.Component<{ plugin: Context }, { isLoading?: boole
 
         this.setState({ isLoading: true, error: void 0 });
         AnnotationDataProvider.subscribeToPluginContext(this.props.plugin);
-        this.props.plugin.loadChannelData(channelsURL, this.currentProteinId.toLowerCase(), this.subDB)
+        this.props.plugin.loadChannelData(channelsURL, this.currentProteinId, this.subDB)
             .then(data => {
                 if ((data as any).Error !== void 0){
                     this.setState({ isLoading: false, error: (data as any).Error.detail ? (data as any).Error.detail as string : JSON.stringify((data as any).Error), apiStatus: (data as any).apiStatus });
@@ -64,7 +64,7 @@ export class UI extends React.Component<{ plugin: Context }, { isLoading?: boole
                 this.setState({ isLoading: false, error: e.message }); //'Application was unable to load data. Please try again later.'
             })
 
-        this.props.plugin.loadAnnotations(channelsURL, this.currentProteinId.toLowerCase(), this.subDB)
+        this.props.plugin.loadAnnotations(channelsURL, this.currentProteinId, this.subDB)
             .catch(e => {
                 console.log(`ERR on loading: ${e}`);
             })

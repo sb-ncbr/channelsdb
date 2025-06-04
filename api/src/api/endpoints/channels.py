@@ -34,7 +34,7 @@ def get_channels(source_db: SourceDatabase, protein_id: str):
 
     data = Channels().model_dump()
 
-    protein_dir = Path(config['dirs'][source_db.value.lower()]) / protein_id[1:3] / protein_id
+    protein_dir = Path(config['dirs'][source_db.value.lower()]) / protein_id[1:3].lower() / protein_id.lower()
 
     if source_db == SourceDatabase.PDB:
         channel_types = CHANNEL_TYPES_PDB

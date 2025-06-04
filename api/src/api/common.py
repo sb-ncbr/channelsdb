@@ -33,7 +33,7 @@ uniprot_id_404_response = {404: {'description': 'Uniprot ID not found', 'model':
 
 
 PDB_ID_REGEX = '^[1-9][a-z0-9]{3}$'
-UNIPROT_ID_REGEX = '^[a-zA-Z0-9]+$'
+UNIPROT_ID_REGEX = '^([OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2})$'
 
 PDB_ID_Type = Annotated[str, AnnotationPath(description='PDB ID', pattern=PDB_ID_REGEX), AfterValidator(validate_pdb_id)]
 Uniprot_ID_Type = Annotated[str, AnnotationPath(description='Uniprot ID', pattern=UNIPROT_ID_REGEX), AfterValidator(validate_uniprot_id)]
