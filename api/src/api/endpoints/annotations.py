@@ -34,7 +34,7 @@ def parse_sifts_data(xml_data: str) -> dict[str, tuple[str, dict[str, str]]]:
 
 
 def get_entry_annotations(uniprot_id: str, tree: ET) -> dict:
-    ns = {'': 'http://uniprot.org/uniprot'}
+    ns = {'': 'https://uniprot.org/uniprot'}
 
     entry = {'UniProtId': uniprot_id,
              'Function': '',
@@ -57,7 +57,7 @@ def get_entry_annotations(uniprot_id: str, tree: ET) -> dict:
 
 
 def get_uniprot_residue_annotations(mapping: tuple[str, dict[str, str]] | None, tree: ET) -> list[dict]:
-    ns = {'': 'http://uniprot.org/uniprot'}
+    ns = {'': 'https://uniprot.org/uniprot'}
 
     references: dict[str, tuple[str, str]] = {}
     for evidence in tree.iterfind('entry/evidence', ns):
