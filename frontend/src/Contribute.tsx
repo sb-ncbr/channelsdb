@@ -324,7 +324,7 @@ namespace ChannelsDB {
             const fs = this.state.formState;
             const issues = this.getIssues();
             return <div>
-                <p>If you would like to contribute to the ChannelsDB or point out not yet annotated systems with known channels, please use the form below, alternativelly annotate channels online with <a href='https://mole.upol.cz'>MOLEonline</a></p>
+                <p>If you would like to contribute to the ChannelsDB or point out not yet annotated systems with known channels, please use the form below, alternatively annotate channels online with <a href='https://moleonline.cz'>MOLEonline</a></p>
                 <div className='form-horizontal'>
                     <div>
                         <div className='form-group'>

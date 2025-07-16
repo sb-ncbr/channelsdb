@@ -59,7 +59,7 @@ namespace ChannelsDB {
                         <p style={justify}>
                             Once the channels have been identified a unique set of residues surrounding channel volume is retrieved. Given this set of residues, a physicochemical properties such as Hydropathy
                             are computed for each channel and its parts. Individual steps of the algorithm are highlighted at the picture below  and more details on the channel identification can be found
-                            in the respective <a href='https://dx.doi.org/10.1186/1758-2946-5-39' target='_blank'>paper</a>. Finally, user structures can be analysed using the <a href='https://mole.upol.cz' target='_blank'>
+                            in the respective <a href='https://dx.doi.org/10.1186/1758-2946-5-39' target='_blank'>paper</a>. Finally, user structures can be analysed using the <a href='https://moleonline.cz' target='_blank'>
                             online</a> as well as the <a href='https://webchem.ncbr.muni.cz/Platform/App/Mole' target='_blank'>command-line</a> version of MOLE.
                         </p>
                         <p style={reference}><small><a target='_blank' href='https://dx.doi.org/10.1186/1758-2946-5-39'>

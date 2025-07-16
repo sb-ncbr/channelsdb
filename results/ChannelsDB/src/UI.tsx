@@ -100,7 +100,7 @@ export class UI extends React.Component<{ plugin: Context }, { isLoading?: boole
                                         <b>Data for specified protein are not available.</b>
                                     </div>
                                     <div>
-                                        <i>If you think this protein has tunnels, try to calculate them at <a href="https://mole.upol.cz">MOLEonline</a> or <a href="https://loschmidt.chemi.muni.cz/caverweb/">CaverWeb</a>.</i>
+                                        <i>If you think this protein has tunnels, try to calculate them at <a href="https://moleonline.cz">MOLEonline</a> or <a href="https://loschmidt.chemi.muni.cz/caverweb/">CaverWeb</a>.</i>
                                     </div>
                                 </div>);
                         }
