@@ -21,7 +21,6 @@
   "license": "",
   "devDependencies": {
     "@types/byline": "^4.2.33",
-    "@types/gulp-util": "^3.0.38",
     "@types/node": "^20.4.2",
     "@types/react": "^18.2.14",
     "@types/react-dom": "^18.2.6",
@@ -30,7 +29,6 @@
     "css-loader": "^6.10.0",
     "gulp": "^4.0.2",
     "gulp-concat": "^2.6.1",
-    "gulp-util": "^3.0.8",
     "node-sass": "^9.0.0",
     "sass-loader": "^10.5.2",
     "style-loader": "^3.3.4",
