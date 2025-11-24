@@ -3,12 +3,10 @@
   "version": "1.0",
   "description": "",
   "scripts": {
-    "scss_to_css": "node-sass -w node_modules/molstar/lib/mol-plugin-ui/skin",
     "merge-js": "gulp merge-js",
     "merge-css": "gulp merge-css",
     "build-webpack": "npx webpack --mode production",
-    "build": "npm run merge-js && npm run merge-css && npm run build-webpack",
-    "start": "cd ./dist/ChannelsDB && http-server"
+    "build": "npm run merge-js && npm run merge-css && npm run build-webpack"
   },
   "main": "index.js",
   "typings": "index.d.ts",
@@ -29,7 +27,6 @@
     "css-loader": "^6.10.0",
     "gulp": "^4.0.2",
     "gulp-concat": "^2.6.1",
-    "node-sass": "^9.0.0",
     "sass-loader": "^10.5.2",
     "style-loader": "^3.3.4",
     "ts-loader": "^9.5.1",
@@ -40,7 +37,6 @@
   "dependencies": {
     "immutable": "^5.0.0-beta.5",
     "molstar": "^4.3.0",
-    "sass": "^1.63.6",
-    "http-server": "^14.1.1"
+    "sass": "^1.63.6"
   }
 }
