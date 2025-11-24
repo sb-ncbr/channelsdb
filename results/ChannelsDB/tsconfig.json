@@ -96,7 +96,6 @@
     //UI
     "src/State.ts",
     "src/UI.tsx",
-    "src/Spec.ts",
 
     "src/VizualizerMol/helpers.ts",
     "src/VizualizerMol/spec.ts",

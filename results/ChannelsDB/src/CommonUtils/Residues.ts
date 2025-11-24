@@ -18,28 +18,7 @@ export class Residues{
         if (residue_mon_ids && residue_mon_ids.at(residueSeqNumber)) {
             return residue_mon_ids[residueSeqNumber];
         }
-        /* if(plugin.context.select('polymer-visual')[0].props!==void 0){
-            let props = plugin.context.select('polymer-visual')[0].props as any;
-            if(props.model===void 0 || props.model.model===void 0){
-                return "";
-            }
-            let model = props.model.model as Model;
-            let params = LiteMol.Core.Structure.Query.residuesById(residueSeqNumber).compile()(
-                LiteMol.Core.Structure.Query.Context.ofStructure(
-                    model
-                )
-            );
 
-            let fragment = params.fragments[0];
-            let residueInd = fragment.residueIndices[0];
-            let residueData = params.context.structure.data.residues;
-
-            let resIdx = residueData.indices[residueInd];
-
-            let name = residueData.name[resIdx];
-
-            return name;
-        } */
         return "";
     }
 
