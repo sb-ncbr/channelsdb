@@ -5,7 +5,7 @@ import sys
 import re
 
 from api.config import config
-from api.common import CHANNEL_TYPES_PDB, CHANNEL_TYPES_ALPHAFILL, SourceDatabase, UNIPROT_ID_REGEX, PDB_ID_REGEX
+from api.common import CHANNEL_TYPES_PDB, CHANNEL_TYPES_ALPHAFILL, SourceDatabase, UNIPROT_ID_REGEX, PDB_ID_LOWER_REGEX
 
 
 def validate_annotations() -> bool:
@@ -25,7 +25,7 @@ def validate_annotations() -> bool:
 def validate_data(database: SourceDatabase) -> bool:
     if database == SourceDatabase.PDB:
         channel_types = set(CHANNEL_TYPES_PDB)
-        regex = PDB_ID_REGEX
+        regex = PDB_ID_LOWER_REGEX
     else:
         channel_types = set(CHANNEL_TYPES_ALPHAFILL)
         regex = UNIPROT_ID_REGEX
