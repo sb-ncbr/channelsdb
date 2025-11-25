@@ -456,11 +456,6 @@ only screen and (max-height: 600px) {
 	width:60%;
 	min-width:125px;
 }
-/*
-#layer-residues .datagrid .col.col-3,
-#layer-residues .datagrid * .col.col-3{
-    min-width: 110px;
-}*/
 
 #right-tabs-3 .datagrid .col.col-1,
 #right-tabs-3 .datagrid * .col.col-1{
@@ -472,12 +467,6 @@ only screen and (max-height: 600px) {
 	width:60%;
 	min-width:125px;
 }
-/*
-#right-tabs-3 .datagrid .col.col-3,
-#right-tabs-3 .datagrid * .col.col-3{
-    min-width: 110px;
-}
-*/
 
 .ui-selection-header,
 .ui-header{

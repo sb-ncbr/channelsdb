@@ -1,5 +1,4 @@
 div#left-tabs-2,
-/*div#right-tabs-1,*/
 div#right-tabs-2,
 div#right-tabs-3 {
     padding: 0 !important;
@@ -63,23 +62,6 @@ div#right-tabs-3 {
 	height:100%;
 }
 
-/*
-.datagrid .col.col-1,
-.datagrid * .col.col-1{
-	width:20%;
-	min-width:80px;
-}
-.datagrid .col.col-2,
-.datagrid * .col.col-2{
-	width:40%;
-	min-width:80px;
-}
-.datagrid .col.col-3,
-.datagrid * .col.col-3{
-	width:40%;
-	min-width:80px;
-}
-*/
 .datagrid .col:last-child,
 .datagrid * .col:last-child{
 	width:auto !important;
