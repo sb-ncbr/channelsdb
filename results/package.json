@@ -3,10 +3,9 @@
   "version": "1.0",
   "description": "",
   "scripts": {
-    "merge-js": "gulp merge-js",
-    "merge-css": "gulp merge-css",
+    "concat-assets": "node tools/concat-assets.js",
     "build-webpack": "npx webpack --mode production",
-    "build": "npm run merge-js && npm run merge-css && npm run build-webpack"
+    "build": "npm run concat-assets && npm run build-webpack"
   },
   "main": "index.js",
   "typings": "index.d.ts",
@@ -25,8 +24,6 @@
     "byline": "^5.0.0",
     "copy-webpack-plugin": "^11.0.0",
     "css-loader": "^6.10.0",
-    "gulp": "^4.0.2",
-    "gulp-concat": "^2.6.1",
     "sass-loader": "^10.5.2",
     "style-loader": "^3.3.4",
     "ts-loader": "^9.5.1",
