@@ -21,8 +21,10 @@ def validate_uniprot_id(uniprot_id: str):
 
 def validate_pdb_id(pdb_id: str):
     pdb_id = pdb_id.lower()
-    req = requests.head(f'https://www.ebi.ac.uk/pdbe/api/pdb/entry/summary/{pdb_id}')
-    if req.status_code > 500:
+
+    req = requests.get(f"https://www.ebi.ac.uk/pdbe/api/pdb/entry/summary/{pdb_id}", timeout=10)
+
+    if req.status_code >= 500:
         raise HTTPException(status_code=503, detail=f'PDBe API returned an error when accessing: {req.url}')
     if req.status_code != 200:
         raise HTTPException(status_code=404, detail=f'Cannot find PDB ID \'{pdb_id}\'')
