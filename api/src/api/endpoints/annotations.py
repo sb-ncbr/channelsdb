@@ -148,10 +148,11 @@ def get_channelsdb_residue_annotations(uniprot_id: str, mapping: SiftsMapping | 
 
 def fill_annotations(annotations: Annotations, mapping: SiftsMapping | None, uniprot_id: str) -> None:
     req = session.get(f'https://www.ebi.ac.uk/proteins/api/proteins/{uniprot_id}', headers={'accept': 'application/xml'}, timeout=10)
-    if req.status_code >= 500:
-        raise HTTPException(status_code=502, detail=f'EBI Proteins API returned an error when accessing: {req.url}')
-    if req.status_code != 200:
+    if req.status_code == 404:
         raise HTTPException(status_code=404, detail=f'Cannot load annotations for Uniprot ID \'{uniprot_id}\'')
+    # Any other failure (server error, rate limiting, ...) is an upstream problem
+    if req.status_code != 200:
+        raise HTTPException(status_code=502, detail=f'EBI Proteins API returned an error ({req.status_code}) when accessing: {req.url}')
     xml_data = req.content.decode('utf-8')
     tree = ET.fromstring(xml_data)
     annotations.EntryAnnotations.append(get_entry_annotations(uniprot_id, tree))
@@ -179,15 +180,14 @@ def get_annotations_pdb(pdb_id: PDB_ID_Type) -> Annotations:
 
     xml_data = gzip.decompress(req.content).decode('utf-8')
     sifts = parse_sifts_data(xml_data)
-    try:
-        for uniprot_id, mapping in sifts.items():
+    for uniprot_id, mapping in sifts.items():
+        try:
             fill_annotations(annotations, mapping, uniprot_id)
-    except HTTPException as e:
-        # Upstream server errors are reported as they are
-        if e.status_code >= 500:
-            raise
-        # We should never get here, this would mean incorrect SIFTS data
-        logger.warning('Inconsistent SIFTS data for PDB ID %s: %s', pdb_id, e.detail)
-        raise HTTPException(status_code=502, detail=f'Cannot load annotations for PDB ID \'{pdb_id}\'') from e
+        except HTTPException as e:
+            # Only unknown UniProt IDs are skipped, upstream failures are reported as they are
+            if e.status_code != 404:
+                raise
+            # SIFTS can refer to obsolete UniProt IDs, return annotations for the remaining ones
+            logger.warning('Skipping UniProt ID %s for PDB ID %s: %s', uniprot_id, pdb_id, e.detail)
 
     return annotations
