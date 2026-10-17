@@ -3,7 +3,7 @@
  */
 
 import '../css/AglomeredParameters.css';
-import '../css/bootstrap.min.css';
+import 'bootstrap/dist/css/bootstrap.min.css';
 import '../css/ChannelsDescriptions.css';
 import '../css/datagrid.css';
 import '../css/DownloadReport.css';
