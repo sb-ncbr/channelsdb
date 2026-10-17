@@ -1,114 +1,20 @@
 {
   "compilerOptions": {
     "target": "es2020",
-    "lib": [ "es6", "dom", "esnext.asynciterable", "es2016" ],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "forceConsistentCasingInFileNames": true,
+    "lib": ["es2020", "dom", "dom.iterable"],
     "module": "esnext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
-    "jsx": "react-jsx",
-    "rootDir": "./src",
-    "outDir": "./lib",
-    "ignoreDeprecations": "5.0",
-    "noImplicitAny": true,
-    "noEmitOnError": true,
-    "removeComments": false,
-    "sourceMap": false,
-    "declaration": false,
-    "strictNullChecks": true,
-    "noImplicitThis": true,
-    "types": ["vite/client"],
     "isolatedModules": true,
-    "skipDefaultLibCheck": true
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "strictNullChecks": true,
+    "skipLibCheck": true,
+    "types": ["vite/client"]
   },
-    "files": [
-    "src/main.ts",
-      
-    //Static Data
-    "src/StaticData.ts",
-
-    //Data Interface
-    "src/DataInterface.ts",
-
-    //Bridge
-    "src/Bridge.ts",
-
-    //Common Utils
-    "src/CommonUtils/Tunnels.ts",  
-    "src/CommonUtils/Residues.ts",
-    "src/CommonUtils/Numbers.ts", 
-    "src/CommonUtils/Selection.ts", 
-    "src/CommonUtils/Tooltips.ts", 
-    "src/CommonUtils/Tabs.ts",
-    "src/CommonUtils/Observable.ts",
-
-    //Annotation data provider
-    "src/AnnotationDataProvider.ts", 
-
-    //Layer Vizualizer
-    "src/LayerVizualizer/UI.tsx",
-    "src/LayerVizualizer/Backend.ts",           
-    "src/LayerVizualizer/Vizualizer.ts", 
-    "src/LayerVizualizer/Components.ts", 
-    "src/LayerVizualizer/Colors.ts", 
-
-    //Datagrid components
-    "src/Datagrid/Components.tsx",
-
-    //Aglomered parameters
-    "src/AglomeredParameters/UI.tsx",     
-
-    //ChannelsDescriptions
-    "src/ChannelsDescriptions/UI.tsx",  
-
-    //Layer Properties
-    "src/LayerProperties/UI.tsx",   
-    
-    //Layer Residues
-    "src/LayerResidues/UI.tsx",   
-
-    //Residue Annotations
-    "src/ResidueAnnotations/UI.tsx", 
-
-    //Protein Annotations
-    "src/ProteinAnnotations/UI.tsx",
-
-    //Lining Residues
-    "src/LiningResidues/UI.tsx",
-
-    //Controls
-    "src/Controls/UI.tsx",
-
-    //Download report
-    "src/DownloadReport/UI.tsx",
-
-    //PDBID sign
-    "src/PdbIdSign/UI.tsx",
-
-    "src/SimpleRouter.ts",
-
-    //MolChannels
-    "src/Context.ts",
-    "src/MolViewer/UI.tsx",
-    
-    //UI
-    "src/State.ts",
-    "src/UI.tsx",
-
-    "src/VizualizerMol/helpers.ts",
-    "src/VizualizerMol/spec.ts",
-    "src/VizualizerMol/plugin-custom-state.ts",
-    "src/VizualizerMol/sifts-mapping.ts",
-    "src/VizualizerMol/sifts-mappings-behaviour.ts",
-    "src/VizualizerMol/labels.ts",
-
-    //App
-    "src/App.tsx",
-
-  ],
-  "exclude": ["node_modules"],
+  "include": ["src"]
 }
