@@ -142,14 +142,14 @@ def fill_annotations(annotations: dict, mapping: tuple[str, dict[str, str]] | No
     annotations['ResidueAnnotations']['ChannelsDB'].extend(get_channelsdb_residue_annotations(uniprot_id, mapping))
 
 
-class ResidueAnnotations(BaseModel):
+class ResidueAnnotationsModel(BaseModel):
     ChannelsDB: list = []
     UniProt: list = []
 
 
 class Annotations(BaseModel):
     EntryAnnotations: list = []
-    ResidueAnnotations: ResidueAnnotations = ResidueAnnotations()
+    ResidueAnnotations: ResidueAnnotationsModel = ResidueAnnotationsModel()
 
 
 @app.get('/annotations/alphafill/{uniprot_id}', response_model=Annotations, name='Annotation data', tags=['AlphaFill'],
