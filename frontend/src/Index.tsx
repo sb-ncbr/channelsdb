@@ -2,6 +2,9 @@
  * Copyright (c) 2017 David Sehnal, licensed under Apache 2.0, See LICENSE file for more info.
  */
 
+import 'bootstrap/dist/css/bootstrap.min.css';
+import '../assets/css/channelsdb.css';
+
 import * as React from 'react';
 import { createRoot } from 'react-dom/client';
 import { About } from './About';
