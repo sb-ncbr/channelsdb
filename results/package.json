@@ -19,12 +19,12 @@
     "@types/react": "^18.2.14",
     "@types/react-dom": "^18.2.6",
     "rolldown": "^1.2.14",
+    "sass": "^1.105.2",
     "typescript": "^5.1.6",
     "vite": "^8.3.4"
   },
   "dependencies": {
     "immutable": "^5.0.0-beta.5",
-    "molstar": "^4.3.0",
-    "sass": "^1.63.6"
+    "molstar": "^4.3.0"
   }
 }
