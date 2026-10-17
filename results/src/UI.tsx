@@ -13,7 +13,7 @@ import { ChannelsDBData, Tunnel, TunnelMetaInfo } from "./DataInterface";
 import { Context } from "./Context";
 import { Subscription } from "rxjs"
 
-declare function $(p:any): any;
+import $ from "./jquery";
 
 export class UI extends React.Component<{ plugin: Context }, { isLoading?: boolean, error?: string, data?: any, isWaitingForData?: boolean, apiStatus: number|undefined }> {
 

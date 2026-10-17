@@ -10,7 +10,7 @@ import { PluginCommands } from "molstar/lib/mol-plugin/commands";
 let DGTABLE_COLS_COUNT = 2;
 let NO_DATA_MESSAGE = "Select channel in 3D view for details...";
 
-declare function $(p:any): any;
+import $ from "../jquery";
 
 interface State{
     data: string[] | null,

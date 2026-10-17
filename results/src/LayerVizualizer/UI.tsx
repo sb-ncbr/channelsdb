@@ -9,7 +9,7 @@ import { QueryParam } from "../VizualizerMol/helpers";
 import { Context } from "../Context";
 import noImageUrl from "../../images/no_img.png";
 
-declare function $(p:any): any;
+import $ from "../jquery";
 
 export class LayerVizualizer extends React.Component<{ vizualizer: Vizualizer, controller: Context }, State> {
 

@@ -1,4 +1,4 @@
-declare function $(p:any): any;
+import $ from '../jquery';
 
 export function getTabLinkById(tabbedElementId:string, tabId:string){
     let tabs = $(`#${tabbedElementId} li a`);

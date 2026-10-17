@@ -8,7 +8,7 @@ import { SimpleObservable } from "../CommonUtils/Observable";
 
 let DGTABLE_COLS_COUNT = 2;
 
-declare function $(p:any): any;
+import $ from "../jquery";
 
 interface State{
     data: Tunnel[] | null,

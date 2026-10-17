@@ -2,7 +2,7 @@
  * Panel togglers and sizes of the tables (datagrids) and panels, which fill the space available in their tabs.
  */
 
-declare function $(p: any): any;
+import $ from '../jquery';
 
 function parseStyleNumeric(value: string) {
     const number = Number(value.split('px')[0]);

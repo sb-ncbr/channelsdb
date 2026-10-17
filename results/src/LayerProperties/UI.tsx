@@ -8,7 +8,7 @@ import { Context } from "../Context";
 let DGTABLE_COLS_COUNT = 2;
 let NO_DATA_MESSAGE = "Hover over channel(2D) for details...";
 
-declare function $(p:any): any;
+import $ from "../jquery";
 
 interface State{
     data: LayersInfo[] | null,

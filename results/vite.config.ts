@@ -1,5 +1,4 @@
 import { defineConfig } from 'vite';
-import legacyScripts from './tools/legacy-scripts.ts';
 
 // Running ChannelsDB, used by the dev server for the API. By default the docker compose setup on this machine,
 // which uses CHANNELSDB_PORT (port 80 if not set)
@@ -8,7 +7,6 @@ const backend = process.env.CHANNELSDB_URL ?? `http://localhost:${process.env.CH
 export default defineConfig({
     // The page is served at /detail/
     base: '/detail/',
-    plugins: [legacyScripts()],
     build: {
         // Bootstrap is already minified; minifying it again rounds its line heights and shifts the layout by a pixel
         cssMinify: false,

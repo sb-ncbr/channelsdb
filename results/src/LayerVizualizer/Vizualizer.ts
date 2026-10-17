@@ -7,7 +7,7 @@ import { LayerData } from "../DataInterface";
 import { interpolateRGB } from "./Colors";
 import { C2S } from "../vendor/canvas2svg";
 
-declare function $(p:any): any;    
+import $ from "../jquery";
 
 export type DataURL = string;
 

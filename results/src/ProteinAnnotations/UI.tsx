@@ -6,7 +6,7 @@ import React from "react";
 
 let DGTABLE_COLS_COUNT = 3;
 
-declare function $(p:any): any;
+import $ from "../jquery";
 
 interface State{
     data: ProteinAnnotation[] | null,
