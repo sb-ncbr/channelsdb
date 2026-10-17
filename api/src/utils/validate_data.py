@@ -22,13 +22,17 @@ def validate_annotations() -> bool:
     return is_ok
 
 
-def validate_data(database: SourceDatabase) -> bool:
+def is_valid_id_dir(name: str, database: SourceDatabase) -> bool:
+    # Entry directories are named by lowercased IDs, as the API looks them up
+    if name != name.lower():
+        return False
     if database == SourceDatabase.PDB:
-        channel_types = set(CHANNEL_TYPES_PDB)
-        regex = PDB_ID_LOWER_REGEX
-    else:
-        channel_types = set(CHANNEL_TYPES_ALPHAFILL)
-        regex = UNIPROT_ID_REGEX
+        return re.search(PDB_ID_LOWER_REGEX, name) is not None
+    return re.search(UNIPROT_ID_REGEX, name.upper()) is not None
+
+
+def validate_data(database: SourceDatabase) -> bool:
+    channel_types = set(CHANNEL_TYPES_PDB) if database == SourceDatabase.PDB else set(CHANNEL_TYPES_ALPHAFILL)
     is_ok = True
     root = Path(config['dirs'][database.lower()])
     for datafile in root.rglob('*'):
@@ -40,7 +44,7 @@ def validate_data(database: SourceDatabase) -> bool:
                pathlen > 2:
                 print(f'{datafile} is not a correctly placed directory', file=sys.stderr)
                 is_ok = False
-            elif pathlen == 2 and re.search(regex, relpath.parts[1]) is None:
+            elif pathlen == 2 and not is_valid_id_dir(relpath.parts[1], database):
                 print(f'{datafile} does not represent a valid ID for {database}', file=sys.stderr)
                 is_ok = False
         elif datafile.is_file():

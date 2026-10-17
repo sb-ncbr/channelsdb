@@ -14,7 +14,8 @@ def get_stored_ids(datadir: str) -> list[str]:
 
 
 stored_pdb_ids = get_stored_ids(config['dirs']['pdb'])
-stored_uniprot_ids = get_stored_ids(config['dirs']['alphafill'])
+# AlphaFill directories are named by lowercased UniProt IDs
+stored_uniprot_ids = [uniprot_id.upper() for uniprot_id in get_stored_ids(config['dirs']['alphafill'])]
 
 
 def pytest_addoption(parser):
