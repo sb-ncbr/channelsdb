@@ -2,15 +2,21 @@
   "compilerOptions": {
     "target": "es2018",
     "module": "esnext",
-    "moduleResolution": "node",
-    "lib": ["es2018", "dom"],
+    "moduleResolution": "bundler",
+    "lib": [
+      "es2018",
+      "dom"
+    ],
     "jsx": "react",
     "esModuleInterop": true,
     "skipLibCheck": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
     "noImplicitThis": true,
-    "noEmitOnError": true
+    "isolatedModules": true,
+    "noEmit": true
   },
-  "include": ["src/**/*"]
+  "include": [
+    "src/**/*"
+  ]
 }

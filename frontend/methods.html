@@ -16,9 +16,9 @@
 
 <body>
     <div id="app"></div>
-    <script src="assets/js/search.js"></script>
-    <script>
-        ChannelsDB.renderUI(document.getElementById('app'), 'Methods');
+    <script type="module">
+        import { renderUI } from './src/Index.tsx';
+        renderUI(document.getElementById('app'), 'Methods');
     </script>
 </body>
 
