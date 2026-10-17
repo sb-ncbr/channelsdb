@@ -1,22 +1,20 @@
 {
   "compilerOptions": {
-    "target": "es2018",
+    "target": "es2020",
+    "lib": ["es2022", "dom", "dom.iterable"],
     "module": "esnext",
     "moduleResolution": "bundler",
-    "lib": [
-      "es2018",
-      "dom"
-    ],
-    "jsx": "react",
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "noImplicitThis": true,
+    "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "strictNullChecks": true,
+    "skipLibCheck": true,
+    "types": ["vite/client"]
   },
-  "include": [
-    "src/**/*"
-  ]
+  "include": ["src"]
 }
