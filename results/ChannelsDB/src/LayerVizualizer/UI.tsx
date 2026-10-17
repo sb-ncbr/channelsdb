@@ -416,9 +416,6 @@ class ExportTypeButton extends React.Component<{instanceId:number,exportType:str
             case "SVG":
                 imgDataUrl = instance.exportSVGImage();
                 break;
-            /*case "PDF":
-                imgDataUrl = instance.exportPDF();
-                break;*/
             default:
                 throw new Error(`Unsupported export type '${exportType}'`);
         }
@@ -434,7 +431,7 @@ class ExportTypeButton extends React.Component<{instanceId:number,exportType:str
 class ExportButton extends React.Component<{instanceId:number},{}>{
     private generateItems(){
         let rv = [] as JSX.Element[];
-        let supportedExportTypes = ["PNG","SVG"/*,"PDF"*/];
+        let supportedExportTypes = ["PNG","SVG"];
         for(let type of supportedExportTypes){
             rv.push(
                 <ExportTypeButton instanceId={this.props.instanceId} exportType={type} />

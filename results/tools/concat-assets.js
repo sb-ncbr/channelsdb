@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /* Builds ChannelsDB/js/scripts.js from the libraries and scripts that the code uses as globals (jQuery, Bootstrap,
- * jsPDF, ...). They are plain browser scripts, not modules, so they cannot be bundled with the rest of the code.
+ * canvas2svg, ...). They are plain browser scripts, not modules, so they cannot be bundled with the rest of the code.
  * ChannelsDB/src/main.ts loads the result before starting the application.
  */
 
@@ -11,12 +11,10 @@ import { minify } from 'rolldown/utils';
 
 const jsFiles = [
   './ChannelsDB/js/jquery-3.7.1.js',
-  './ChannelsDB/js/jspdf.min.js',
   './ChannelsDB/js/bootstrap.min.js',
   './ChannelsDB/js/canvas2svg.js',
   './ChannelsDB/js/datagrid.js',
   './ChannelsDB/js/Palette.js',
-  './ChannelsDB/js/svg2pdf.js',
   './ChannelsDB/js/tabsConfig.js',
   './ChannelsDB/js/tooltipConfig.js',
   './ChannelsDB/js/utf8.js',
