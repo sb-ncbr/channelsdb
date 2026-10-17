@@ -13,6 +13,6 @@ async def get_assembly_id(pdb_id: PDB_ID_Type) -> str:
     if req.status_code > 500:
         raise HTTPException(status_code=503, detail=f'PDBe API returned an error when accessing: {req.url}')
     if req.status_code != 200:
-        raise HTTPException(status_code=404, detail='Cannot find assembly for PDB ID \'{pdb_id}\'')
+        raise HTTPException(status_code=404, detail=f'Cannot find assembly for PDB ID \'{pdb_id}\'')
     data = json.loads(req.content)[pdb_id][0]['assemblies']
     return next(assembly['assembly_id'] for assembly in data if assembly['preferred'])
