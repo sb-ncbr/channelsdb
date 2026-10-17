@@ -28,7 +28,7 @@ FOOTER = '''\
     cmd.set('sphere_color', '{color}', '{name}')
     cmd.show('spheres', '{name}')
 {name}()
-cmd.group('Channels', [{name}], 'add')
+cmd.group('Channels', '{name}', 'add')
 '''
 
 
