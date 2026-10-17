@@ -1,22 +1,22 @@
-FROM node:20-slim as frontend
+FROM node:20-slim AS frontend
 
 WORKDIR /build
 
 COPY ./frontend/package.json ./frontend/package-lock.json /build/
 
-RUN npm install
+RUN npm ci
 
 COPY ./frontend /build
 
 RUN ./node_modules/.bin/tsc
 
-FROM node:20-slim as results
+FROM node:20-slim AS results
 
 WORKDIR /build
 
 COPY ./results/package.json ./results/package-lock.json /build/
 
-RUN npm install
+RUN npm ci
 
 COPY ./results /build
 
