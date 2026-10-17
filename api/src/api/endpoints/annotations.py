@@ -22,12 +22,12 @@ type SiftsMapping = tuple[str, dict[str, str]]
 
 def parse_sifts_data(xml_data: str) -> dict[str, SiftsMapping]:
     tree = ET.fromstring(xml_data)
-    data = {}
+    data: dict[str, SiftsMapping] = {}
     ns = {'': 'http://www.ebi.ac.uk/pdbe/docs/sifts/eFamily.xsd'}
     for entity in tree.iterfind('entity', ns):
         chain = entity.attrib['entityId']
         for segment in entity.iterfind('segment', ns):
-            for residue in segment.find('listResidue', ns):
+            for residue in segment.iterfind('listResidue/residue', ns):
                 if (uniprot_node := residue.find('./crossRefDb[@dbCoordSys="UniProt"]', ns)) is not None:
                     uniprot_id = uniprot_node.attrib['dbAccessionId']
                     uniprot_res_num = uniprot_node.attrib['dbResNum']
