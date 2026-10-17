@@ -54,11 +54,11 @@ class EditableRow extends React.Component<TableSpec<any> & { add: (e: Entry<any>
         const curr = this.state.value;
         const canAdd = Object.keys(curr).every((k) => typeof curr[k] === 'string' && curr[k].trim().length > 0) && Object.keys(curr).length === cols.length;
         return <tr>
-            {cols.map((c) => <td key={c} style={{ width: spec[c].width }} className='form-group'>
+            {cols.map((c) => <td key={c} style={{ width: spec[c].width }}>
                 <input ref={(r) => c === cols[0] ? this.first = r! : void 0} name={c} className='form-control' type='text' placeholder={spec[c].placeholder} onChange={(e) => this.update(e.target)} value={curr[c] || ''} onKeyPress={ (e) => e.key === 'Enter' ? this.add() : void 0 } />
             </td>)}
             <td key='actions'>
-                <button className='btn btn-success' disabled={!canAdd} onClick={() => this.add()}><span className='glyphicon glyphicon-plus' aria-hidden='true'></span></button>
+                <button className='btn btn-success' disabled={!canAdd} onClick={() => this.add()}><span className='bi bi-plus-lg' aria-hidden='true'></span></button>
             </td>
         </tr>;
     }
@@ -112,7 +112,7 @@ class EditableTable<T> extends React.Component<TableSpec<T> & { updated: () => v
                     this.state.entries.map((e) => <tr key={(e as any)._id}>
                         {cols.map((c) => <td key={c} style={{ width: spec[c].width, verticalAlign: 'middle', padding: '0 15px' }}>{(e as any)[c]}</td>)}
                         <td key='actions'>
-                            <button className='btn btn-danger' onClick={() => this.remove(e)}><span className='glyphicon glyphicon-remove' aria-hidden='true'></span></button>
+                            <button className='btn btn-danger' onClick={() => this.remove(e)}><span className='bi bi-x-lg' aria-hidden='true'></span></button>
                         </td>
                     </tr>)
                 }
@@ -299,7 +299,7 @@ export class Contribute extends React.Component<{}, { state: 'editing' | 'submit
         return <div>
             <h2 style={{ textAlign: 'center' }}>Thank you for submitting your data.</h2>
              <button
-                className='btn btn-primary btn-block' onClick={() => this.setState({ state: 'editing' })}>
+                className='btn btn-primary w-100' onClick={() => this.setState({ state: 'editing' })}>
                 Submit another...
             </button>
         </div>;
@@ -327,16 +327,16 @@ export class Contribute extends React.Component<{}, { state: 'editing' | 'submit
         const issues = this.getIssues();
         return <div>
             <p>If you would like to contribute to the ChannelsDB or point out not yet annotated systems with known channels, please use the form below, alternatively annotate channels online with <a href='https://moleonline.cz'>MOLEonline</a></p>
-            <div className='form-horizontal'>
+            <div>
                 <div>
-                    <div className='form-group'>
-                        <label className='control-label col-sm-2' htmlFor='pdbId'>PDB identifier</label>
+                    <div className='row mb-3'>
+                        <label className='col-sm-2 col-form-label text-sm-end' htmlFor='pdbId'>PDB identifier</label>
                         <div className='col-sm-10'>
                             <input type='text' className='form-control' data-tip='hi :)!' placeholder='1tqn' name='pdbId' value={fs.pdbId} onChange={(e) => this.update(e.target)} />
                         </div>
                     </div>
-                    <div className='form-group'>
-                        <label className='control-label col-sm-2' htmlFor='email'>E-mail</label>
+                    <div className='row mb-3'>
+                        <label className='col-sm-2 col-form-label text-sm-end' htmlFor='email'>E-mail</label>
                         <div className='col-sm-10'>
                             <input type='text' className='form-control' name='email' placeholder='(optional for further contact) jon.snow@uni.ac.uk' onChange={(e) => this.update(e.target)} value={fs.email} />
                         </div>
@@ -350,8 +350,8 @@ export class Contribute extends React.Component<{}, { state: 'editing' | 'submit
                     <hr className='featurette-divider' style={{ margin: '20px 0' }} />
 
                     <div className='input-group'>
-                        <label className='input-group-btn'>
-                            <span className='btn btn-default'>Select channels&hellip; <input type='file' style={{ display: 'none' }} multiple onChange={(e) => this.setFiles(e.target)} /></span>
+                        <label className='btn btn-light border'>
+                            Select channels&hellip; <input type='file' style={{ display: 'none' }} multiple onChange={(e) => this.setFiles(e.target)} />
                         </label>
                         <input type='text' className='form-control' readOnly value={fs.files.map((f) => f.name).join(', ')} />
                     </div><br />
@@ -362,7 +362,7 @@ export class Contribute extends React.Component<{}, { state: 'editing' | 'submit
                             {issues.map((i) => <li key={i}>{i}</li>)}
                         </ul>
                     </div>
-                    : <button className='btn btn-block btn-primary' onClick={() => this.submitStart()}>
+                    : <button className='btn w-100 btn-primary' onClick={() => this.submitStart()}>
                         Submit
                     </button>}
             </div>

@@ -45,7 +45,7 @@ export class Methods extends React.Component<{}, {}> {
                       Pravda,L. and Berka,K. et al. <i>Anatomy of enzyme channels</i>. BMC Bioinformatics, 15, 379. (2014)</a></small></p>
                 </div>
                 <div className='col-md-5'>
-                    <img style={{margin: '60px 0'}} className='featurette-image img-responsive center-block' src={'assets/img/channel_detail.webp'} width='500' height='500' alt='Channel details' />
+                    <img style={{margin: '60px 0'}} className='featurette-image img-fluid d-block mx-auto' src={'assets/img/channel_detail.webp'} width='500' height='500' alt='Channel details' />
                 </div>
             </div>
 
@@ -53,7 +53,7 @@ export class Methods extends React.Component<{}, {}> {
 
             <div className='row featurette'>
                 <h2 className='featurette-heading'>MOLE</h2>
-                <div className='col-md-7 col-md-push-5'>
+                <div className='col-md-7 order-md-2'>
                     <p style={justify}>MOLE is a software tool used for channel identification throughout the ChannelsDB. First, the algorithm calculates Delaunay triangulation/Voronoi diagram of the atomic centers
                         (see step (1) in the figure). Next, regions suitable for channel identification are calculated using a set of predefined parameters (2,3). Channel starting and end points
                         are identified in these cavity diagrams (4,5) and the most favourable channels are identified among a set of starting points and ending points (6). 
@@ -71,8 +71,8 @@ export class Methods extends React.Component<{}, {}> {
                     Berka,K. et al. <i>MOLEonline 2.0: interactive web-based analysis of biomacromolecular channels</i>.
                     Nucleic Acids Res., 40, W222-7. (2012)</a></small></p>
                 </div>
-                 <div className='col-md-5 col-md-pull-7'>
-                    <img className='featurette-image img-responsive center-block' src={'assets/img/alg_outline.jpg'} width='500' height='500' alt='Channel details' />
+                 <div className='col-md-5 order-md-1'>
+                    <img className='featurette-image img-fluid d-block mx-auto' src={'assets/img/alg_outline.jpg'} width='500' height='500' alt='Channel details' />
                 </div>
             </div>
 
@@ -80,7 +80,7 @@ export class Methods extends React.Component<{}, {}> {
 
             <div className='row featurette'>
                 <h2 className='featurette-heading'>CAVER</h2>
-                <div className='col-md-7 col-md-push-5'>
+                <div className='col-md-7 order-md-2'>
                     <p style={justify}>CAVER is a software tool for the detection of tunnels and channels in the protein structures and their ensembles. In the first step, the Voronoi diagram representation
                      of the molecule (A) is constructed and the cost for each Voronoi edge is calculated with respect to its width (B). In the second step, too narrow edges are filtered out and the Djikstra’s 
                      algorithm is used to find all shortest paths to the protein surface (C). In the third step, the tunnels are clustered and too similar tunnels are removed. In the last step, the characteristics 
@@ -94,8 +94,8 @@ export class Methods extends React.Component<{}, {}> {
                     2012;8(10):e1002708. doi: 10.1371/journal.pcbi.1002708.
                     </span></a></small></p>  
                 </div>
-                 <div className='col-md-5 col-md-pull-7'>
-                    <img className='featurette-image img-responsive center-block' src={'assets/img/figure_caver.jpg'} width='500' height='500' alt='Channel details' />
+                 <div className='col-md-5 order-md-1'>
+                    <img className='featurette-image img-fluid d-block mx-auto' src={'assets/img/figure_caver.jpg'} width='500' height='500' alt='Channel details' />
                 </div>
             </div>
 
@@ -147,8 +147,8 @@ export class Methods extends React.Component<{}, {}> {
                             micro-environment. In this study, all histidines are treated as positively charged.</p>
                             <p>Charge property is a sum of all positively and negatively charged amino acids.</p>
                 </div>
-                <div style={{ marginTop: 30 }} className='row table-responsive col-md-8 col-md-offset-2'>
-                    <table className='table table-condensed active'>
+                <div style={{ marginTop: 30 }} className='row table-responsive col-md-8 offset-md-2'>
+                    <table className='table table-sm active'>
                         <thead>
                         <tr>
                             <th>Residue</th>
@@ -183,7 +183,7 @@ export class Methods extends React.Component<{}, {}> {
                     </table>      
                  </div>              
             </div>    
-            <ScrollButton scrollStepInPx='50' delayInMs='10'/>                                          
+            <ScrollButton />                                          
         </div>;
     }
 }

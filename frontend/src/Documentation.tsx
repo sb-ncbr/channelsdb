@@ -18,33 +18,33 @@ export class Documentation extends React.Component<{}, {}> {
 
             <h2>Table of content</h2>
             <div className='list-group well-sm'>
-                <a href='#db-content' className='list-group-item'>
-                    <h4 className='list-group-item-heading'>Database content</h4>
-                    <p className='list-group-item-text'>What you can find in the database?</p>
+                <a href='#db-content' className='list-group-item list-group-item-action'>
+                    <h4 className='list-group-item-heading mb-1'>Database content</h4>
+                    <p className='list-group-item-text mb-0'>What you can find in the database?</p>
                 </a>
-                <a href='#db-nomenclature' className='list-group-item'>
-                    <h4 className='list-group-item-heading'>Channels nomenclature </h4>
-                    <p className='list-group-item-text'>Nomenclature used for channel naming.</p>
+                <a href='#db-nomenclature' className='list-group-item list-group-item-action'>
+                    <h4 className='list-group-item-heading mb-1'>Channels nomenclature </h4>
+                    <p className='list-group-item-text mb-0'>Nomenclature used for channel naming.</p>
                 </a>
-                <a href='#db-mole' className='list-group-item'>
-                    <h4 className='list-group-item-heading'>MOLE settings</h4>
-                    <p className='list-group-item-text'>Settings used for channel extraction.</p>
+                <a href='#db-mole' className='list-group-item list-group-item-action'>
+                    <h4 className='list-group-item-heading mb-1'>MOLE settings</h4>
+                    <p className='list-group-item-text mb-0'>Settings used for channel extraction.</p>
                 </a>
-                <a href='#db-caver' className='list-group-item'>
-                    <h4 className='list-group-item-heading'>CAVER settings</h4>
-                    <p className='list-group-item-text'>Settings used for channel extraction.</p>
+                <a href='#db-caver' className='list-group-item list-group-item-action'>
+                    <h4 className='list-group-item-heading mb-1'>CAVER settings</h4>
+                    <p className='list-group-item-text mb-0'>Settings used for channel extraction.</p>
                 </a>
-                <a href='#db-cofactors' className='list-group-item'>
-                    <h4 className='list-group-item-heading'>Cofactors</h4>
-                    <p className='list-group-item-text'>List of cofactors used for channel calculation.</p>
+                <a href='#db-cofactors' className='list-group-item list-group-item-action'>
+                    <h4 className='list-group-item-heading mb-1'>Cofactors</h4>
+                    <p className='list-group-item-text mb-0'>List of cofactors used for channel calculation.</p>
                 </a>                    
-                <a href='#db-results' className='list-group-item'>
-                    <h4 className='list-group-item-heading'>Results view</h4>
-                    <p className='list-group-item-text'>How to read the results page?</p>
+                <a href='#db-results' className='list-group-item list-group-item-action'>
+                    <h4 className='list-group-item-heading mb-1'>Results view</h4>
+                    <p className='list-group-item-text mb-0'>How to read the results page?</p>
                 </a>                    
-                <a href='#db-api' className='list-group-item'>
-                    <h4 className='list-group-item-heading'>API</h4>
-                    <p className='list-group-item-text'>How to access content of the database programatically.</p>
+                <a href='#db-api' className='list-group-item list-group-item-action'>
+                    <h4 className='list-group-item-heading mb-1'>API</h4>
+                    <p className='list-group-item-text mb-0'>How to access content of the database programatically.</p>
                 </a>                                        
             </div>
 
@@ -67,7 +67,7 @@ export class Documentation extends React.Component<{}, {}> {
                     </p>
                 </div>
                 <div className='col-md-4'>
-                    <img className='featurette-image img-responsive center-block' src={'assets/img/pretty_channel.webp'} width='500' height='500' alt='Channel details' />
+                    <img className='featurette-image img-fluid d-block mx-auto' src={'assets/img/pretty_channel.webp'} width='500' height='500' alt='Channel details' />
                 </div>
             </div>
 
@@ -78,8 +78,8 @@ export class Documentation extends React.Component<{}, {}> {
                     <h2 className='featurette-heading'>Channel nomenclature</h2>
                     <p>Unless the channel has been given a particular name in literature, which is the case e.g. for a group of <a href='https://dx.doi.org/10.1016/j.bbagen.2006.07.005' target='_blank'>cytochrome P450s</a>, 
                     names are given to accordingly the following controlled vocabulary:</p>
-                    <div className='row table-responsive col-md-8 col-md-offset-2'>
-                        <table className='table table-condensed active'>
+                    <div className='row table-responsive col-md-8 offset-md-2'>
+                        <table className='table table-sm active'>
                         <thead>
                         <tr>
                             <th>Name</th>
@@ -148,9 +148,9 @@ export class Documentation extends React.Component<{}, {}> {
                 <p style={justify}>Throughout the ChannelsDB the following settings of the MOLE algorithm have been used for individual types of channels.</p>
                 <h4 className='featurette-heading'>Reviewed channels</h4>
                 <p style={justify}>Each calculation has been independently adjusted, in order to extract deemed channels.</p>                        
-                <div className='row table-responsive col-md-4 col-md-offset-1'>
+                <div className='row table-responsive col-md-4 offset-md-1'>
                     <h2 className='featurette-heading'>CSA tunnels</h2>
-                    <table className='table table-condensed active'>
+                    <table className='table table-sm active'>
                         <thead>
                             <tr>
                                 <th>Parameter</th>
@@ -190,9 +190,9 @@ export class Documentation extends React.Component<{}, {}> {
                     </table>
                 </div>
 
-                <div className='row table-responsive col-md-4 col-md-push-2'>
+                <div className='row table-responsive col-md-4 offset-md-2'>
                     <h2 className='featurette-heading'>Cofactor tunnels</h2>
-                    <table className='table table-condensed active'>
+                    <table className='table table-sm active'>
                         <thead>
                             <tr>
                                 <th>Parameter</th>
@@ -236,9 +236,9 @@ export class Documentation extends React.Component<{}, {}> {
                     </table>
                 </div>
 
-                <div className='row table-responsive col-md-4 col-md-push-2'>
+                <div className='row table-responsive col-md-4 offset-md-2'>
                     <h2 className='featurette-heading'>Cognate tunnels</h2>
-                    <table className='table table-condensed active'>
+                    <table className='table table-sm active'>
                         <thead>
                             <tr>
                                 <th>Parameter</th>
@@ -282,9 +282,9 @@ export class Documentation extends React.Component<{}, {}> {
                     </table>
                 </div>
 
-                <div className='row table-responsive col-md-4 col-md-push-2'>
+                <div className='row table-responsive col-md-4'>
                     <h2 className='featurette-heading'>AlphaFill tunnels</h2>
-                    <table className='table table-condensed active'>
+                    <table className='table table-sm active'>
                         <thead>
                             <tr>
                                 <th>Parameter</th>
@@ -335,9 +335,9 @@ export class Documentation extends React.Component<{}, {}> {
             <div className='row'>
                 <h2 className='featurette-heading'>CAVER settings</h2>
                 <p style={justify}>All tunnels from CAVER in ChannelsDB were calculated using the following settings. Reviewed tunnels calculated by Caver used manually adjusted startings points and smaller probe 0.7 Å.</p>
-                <div className='row table-responsive col-md-4 col-md-offset-1'>
+                <div className='row table-responsive col-md-4 offset-md-1'>
                     <h2 className='featurette-heading'>CAVER tunnels</h2>
-                    <table className='table table-condensed active'>
+                    <table className='table table-sm active'>
                         <thead>
                             <tr>
                                 <th>Parameter</th>
@@ -368,8 +368,8 @@ export class Documentation extends React.Component<{}, {}> {
             <div className='row'>
                     <h2 className='featurette-heading'>Cofactors list</h2>
                     <p>The well-known biologically important cofactors, which are often buried within a protein structure, have been selected for a channel extraction.</p>
-                    <div className='row table-responsive col-md-8 col-md-offset-2'>
-                        <table className='table table-condensed active'>
+                    <div className='row table-responsive col-md-8 offset-md-2'>
+                        <table className='table table-sm active'>
                         <thead>
                         <tr>
                             <th>Group</th>
@@ -466,12 +466,12 @@ export class Documentation extends React.Component<{}, {}> {
                         
                     </div>                    
                 <div className='col-md-7'>
-                    <img className='featurette-image img-responsive center-block' src={'assets/img/web-fig1.webp'} width='500' height='500' alt='Result window detail' />
+                    <img className='featurette-image img-fluid d-block mx-auto' src={'assets/img/web-fig1.webp'} width='500' height='500' alt='Result window detail' />
                 </div>                    
             </div>
 
             <div style={{ margin: '50px 0' }} className='row featurette col-md-12'>
-                    <img className='featurette-image img-responsive center-block' src={'assets/img/web-fig2.webp'} width='800' alt='2D detailed channel view' />
+                    <img className='featurette-image img-fluid d-block mx-auto' src={'assets/img/web-fig2.webp'} width='800' alt='2D detailed channel view' />
             </div>  
 
             {React.createElement('a' as any, { 'name': 'db-api' })}
@@ -482,7 +482,7 @@ export class Documentation extends React.Component<{}, {}> {
                     and all the properties are self-explanatory. Should you have further questions or comments, do not hesitate to <a href='mailto:webchemistryhelp@gmail.com?subject=ChannelsDB2 - API'>contact us.</a></p>
                </div>
 
-            <ScrollButton scrollStepInPx='50' delayInMs='10'/>
+            <ScrollButton />
 
         </div>;
     }

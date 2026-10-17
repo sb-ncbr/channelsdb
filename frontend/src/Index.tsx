@@ -3,6 +3,7 @@
  */
 
 import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap-icons/font/bootstrap-icons.min.css';
 import '../assets/css/channelsdb.css';
 
 import * as React from 'react';
@@ -109,7 +110,7 @@ class Footer extends React.Component<{}, {}> {
     render() {
         return <footer>
             <hr className='featurette-divider' />
-            <p className='pull-right' style={{ color: '#999', fontSize: 'smaller', marginBottom: '30px' }}>&copy; 2018 Lukáš Pravda &amp; David Sehnal;  2023 Anna Špačková & Václav Bazgier | <a href="gdpr.html">Terms of Use &amp; GDPR </a></p>
+            <p className='float-end' style={{ color: '#999', fontSize: 'smaller', marginBottom: '30px' }}>&copy; 2018 Lukáš Pravda &amp; David Sehnal;  2023 Anna Špačková & Václav Bazgier | <a href="gdpr.html">Terms of Use &amp; GDPR </a></p>
         </footer>;
     }
 }
@@ -161,17 +162,17 @@ class SearchBox extends React.Component<GlobalProps, { isAvailable: boolean }> {
     }
 
     render() {
-        return <div className='form-group form-group-lg'>
+        return <div className='mb-3'>
             <img className="img" src="assets/img/pdbe_logo.png" alt="pdbe_logo" height="30" />
             {this.state.isAvailable
-                ? <input key={'fullsearch'} type='text' className='form-control' style={{ fontWeight: 'bold', borderColor: 'darkgreen' }} placeholder='Search ChannelsDB 2.0 for experimental structures using name or IDs (e.g. cytochrome P450, 5ebl, KcsA, P08686)'
+                ? <input key={'fullsearch'} type='text' className='form-control form-control-lg' style={{ fontWeight: 'bold', borderColor: 'darkgreen' }} placeholder='Search ChannelsDB 2.0 for experimental structures using name or IDs (e.g. cytochrome P450, 5ebl, KcsA, P08686)'
                     onChange={(e) => this.props.state.searchTerm.next(e.target.value)}
                     onKeyPress={(e) => {
                         if (e.key !== 'Enter') return;
                         this.props.state.fullSearch.next(void 0);
                         updateViewState(this.props.state, { kind: 'Entries', term: (e.target as any).value });
                     }} />
-                : <input key={'placeholder'} type='text' className='form-control' style={{ fontWeight: 'bold', textAlign: 'left', borderColor: 'darkgreen' }} disabled={true}
+                : <input key={'placeholder'} type='text' className='form-control form-control-lg' style={{ fontWeight: 'bold', textAlign: 'left', borderColor: 'darkgreen' }} disabled={true}
                     value='Initializing search...'  />}
         </div>;
     }
@@ -205,19 +206,19 @@ class AlphaFillSearchBox extends React.Component<GlobalProps, { isAvailable: boo
     }
 
     render() {
-        return <div className='form-group form-group-lg'>
+        return <div className='mb-3'>
             <img className="img" src="assets/img/alphafill-logo.png" alt="alphafill_logo" height="50" />
             {this.state.isAvailable
-                ? <input key={'fullsearch'} type='text' className='form-control' style={{ fontWeight: 'bold', borderColor: 'darkgreen' }} placeholder='Search ChannelsDB 2.0 for AlphaFill structures via Uniprot ID (e.g. P08686, P10635)'
+                ? <input key={'fullsearch'} type='text' className='form-control form-control-lg' style={{ fontWeight: 'bold', borderColor: 'darkgreen' }} placeholder='Search ChannelsDB 2.0 for AlphaFill structures via Uniprot ID (e.g. P08686, P10635)'
                     onChange={() => this.state.message && this.setState({ message: void 0 })}
                     onKeyPress={(e) => {
                         if (e.key === 'Enter') {
                             this.search((e.target as HTMLInputElement).value);
                         }
                     }} />
-                : <input key={'placeholder'} type='text' className='form-control' style={{ fontWeight: 'bold', textAlign: 'left', borderColor: 'darkgreen' }} disabled={true}
+                : <input key={'placeholder'} type='text' className='form-control form-control-lg' style={{ fontWeight: 'bold', textAlign: 'left', borderColor: 'darkgreen' }} disabled={true}
                     value='Initializing search...'  />}
-            {this.state.message ? <span className='help-block text-danger'>{this.state.message}</span> : void 0}
+            {this.state.message ? <span className='form-text text-danger'>{this.state.message}</span> : void 0}
         </div>;
     }
 }
@@ -288,13 +289,13 @@ class SearchGroup extends React.Component<GlobalProps & { group: any }, { isExpa
         const g = this.props.group;
 
         return <div style={{ marginBottom: '10px' }}>
-            <div className='group-header'><button className='btn btn-default btn-block' onClick={this.toggle}><span className={`glyphicon glyphicon-${this.state.isExpanded ? 'minus' : 'plus'}`} aria-hidden='true'></span> <span>{g.groupValue}</span> ({g.doclist.numFound})</button></div>
+            <div className='group-header'><button className='btn btn-light border w-100' onClick={this.toggle}><span className={`bi bi-${this.state.isExpanded ? 'dash-lg' : 'plus-lg'}`} aria-hidden='true'></span> <span>{g.groupValue}</span> ({g.doclist.numFound})</button></div>
             <div className='group-list-wrap' style={{ display: this.state.entries ? 'none' : 'block' }}>
                 <div className='group-list' style={{ display: this.state.isExpanded ? 'block' : 'none' }}>
                     {this.state.docs.map((d: any, i: number) => this.entry(d, i)) }
                     {this.state.docs.length < g.doclist.numFound
                         ? <div style={{ padding: 0, float: 'none', clear: 'both' }}>
-                            <button style={{ width: '100%', display: 'block' }} className='btn btn-xs btn-primary btn-block' disabled={this.state.isLoading ? true : false} onClick={this.loadMore}>{this.state.isLoading ? 'Loading...' : `More (${g.doclist.numFound - this.state.docs.length} remaining)`}</button>
+                            <button style={{ width: '100%', display: 'block' }} className='btn btn-sm btn-primary w-100' disabled={this.state.isLoading ? true : false} onClick={this.loadMore}>{this.state.isLoading ? 'Loading...' : `More (${g.doclist.numFound - this.state.docs.length} remaining)`}</button>
                         </div>
                         : void 0}
                 </div>
@@ -302,7 +303,7 @@ class SearchGroup extends React.Component<GlobalProps & { group: any }, { isExpa
             </div>
             { this.state.entries && this.state.isExpanded
             ? <div className='entry-list-wrap'>
-                <button className='btn btn-block btn-primary' onClick={() => this.setState({ entries: void 0 })}><span className={`glyphicon glyphicon-chevron-left`} aria-hidden='true'></span></button>
+                <button className='btn w-100 btn-primary' onClick={() => this.setState({ entries: void 0 })}><span className='bi bi-chevron-left' aria-hidden='true'></span></button>
                 <Entries state={this.props.state} {...this.state.entries!} mode='Embed' />
               </div>
             : void 0 }
@@ -395,7 +396,7 @@ class Entries extends React.Component<GlobalProps & { group?: string, value: str
                 {entries}
                 <div style={{ clear: 'both' }} />
                 {this.state.showing < this.state.count
-                    ? <button className='btn btn-sm btn-primary btn-block' disabled={this.state.isLoading ? true : false} onClick={this.loadMore}>{this.state.isLoading ? 'Loading...' : `Show more (${this.state.count > 0 ? this.state.count - this.state.showing : '?'} remaining; ${Math.max(this.state.withCount - this.state.showing, 0)} with channels)`}</button>
+                    ? <button className='btn btn-sm btn-primary w-100' disabled={this.state.isLoading ? true : false} onClick={this.loadMore}>{this.state.isLoading ? 'Loading...' : `Show more (${this.state.count > 0 ? this.state.count - this.state.showing : '?'} remaining; ${Math.max(this.state.withCount - this.state.showing, 0)} with channels)`}</button>
                     : void 0}
             </div>
         </div>;

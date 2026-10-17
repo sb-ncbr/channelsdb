@@ -44,44 +44,44 @@ export class Intro extends React.Component<{ state: State }, { statistics: any, 
                         &nbsp;<small>contains:</small><b> {stats ? stats.entries_count : 'n/a'}</b> protein entries
                         &nbsp;{this.state.statisticsExpanded ? <a href="_blank" onClick={e => this.setStatistics(e, false)}>Hide details</a> : <a href="_blank" onClick={e => this.setStatistics(e, true)}>Show details</a>}
                     </div>
-                    <table className="table table-condensed active w-auto" style={{ display: this.state.statisticsExpanded ? 'table' : 'none' }}>
+                    <table className="table table-sm active" style={{ display: this.state.statisticsExpanded ? 'table' : 'none' }}>
                         <thead>
                             <tr>
                                 <th><b>Channel type</b></th>
-                                <th className="text-right"><b>MOLE</b></th>
-                                <th className="text-right"><b>CAVER</b></th>
+                                <th className="text-end"><b>MOLE</b></th>
+                                <th className="text-end"><b>CAVER</b></th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
                                 <td>Reviewed</td>
-                                <td className="text-right"><b>{stats && stats.statistics.ReviewedChannels_MOLE ? stats.statistics.ReviewedChannels_MOLE : 'n/a'}</b></td>
-                                <td className="text-right"><b>{stats && stats.statistics.ReviewedChannels_Caver ? stats.statistics.ReviewedChannels_Caver : 'n/a'}</b></td>
+                                <td className="text-end"><b>{stats && stats.statistics.ReviewedChannels_MOLE ? stats.statistics.ReviewedChannels_MOLE : 'n/a'}</b></td>
+                                <td className="text-end"><b>{stats && stats.statistics.ReviewedChannels_Caver ? stats.statistics.ReviewedChannels_Caver : 'n/a'}</b></td>
                             </tr>
                             <tr>
                                 <td>CSA</td>
-                                <td className="text-right"><b>{stats && stats.statistics.CSATunnels_MOLE ? stats.statistics.CSATunnels_MOLE : 'n/a'}</b></td>
-                                <td className="text-right"><b>{stats && stats.statistics.CSATunnels_Caver ? stats.statistics.CSATunnels_Caver : 'n/a'}</b></td>
+                                <td className="text-end"><b>{stats && stats.statistics.CSATunnels_MOLE ? stats.statistics.CSATunnels_MOLE : 'n/a'}</b></td>
+                                <td className="text-end"><b>{stats && stats.statistics.CSATunnels_Caver ? stats.statistics.CSATunnels_Caver : 'n/a'}</b></td>
                             </tr>
                             <tr>
                                 <td>Cofactor</td>
-                                <td className="text-right"><b>{stats && stats.statistics.CofactorTunnels_MOLE ? stats.statistics.CofactorTunnels_MOLE : 'n/a'}</b></td>
-                                <td className="text-right"><b>{stats && stats.statistics.CofactorTunnels_Caver ? stats.statistics.CofactorTunnels_Caver : 'n/a'}</b></td>
+                                <td className="text-end"><b>{stats && stats.statistics.CofactorTunnels_MOLE ? stats.statistics.CofactorTunnels_MOLE : 'n/a'}</b></td>
+                                <td className="text-end"><b>{stats && stats.statistics.CofactorTunnels_Caver ? stats.statistics.CofactorTunnels_Caver : 'n/a'}</b></td>
                             </tr>
                             <tr>
                                 <td>Transmembrane pores</td>
-                                <td className="text-right"><b>{stats && stats.statistics.TransmembranePores_MOLE ? stats.statistics.TransmembranePores_MOLE : 'n/a'}</b></td>
-                                <td className="text-right"><b>{stats && stats.statistics.TransmembranePores_Caver ? stats.statistics.TransmembranePores_Caver : 'n/a'}</b></td>
+                                <td className="text-end"><b>{stats && stats.statistics.TransmembranePores_MOLE ? stats.statistics.TransmembranePores_MOLE : 'n/a'}</b></td>
+                                <td className="text-end"><b>{stats && stats.statistics.TransmembranePores_Caver ? stats.statistics.TransmembranePores_Caver : 'n/a'}</b></td>
                             </tr>
                             <tr>
                                 <td>Cognate</td>
-                                <td className="text-right"><b>{stats && stats.statistics.ProcognateTunnels_MOLE ? stats.statistics.ProcognateTunnels_MOLE : 'n/a'}</b></td>
-                                <td className="text-right"><b>{stats && stats.statistics.ProcognateTunnels_Caver ? stats.statistics.ProcognateTunnels_Caver : 'n/a'}</b></td>
+                                <td className="text-end"><b>{stats && stats.statistics.ProcognateTunnels_MOLE ? stats.statistics.ProcognateTunnels_MOLE : 'n/a'}</b></td>
+                                <td className="text-end"><b>{stats && stats.statistics.ProcognateTunnels_Caver ? stats.statistics.ProcognateTunnels_Caver : 'n/a'}</b></td>
                             </tr>
                             <tr>
                                 <td>AlphaFill</td>
-                                <td className="text-right"><b>{stats && stats.statistics.AlphaFillTunnels_MOLE ? stats.statistics.AlphaFillTunnels_MOLE : 'n/a'}</b></td>
-                                <td className="text-right"><b>{stats && stats.statistics.AlphaFillTunnels_Caver ? stats.statistics.AlphaFillTunnels_Caver : 'n/a'}</b></td>
+                                <td className="text-end"><b>{stats && stats.statistics.AlphaFillTunnels_MOLE ? stats.statistics.AlphaFillTunnels_MOLE : 'n/a'}</b></td>
+                                <td className="text-end"><b>{stats && stats.statistics.AlphaFillTunnels_Caver ? stats.statistics.AlphaFillTunnels_Caver : 'n/a'}</b></td>
                             </tr>
                         </tbody>
                     </table>
@@ -138,61 +138,61 @@ export class Info extends React.Component<{ state: State }, {}> {
                 <div className='col-lg-12'>
                     <h2 style={{ textAlign: 'center', margin: '0 0 20px 0', fontWeight: 'bold' }}>Examples</h2>
                     <div className='well'>
-                        <div>
+                        <div className='row'>
                             <div className='col-lg-4'>
                                 <a href='/detail/pdb/1ymg'>
-                                    <img style={centerStyle} className='img-circle' src={'assets/img/1ymg.png'} alt='1ymg channel detail' width='140' height='140' />
+                                    <img style={centerStyle} className='rounded-circle' src={'assets/img/1ymg.png'} alt='1ymg channel detail' width='140' height='140' />
                                 </a>
                                 <a href='#ex-1ymg' role='button'><h3>Aquaporin water channel</h3></a>
                                 <p style={justify}>The pore architecture of Aquaporin O at 2.2&#8491; resolution highlights residues critical for water permeation regulation.</p>
                             </div>
                             <div className='col-lg-4'>
                                 <a href='/detail/pdb/4nm9'>
-                                    <img style={centerStyle} className='img-circle' src={'assets/img/4nm9.png'} alt='4nm9 channel detail' width='140' height='140' />
+                                    <img style={centerStyle} className='rounded-circle' src={'assets/img/4nm9.png'} alt='4nm9 channel detail' width='140' height='140' />
                                 </a>
                                 <a href='#ex-4nm9' role='button'><h3>Substrate channeling system</h3></a>
                                 <p style={justify}>Proline utilization A protein contains two active sites separated by ~75&#8491; long channeling system accompanied by a complex network of channels.</p>
                             </div>
                             <div className='col-lg-4'>
                                 <a href='/detail/pdb/1jj2'>
-                                    <img style={centerStyle} className='img-circle' src={'assets/img/1jj2.png'} alt='1jj2 channel detail' width='140' height='140' />
+                                    <img style={centerStyle} className='rounded-circle' src={'assets/img/1jj2.png'} alt='1jj2 channel detail' width='140' height='140' />
                                 </a>
                                 <a href='#ex-1jj2' role='button'><h3>Ribosomal polypeptide exit tunnel</h3></a>
                                 <p style={justify}>Ribosomal polypeptide exit tunnel directs a nascent protein from the peptidyl transferase center to the outside of the ribosome.</p>
                             </div>
                         </div>
                         <div className='row' style={{ margin: '20px 0' }}>
-                            <div className='col-lg-4'><a className='btn btn-block btn-default' href='#ex-1ymg' role='button'>View details &raquo;</a></div>
-                            <div className='col-lg-4'><a className='btn btn-block btn-default' href='#ex-4nm9' role='button'>View details &raquo;</a></div>
-                            <div className='col-lg-4'><a className='btn btn-block btn-default' href='#ex-1jj2' role='button'>View details &raquo;</a></div>
+                            <div className='col-lg-4'><a className='btn w-100 btn-light border' href='#ex-1ymg' role='button'>View details &raquo;</a></div>
+                            <div className='col-lg-4'><a className='btn w-100 btn-light border' href='#ex-4nm9' role='button'>View details &raquo;</a></div>
+                            <div className='col-lg-4'><a className='btn w-100 btn-light border' href='#ex-1jj2' role='button'>View details &raquo;</a></div>
                         </div>
-                        <div>
+                        <div className='row'>
                             <div className='col-lg-4'>
                                 <a href='/detail/pdb/3tbg'>
-                                    <img style={centerStyle} className='img-circle' src={'assets/img/3tbg.png'} alt='3tbg channel detail' width='140' height='140' />
+                                    <img style={centerStyle} className='rounded-circle' src={'assets/img/3tbg.png'} alt='3tbg channel detail' width='140' height='140' />
                                 </a>
                                 <a href='#ex-3tbg' role='button'><h3>Cytochrome P450 2D6 tunnels in experimental structure</h3></a>
                                 <p style={justify}>Cytochromes P450 are known for complex net of multiple channels leading towards the active site. These channels serve multiple roles.</p>
                             </div>
                             <div className='col-lg-4'>
                                 <a href='/detail/alphafill/P10635'>
-                                    <img style={centerStyle} className='img-circle' src={'assets/img/alphafill_example.webp'} alt='P10635 channel detail' width='140' height='140' />
+                                    <img style={centerStyle} className='rounded-circle' src={'assets/img/alphafill_example.webp'} alt='P10635 channel detail' width='140' height='140' />
                                 </a>
                                 <a href='#ex-P10635' role='button'><h3>Cytochrome P450 2D6 tunnels in AlphaFill model</h3></a>
                                 <p style={justify}>Complex net of multiple channels in cytochrome P450 2D6 leading towards the active site is visible even in AlphaFold structures.</p>
                             </div>
                             <div className='col-lg-4'>
                                 <a href='/detail/pdb/5lka'>
-                                    <img style={centerStyle} className='img-circle' src={'assets/img/examples-figure-HLD.webp'} alt='HLD channel detail' width='140' height='140' />
+                                    <img style={centerStyle} className='rounded-circle' src={'assets/img/examples-figure-HLD.webp'} alt='HLD channel detail' width='140' height='140' />
                                 </a>
                                 <a href='#ex-HLD' role='button'><h3>Haloalkane dehalogenase LinB with engineered tunnels</h3></a>
                                 <p style={justify}>Haloalkane dehalogenase LinB is an important model enzyme used in various practical applications, including biodegradation, bioremediation, and biosensing. The access tunnels present in haloalkane dehalogenases have been well studied and were a target of engineering by mutagenesis to change their properties.</p>
                             </div>
                         </div>
                         <div className='row' style={{ margin: '20px 0' }}>
-                            <div className='col-lg-4'><a className='btn btn-block btn-default' href='#ex-3tbg' role='button'>View details &raquo;</a></div>
-                            <div className='col-lg-4'><a className='btn btn-block btn-default' href='#ex-P10635' role='button'>View details &raquo;</a></div>
-                            <div className='col-lg-4'><a className='btn btn-block btn-default' href='#ex-HLD' role='button'>View details &raquo;</a></div>
+                            <div className='col-lg-4'><a className='btn w-100 btn-light border' href='#ex-3tbg' role='button'>View details &raquo;</a></div>
+                            <div className='col-lg-4'><a className='btn w-100 btn-light border' href='#ex-P10635' role='button'>View details &raquo;</a></div>
+                            <div className='col-lg-4'><a className='btn w-100 btn-light border' href='#ex-HLD' role='button'>View details &raquo;</a></div>
                         </div>
                     </div>
                 </div>
@@ -208,7 +208,7 @@ export class Info extends React.Component<{ state: State }, {}> {
                         Harries, W. E. C., et. al. <span style={{ fontStyle: 'italic' }}>The channel architecture of aquaporin 0 at a 2.2&#8491; resolution</span>. Proc. Natl. Acad. Sci. 101, 14045–14050 (2004)</a></small></p>
                 </div>
                 <div className='col-md-5'>
-                    <img className='featurette-image img-responsive center-block' src={'assets/img/1ymg_detail.webp'} width='500' height='500' alt='1ymg detailed channel view' />
+                    <img className='featurette-image img-fluid d-block mx-auto' src={'assets/img/1ymg_detail.webp'} width='500' height='500' alt='1ymg detailed channel view' />
                 </div>
             </div>
 
@@ -216,15 +216,15 @@ export class Info extends React.Component<{ state: State }, {}> {
 
             <div className='row featurette'>
                 {React.createElement('a' as any, { 'name': 'ex-3tbg' })}
-                <div className='col-md-7 col-md-push-5'>
+                <div className='col-md-7 order-md-2'>
                     <a href='/detail/pdb/3tbg'><h2 className='featurette-heading'>Cytochrome P450 2D6 experimental <br/>structures<span className='text-muted'>(3tbg)</span></h2></a>
                     <p style={justify} className='lead'>Cytochromes P450 are known for complex net of multiple channels leading towards active site. These channels serve multiple roles in substrate access, product release or hydration pathways.</p>
                     <p style={justify}>Cytochrome  P450  2D6  contributes  significantly  to  the  metabolism  of  &gt;15%  of  the  200  most marketed drugs. Cytochrome P450 2D6 structure shows a second molecule of thioridazine bound in an expanded substrate access channel (channel 2f according to <a href='https://doi.org/10.1016/j.bbagen.2006.07.005' target='_blank'>Cojocaru et al. classification</a>  antechamber  with  its  piperidine  moiety  forming  a charge-stabilized hydrogen bond with Glu-222.</p>
                     <p style={reference}><small><a target='_blank' href='https://dx.doi.org/10.1074/jbc.M114.627661'>
                         Wang, A., et al. <span style={{ fontStyle: 'italic' }}>Contributions of Ionic Interactions and Protein Dynamics to Cytochrome P450 2D6 (CYP2D6) Substrate and Inhibitor Binding</span> J.Biol.Chem. 290: 5092-5104 (2015)</a></small></p>
                 </div>
-                <div className='col-md-5 col-md-pull-7'>
-                    <img className='featurette-image img-responsive center-block' src={'assets/img/3tbg_detail.webp'} alt='Cytochrome P450 substrate channel details' />
+                <div className='col-md-5 order-md-1'>
+                    <img className='featurette-image img-fluid d-block mx-auto' src={'assets/img/3tbg_detail.webp'} alt='Cytochrome P450 substrate channel details' />
                 </div>
             </div>
 
@@ -240,7 +240,7 @@ export class Info extends React.Component<{ state: State }, {}> {
                         Wang, A., et al.  <span style={{ fontStyle: 'italic' }}>Contributions of Ionic Interactions and Protein Dynamics to Cytochrome P450 2D6 (CYP2D6) Substrate and Inhibitor Binding</span> J.Biol.Chem. 290: 5092-5104 (2015)</a></small></p>
                 </div>
                 <div className='col-md-5'>
-                    <img className='featurette-image img-responsive center-block' src={'assets/img/alphafill_example.webp'} alt='Cytochrome P450 substrate channel details' />
+                    <img className='featurette-image img-fluid d-block mx-auto' src={'assets/img/alphafill_example.webp'} alt='Cytochrome P450 substrate channel details' />
                 </div>
             </div>
 
@@ -256,7 +256,7 @@ export class Info extends React.Component<{ state: State }, {}> {
                         Voss, N. R., et. al. <span style={{ fontStyle: 'italic' }}>The geometry of the ribosomal polypeptide exit tunnel.</span>. J. Mol. Biol. 360, 893–906 (2006)</a></small></p>
                 </div>
                 <div className='col-md-5 '>
-                    <img className='featurette-image img-responsive center-block' src={'assets/img/1jj2_detail.webp'} alt='Polypeptide exit tunnel' />
+                    <img className='featurette-image img-fluid d-block mx-auto' src={'assets/img/1jj2_detail.webp'} alt='Polypeptide exit tunnel' />
                 </div>
             </div>
 
@@ -264,7 +264,7 @@ export class Info extends React.Component<{ state: State }, {}> {
 
             <div className='row featurette'>
                 {React.createElement('a' as any, { 'name': 'ex-4nm9' })}
-                <div className='col-md-7 col-md-push-5'>
+                <div className='col-md-7 order-md-2'>
                     <a href='/detail/pdb/4nm9'><h2 className='featurette-heading'>PutA channeling system <span className='text-muted'>(4nm9)</span></h2></a>
                     <p style={justify} className='lead'>Substrate channeling is a process of passing intermediate metabolic product from one reaction site to another through intramolecular tunnel.</p>
                     <p style={justify}>In Gram-negative bacteria a proline catabolism is exerted by a single protein combining two different enzymes commonly known as Proline utilization A protein (PutA).
@@ -273,8 +273,8 @@ export class Info extends React.Component<{ state: State }, {}> {
                     <p style={reference}><small><a target='_blank' href='https://dx.doi.org/10.1073/pnas.1321621111'>
                         Singh,H., et al. <span style={{ fontStyle: 'italic' }}>Structures of the PutA peripheral membrane flavoenzyme reveal a dynamic substrate-channeling tunnel and the quinone-binding site</span> Proc. Natl. Acad. Sci., 111, 3389–3394. (2014)</a></small></p>
                 </div>
-                <div className='col-md-5 col-md-pull-7'>
-                    <img className='featurette-image img-responsive center-block' src={'assets/img/4nm9_detail.webp'} alt='PutA channel system' />
+                <div className='col-md-5 order-md-1'>
+                    <img className='featurette-image img-fluid d-block mx-auto' src={'assets/img/4nm9_detail.webp'} alt='PutA channel system' />
                 </div>
             </div>
 
@@ -292,7 +292,7 @@ export class Info extends React.Component<{ state: State }, {}> {
                         Brezovsky,J., et al. <span style={{ fontStyle: 'italic' }}>Engineering a de Novo Transport Tunnel</span> ACS Catalysis, 6 (11), 7597-7610. (2016)</a></small></p>
                 </div>
                 <div className='col-md-5 '>
-                    <img className='featurette-image img-responsive center-block' src={'assets/img/examples-figure-HLD.webp'} alt='HLD channel detail' />
+                    <img className='featurette-image img-fluid d-block mx-auto' src={'assets/img/examples-figure-HLD.webp'} alt='HLD channel detail' />
                 </div>
             </div>
 
@@ -303,13 +303,13 @@ export class Info extends React.Component<{ state: State }, {}> {
             <img className="img" src={'assets/img/upol.png'} alt="UPOL logo" height="70"/>
             <img className="img" src={'assets/img/recetox.png'} alt="RECETOX logo" height="70"/>
             <img className="img" src={'assets/img/ceitec.png'} alt="CEITEC logo" height="70"/>
-            <div className='row well well-sm featurette text-center' style={{ marginTop: '10px' }}>
+            <div className='well well-sm featurette text-center' style={{ marginTop: '10px' }}>
                 ChannelsDB is a part of services provided by <a href='https://www.elixir-czech.cz/' target='_blank'>ELIXIR</a> &ndash;
                  European research infrastructure for biological information. This work was supported by ELIXIR CZ and RECETOX RI research infrastructure projects (MEYS) [LM2023055; LM2023069]
                  including access to computing and storage facilities. For other services provided by ELIXIR's Czech Republic Node visit <a href='https://www.elixir-czech.cz/services' target='_blank'>www.elixir-czech.cz/services</a>.
             </div>
 
-            <ScrollButton scrollStepInPx='50' delayInMs='10' />
+            <ScrollButton />
         </div>;
     }
 }

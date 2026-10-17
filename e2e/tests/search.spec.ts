@@ -17,7 +17,7 @@ test.describe('AlphaFill search', () => {
 
     test('reports invalid and unknown UniProt IDs', async ({ page }) => {
         const box = page.getByPlaceholder(/AlphaFill structures/);
-        const message = page.locator('.help-block');
+        const message = page.locator('.form-text');
         page.on('popup', () => { throw new Error('No page should open'); });
 
         await box.fill('XXXX');
