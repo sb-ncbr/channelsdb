@@ -1,6 +1,6 @@
 # ChannelsDB 2
 
-The project consinsts of three parts: Python API (`/api`), main page (`/frontpage`) and the results page (`/results`).
+The project consists of three parts: Python API (`/api`), main page (`/frontend`) and the results page (`/results`).
 
 ## Running
 
@@ -27,3 +27,23 @@ export CHANNELSDB_DATA=/home/channelsdb/data
 
 The production version has to use `docker/docker-compose.production.yaml` together with the main `docker/docker-compose.yaml` file.
 No further setup is allowed.
+
+## API development
+
+The API uses [uv](https://docs.astral.sh/uv/) to manage dependencies. To set up the environment, run in `/api`:
+
+```bash
+$ uv sync
+```
+
+The API reads its configuration from `api/config.ini`. Create it from `api/config_docker.ini` and point `base` to your data directory.
+
+### Tests
+
+The tests use the stored data and query the external APIs (PDBe, UniProt), so they need network access. Run them in `/api`:
+
+```bash
+$ uv run pytest
+```
+
+By default, all stored entries are tested. To test only a subset, use `--subset random` or `--subset first` together with `--count N` (default 10).

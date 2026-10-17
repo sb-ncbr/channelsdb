@@ -1,6 +1,6 @@
 HEADER = '''\
 package require http
-# To run this script please run it in VMD as source script.vmd
+# To run this script please run it in VMD as source script.tk
 # 
 # If you find this tool useful for your work, please cite it as:
 # Sehnal D, Svobodová Vařeková R, Berka K, Pravda L, Navrátilová V, Banáš P, Ionescu C-M, Otyepka M, Koča J: MOLE 2.0: advanced approach for analysis of biomacromolecular channels. J. Cheminform. 2013, 5:39.
