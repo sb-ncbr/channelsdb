@@ -11,7 +11,7 @@ class IDError(BaseModel):
 
 
 def validate_uniprot_id(uniprot_id: str):
-    req = requests.head(f'https://rest.uniprot.org/uniprotkb/{uniprot_id}.txt')
+    req = requests.head(f'https://rest.uniprot.org/uniprotkb/{uniprot_id}.txt', timeout=10)
     if req.status_code >= 500:
         raise HTTPException(status_code=502, detail=f'UniProt API returned an error when accessing: {req.url}')
     if req.status_code != 200:
