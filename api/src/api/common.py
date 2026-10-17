@@ -1,5 +1,7 @@
 import http.cookiejar
+import time
 from enum import StrEnum
+from functools import lru_cache
 from typing import Annotated
 
 import requests
@@ -42,11 +44,27 @@ def validate_uniprot_id(uniprot_id: Annotated[str, AnnotationPath(description='U
     return uniprot_id
 
 
+PDBE_SUMMARY_TTL = 3600  # seconds
+
+
+# Used both to validate PDB IDs and to look up assemblies, which the results page requests together.
+# Summaries are kept for at most PDBE_SUMMARY_TTL, as entries can be revised or made obsolete.
+# Failures are not cached. Callers must not modify the returned data.
+def get_pdbe_summary(pdb_id: str) -> dict:
+    return _get_pdbe_summary(pdb_id, int(time.monotonic() // PDBE_SUMMARY_TTL))
+
+
+@lru_cache(maxsize=1024)
+def _get_pdbe_summary(pdb_id: str, _time_window: int) -> dict:
+    # A new time window makes the cached summaries from the previous one unused
+    req = session.get(f'https://www.ebi.ac.uk/pdbe/api/pdb/entry/summary/{pdb_id}', timeout=10)
+    check_response(req, 'PDBe API', f'Cannot find PDB ID \'{pdb_id}\'')
+    return req.json()[pdb_id][0]
+
+
 def validate_pdb_id(pdb_id: Annotated[str, AnnotationPath(description='PDB ID', pattern=PDB_ID_REGEX)]) -> str:
     pdb_id = pdb_id.lower()
-
-    req = session.get(f"https://www.ebi.ac.uk/pdbe/api/pdb/entry/summary/{pdb_id}", timeout=10)
-    check_response(req, 'PDBe API', f'Cannot find PDB ID \'{pdb_id}\'')
+    get_pdbe_summary(pdb_id)
     return pdb_id
 
 

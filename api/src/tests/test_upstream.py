@@ -5,7 +5,8 @@ import requests
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
-from api.common import session
+from api import common
+from api.common import _get_pdbe_summary, get_pdbe_summary, session
 from api.endpoints.assembly import get_assembly_id
 from api.main import app
 
@@ -55,7 +56,10 @@ def upstream(monkeypatch):
 
     monkeypatch.setattr(session, 'get', get)
     monkeypatch.setattr(session, 'head', lambda url, **kwargs: reply('uniprot', ''))
-    return statuses
+    # Summaries cached by other tests would bypass the mocked responses
+    _get_pdbe_summary.cache_clear()
+    yield statuses
+    _get_pdbe_summary.cache_clear()
 
 
 def uniprot_ids(response) -> list[str]:
@@ -120,3 +124,44 @@ def test_assembly_upstream_status(upstream, status_code, expected):
 
 def test_assembly(upstream):
     assert get_assembly_id('1abc') == '1'
+
+
+@pytest.fixture
+def summary_requests(upstream, monkeypatch):
+    """Count requests for PDBe summaries"""
+    count = {'n': 0}
+    get = session.get
+
+    def counting_get(url, **kwargs):
+        if 'pdbe/api' in url:
+            count['n'] += 1
+        return get(url, **kwargs)
+
+    monkeypatch.setattr(session, 'get', counting_get)
+    return count
+
+
+def test_summary_is_cached(summary_requests):
+    assert client.get('/assembly/1abc').status_code == 200
+    assert client.get('/assembly/1abc').status_code == 200
+    assert summary_requests['n'] == 1
+
+
+def test_summary_failure_is_not_cached(upstream, summary_requests):
+    upstream['pdbe'] = 429
+    assert client.get('/assembly/1abc').status_code == 502
+    upstream['pdbe'] = 200
+    assert client.get('/assembly/1abc').status_code == 200
+    assert summary_requests['n'] == 2
+
+
+def test_summary_expires(summary_requests, monkeypatch):
+    now = 1000 * common.PDBE_SUMMARY_TTL
+    monkeypatch.setattr(common.time, 'monotonic', lambda: now)
+    get_pdbe_summary('1abc')
+    now += common.PDBE_SUMMARY_TTL - 1
+    get_pdbe_summary('1abc')
+    assert summary_requests['n'] == 1
+    now += 1
+    get_pdbe_summary('1abc')
+    assert summary_requests['n'] == 2
