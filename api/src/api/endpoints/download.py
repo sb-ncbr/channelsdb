@@ -76,7 +76,7 @@ async def download(source_db: SourceDatabase, file_format: DownloadType, protein
             return PlainTextResponse(get_VMD_file(channels), headers=headers)
         case DownloadType.zip:
             content = io.BytesIO()
-            zf = zipfile.ZipFile(content, mode='w')
+            zf = zipfile.ZipFile(content, mode='w', compression=zipfile.ZIP_DEFLATED)
             zf.writestr(f'{protein_id}_chimera.py', get_Chimera_file(channels))
             zf.writestr(f'{protein_id}_pymol.py', get_Pymol_file(channels))
             zf.writestr(f'{protein_id}_vmd.tk', get_VMD_file(channels))
