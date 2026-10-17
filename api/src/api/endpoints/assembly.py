@@ -1,5 +1,4 @@
 import requests
-import json
 from fastapi import HTTPException
 
 from api.main import app
@@ -14,7 +13,7 @@ def get_assembly_id(pdb_id: PDB_ID_Type) -> str:
         raise HTTPException(status_code=502, detail=f'PDBe API returned an error when accessing: {req.url}')
     if req.status_code != 200:
         raise HTTPException(status_code=404, detail=f'Cannot find assembly for PDB ID \'{pdb_id}\'')
-    data = json.loads(req.content)[pdb_id][0]['assemblies']
+    data = req.json()[pdb_id][0]['assemblies']
     if (assembly_id := next((assembly['assembly_id'] for assembly in data if assembly['preferred']), None)) is None:
         raise HTTPException(status_code=404, detail=f'No preferred assembly found for PDB ID \'{pdb_id}\'')
     return assembly_id

@@ -1,4 +1,5 @@
 import json
+import sys
 from pathlib import Path
 from zipfile import ZipFile
 from fastapi import HTTPException
@@ -55,7 +56,7 @@ def get_channels(source_db: SourceDatabase, protein_id: str):
                             res.extend(orig['Channels'][key])
                         data['Channels'][channel_types[name]] = res
                     except json.decoder.JSONDecodeError:
-                        print(f'{protein_id} / {json_file} not a correct JSON')
+                        print(f'{protein_id} / {json_file} not a correct JSON', file=sys.stderr)
                         continue
         try:
             with z.open('annotations.json') as f:

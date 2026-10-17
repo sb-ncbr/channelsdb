@@ -132,7 +132,7 @@ def get_channelsdb_residue_annotations(uniprot_id: str, mapping: tuple[str, dict
 def fill_annotations(annotations: dict, mapping: tuple[str, dict[str, str]] | None, uniprot_id: str):
     req = requests.get(f'https://www.ebi.ac.uk/proteins/api/proteins/{uniprot_id}', headers={'accept': 'application/xml'}, timeout=10)
     if req.status_code >= 500:
-        raise HTTPException(status_code=502, detail=f'PDBe API returned an error when accessing: {req.url}')
+        raise HTTPException(status_code=502, detail=f'EBI Proteins API returned an error when accessing: {req.url}')
     if req.status_code != 200:
         raise HTTPException(status_code=404, detail=f'Cannot load annotations for Uniprot ID \'{uniprot_id}\'')
     xml_data = req.content.decode('utf-8')
