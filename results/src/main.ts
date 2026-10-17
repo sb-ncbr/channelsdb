@@ -3,6 +3,7 @@
  */
 
 import legacyScriptsUrl from 'virtual:legacy-scripts';
+import { initLayout } from './CommonUtils/Layout';
 
 import '../css/AglomeredParameters.css';
 import '../css/bootstrap.min.css';
@@ -27,5 +28,4 @@ await new Promise((resolve, reject) => {
 
 await import('./App');
 
-// Run the scripts' ready handlers (e.g. in tabsConfig.js) after the application has started, as they expect
-(window as any).jQuery.holdReady(false);
+initLayout();

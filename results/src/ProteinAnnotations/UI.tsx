@@ -7,7 +7,6 @@ import React from "react";
 let DGTABLE_COLS_COUNT = 3;
 
 declare function $(p:any): any;
-declare function datagridOnResize(str:string,str1:string,str2:string):any;
 
 interface State{
     data: ProteinAnnotation[] | null,

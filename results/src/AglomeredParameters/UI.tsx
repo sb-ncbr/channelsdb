@@ -11,7 +11,6 @@ import { SimpleObservable } from "../CommonUtils/Observable";
 let DGTABLE_COLS_COUNT = 7;
 
 declare function $(p:any): any;
-declare function datagridOnResize(str:string):any;
 
 interface State{
     data: Tunnel[] | null,

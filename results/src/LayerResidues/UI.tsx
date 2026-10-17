@@ -10,7 +10,6 @@ let DGTABLE_COLS_COUNT = 2;
 let NO_DATA_MESSAGE = "Hover over channel(2D) for details...";
 
 declare function $(p:any): any;
-declare function datagridOnResize(str:string,str1:string,str2:string):any;
 
 interface State{
     data: LayersInfo[] | null,

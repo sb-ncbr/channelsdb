@@ -11,21 +11,15 @@ import type { Plugin } from 'vite';
 const files = [
     'js/jquery-3.7.1.js',
     'js/bootstrap.min.js',
-    'js/datagrid.js',
-    'js/tabsConfig.js',
 ];
 
 const moduleId = 'virtual:legacy-scripts';
 const resolvedModuleId = `\0${moduleId}`;
 const devPath = '@legacy-scripts.js';
 
-// Scripts like tabsConfig.js run code when the page is ready, which expects the application to be started already.
-// The application starts only after these scripts are loaded, so it releases jQuery's ready event (see main.ts).
-const holdReady = 'jQuery.holdReady(true);';
-
 async function build(root: string) {
     const sources = files.map((file) => fs.readFileSync(path.resolve(root, file), 'utf8'));
-    const source = [sources[0], holdReady, ...sources.slice(1)].join('\n;\n');
+    const source = sources.join('\n;\n');
 
     // Top-level names are kept, as the code uses them as globals
     const { code, errors } = await minify('scripts.js', source, { compress: true, mangle: { toplevel: false } });
