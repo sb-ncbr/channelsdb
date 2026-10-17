@@ -12,8 +12,8 @@ class IDError(BaseModel):
 
 def validate_uniprot_id(uniprot_id: str):
     req = requests.head(f'https://rest.uniprot.org/uniprotkb/{uniprot_id}.txt')
-    if req.status_code > 500:
-        raise HTTPException(status_code=503, detail=f'UniProt API returned an error when accessing: {req.url}')
+    if req.status_code >= 500:
+        raise HTTPException(status_code=502, detail=f'UniProt API returned an error when accessing: {req.url}')
     if req.status_code != 200:
         raise HTTPException(status_code=404, detail=f'Cannot find Uniprot ID \'{uniprot_id}\'')
     return uniprot_id
@@ -25,7 +25,7 @@ def validate_pdb_id(pdb_id: str):
     req = requests.get(f"https://www.ebi.ac.uk/pdbe/api/pdb/entry/summary/{pdb_id}", timeout=10)
 
     if req.status_code >= 500:
-        raise HTTPException(status_code=503, detail=f'PDBe API returned an error when accessing: {req.url}')
+        raise HTTPException(status_code=502, detail=f'PDBe API returned an error when accessing: {req.url}')
     if req.status_code != 200:
         raise HTTPException(status_code=404, detail=f'Cannot find PDB ID \'{pdb_id}\'')
     return pdb_id

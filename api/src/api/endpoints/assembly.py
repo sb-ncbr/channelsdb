@@ -10,8 +10,8 @@ from api.common import PDB_ID_Type, pdb_id_404_response
          responses=pdb_id_404_response)
 async def get_assembly_id(pdb_id: PDB_ID_Type) -> str:
     req = requests.get(f'https://www.ebi.ac.uk/pdbe/api/pdb/entry/summary/{pdb_id}')
-    if req.status_code > 500:
-        raise HTTPException(status_code=503, detail=f'PDBe API returned an error when accessing: {req.url}')
+    if req.status_code >= 500:
+        raise HTTPException(status_code=502, detail=f'PDBe API returned an error when accessing: {req.url}')
     if req.status_code != 200:
         raise HTTPException(status_code=404, detail=f'Cannot find assembly for PDB ID \'{pdb_id}\'')
     data = json.loads(req.content)[pdb_id][0]['assemblies']

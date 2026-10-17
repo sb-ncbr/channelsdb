@@ -131,8 +131,8 @@ def get_channelsdb_residue_annotations(uniprot_id: str, mapping: tuple[str, dict
 
 def fill_annotations(annotations: dict, mapping: tuple[str, dict[str, str]] | None, uniprot_id: str):
     req = requests.get(f'https://www.ebi.ac.uk/proteins/api/proteins/{uniprot_id}', headers={'accept': 'application/xml'})
-    if req.status_code > 500:
-        raise HTTPException(status_code=503, detail=f'PDBe API returned an error when accessing: {req.url}')
+    if req.status_code >= 500:
+        raise HTTPException(status_code=502, detail=f'PDBe API returned an error when accessing: {req.url}')
     if req.status_code != 200:
         raise HTTPException(status_code=404, detail=f'Cannot load annotations for Uniprot ID \'{uniprot_id}\'')
     xml_data = req.content.decode('utf-8')
@@ -165,8 +165,8 @@ async def get_annotations_alphafill(uniprot_id: Uniprot_ID_Type):
 async def get_annotations_pdb(pdb_id: PDB_ID_Type):
     annotations = Annotations().model_dump()
     req = requests.get(f'https://ftp.ebi.ac.uk/pub/databases/msd/sifts/xml/{pdb_id}.xml.gz')
-    if req.status_code > 500:
-        raise HTTPException(status_code=503, detail=f'PDBe server returned an error when accessing: {req.url}')
+    if req.status_code >= 500:
+        raise HTTPException(status_code=502, detail=f'PDBe server returned an error when accessing: {req.url}')
     if req.status_code != 200:
         raise HTTPException(status_code=404, detail=f'Cannot find annotations for PDB ID \'{pdb_id}\'')
 
