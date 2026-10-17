@@ -176,8 +176,11 @@ def get_annotations_pdb(pdb_id: PDB_ID_Type):
         for uniprot_id, mapping in sifts.items():
             fill_annotations(annotations, mapping, uniprot_id)
     except HTTPException as e:
+        # Upstream server errors are reported as they are
+        if e.status_code >= 500:
+            raise
         # We should never get here, this would mean incorrect SIFTS data
         print(e, file=sys.stderr)
-        raise HTTPException(status_code=400, detail=f'Cannot load annotations for PDB ID \'{pdb_id}\'')
+        raise HTTPException(status_code=502, detail=f'Cannot load annotations for PDB ID \'{pdb_id}\'') from e
 
     return annotations
