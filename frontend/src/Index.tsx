@@ -163,12 +163,31 @@ namespace ChannelsDB {
         }
     }
 
-    class AlphaFillSearchBox extends React.Component<GlobalProps, { isAvailable: boolean }> {
-        //TODO initialize with search of AlphaFill molecules
-        state = { isAvailable: false };
+    // Same format as the API accepts
+    const UNIPROT_ID_REGEX = /^([OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2})$/;
+
+    class AlphaFillSearchBox extends React.Component<GlobalProps, { isAvailable: boolean, message?: string }> {
+        state = { isAvailable: false, message: void 0 as string | undefined };
 
         componentDidMount() {
             this.props.state.dbContentAvailable.subscribe((isAvailable) => this.setState({ isAvailable }));
+        }
+
+        private search(value: string) {
+            const uniprotId = value.trim().toUpperCase();
+            if (!uniprotId) {
+                return;
+            }
+            if (!UNIPROT_ID_REGEX.test(uniprotId)) {
+                this.setState({ message: `'${value.trim()}' is not a valid UniProt ID` });
+                return;
+            }
+            if (!this.props.state.dbContent.alphafill[toLower(uniprotId)]) {
+                this.setState({ message: `ChannelsDB does not contain an AlphaFill structure for ${uniprotId}` });
+                return;
+            }
+            this.setState({ message: void 0 });
+            window.open(`/detail/alphafill/${uniprotId}`, '_blank');
         }
 
         render() {
@@ -176,19 +195,15 @@ namespace ChannelsDB {
                 <img className="img" src="assets/img/alphafill-logo.png" alt="alphafill_logo" height="50" />
                 {this.state.isAvailable
                     ? <input key={'fullsearch'} type='text' className='form-control' style={{ fontWeight: 'bold', borderColor: 'darkgreen' }} placeholder='Search ChannelsDB 2.0 for AlphaFill structures via Uniprot ID (e.g. P08686, P10635)'
-                        //onChange={(e) => this.props.state.searchTerm.onNext(e.target.value)}
+                        onChange={() => this.state.message && this.setState({ message: void 0 })}
                         onKeyPress={(e) => {
-                            if (e.key !== 'Enter') {
-                                return;
-                            };
-                            console.log((e.target as any).value);
-                            //TODO check if UNIPROT exists
-                            window.open(`/detail/alphafill/${(e.target as any).value}`, "_blank");
-                            // this.props.state.fullSearch.onNext(void 0);
-                            // updateViewState(this.props.state, { kind: 'Entries', term: (e.target as any).value });
+                            if (e.key === 'Enter') {
+                                this.search((e.target as HTMLInputElement).value);
+                            }
                         }} />
                     : <input key={'placeholder'} type='text' className='form-control' style={{ fontWeight: 'bold', textAlign: 'left', borderColor: 'darkgreen' }} disabled={true}
                         value='Initializing search...'  />}
+                {this.state.message ? <span className='help-block text-danger'>{this.state.message}</span> : void 0}
             </div>;
         }
     }
@@ -287,15 +302,10 @@ namespace ChannelsDB {
             const pdbContentMap = ['CSATunnels MOLE', 'CSATunnels Caver', 'ReviewedChannels MOLE', 'ReviewedChannels Caver',
              'CofactorTunnels MOLE', 'CofactorTunnels Caver', 'TransmembranePores MOLE', 'TransmembranePores Caver', 'ProcognateTunnels MOLE',
              'ProcognateTunnels Caver'];
-            const alphafillContentMap = ['AlphaFillTunnels MOLE', 'AlphaFillTunnels Caver'];
             const pdb = this.props.state.dbContent.pdb[toLower(docs.pdb_id)];
-            const alphafill = this.props.state.dbContent.alphafill[toLower(docs.pdb_id)];
             const numPdbChannels = pdb ? (pdb as number[]).reduce((a, b) => a + b, 0) : -1;
-            const numAlphafillChannels = alphafill ? (alphafill as number[]).reduce((a, b) => a + b, 0) : -1;
             let pdbContent = numPdbChannels > 0 ? (pdb as number[]).map((el, index) => el > 0 ? pdbContentMap[index] + ' (' + el + ')' : '') : [];
-            let alphafillContent = numAlphafillChannels > 0 ? (pdb as number[]).map((el, index) => el > 0 ? alphafillContentMap[index] + ' (' + el + ')' : '') : [];
             const msgPdb = numPdbChannels > 0 ? pdbContent.filter((a) => a.length > 0).reduce((a, b) => a + ', ' + b) : '';
-            const msgAlphafill = numAlphafillChannels > 0 ? alphafillContent.filter((a) => a.length > 0).reduce((a, b) => a + ', ' + b) : '';
 
             return <div className='well pdb-entry'>
                 <a href={`/detail/pdb/${docs.pdb_id}`} target='_blank'>
@@ -309,9 +319,7 @@ namespace ChannelsDB {
                     <li><b>Organism:</b> <i>{(docs.organism_scientific_name || ['n/a']).join(', ')}</i></li>
                     { numPdbChannels > 0
                         ? <li><i>{`${numPdbChannels} channel${numPdbChannels !== 1 ? 's' : ''}; ${msgPdb}`}</i></li>
-                        : 
-                      numAlphafillChannels > 0
-                        ? <li><i>{`${numAlphafillChannels} channel${numAlphafillChannels !== 1 ? 's' : ''}; ${msgAlphafill}`}</i></li> : void 0
+                        : void 0
                     }
                 </ul>
                 <div className='pdb-entry-img-wrap'>
