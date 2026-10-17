@@ -20,13 +20,13 @@ class Channels(BaseModel):
 
 @app.get('/channels/pdb/{pdb_id}', response_model=Channels, name='Channel data', tags=['PDB'],
          description='Returns information about channels for a given protein', responses=pdb_id_404_response)
-async def get_channels_pdb(pdb_id: PDB_ID_Type):
+def get_channels_pdb(pdb_id: PDB_ID_Type):
     return get_channels(SourceDatabase.PDB, pdb_id)
 
 
 @app.get('/channels/alphafill/{uniprot_id}', response_model=Channels, name='Channel data', tags=['AlphaFill'],
          description='Returns information about channels for a given protein', responses=uniprot_id_404_response)
-async def get_channels_alphafill(uniprot_id: Uniprot_ID_Type):
+def get_channels_alphafill(uniprot_id: Uniprot_ID_Type):
     return get_channels(SourceDatabase.AlphaFill, uniprot_id)
 
 

@@ -154,7 +154,7 @@ class Annotations(BaseModel):
 
 @app.get('/annotations/alphafill/{uniprot_id}', response_model=Annotations, name='Annotation data', tags=['AlphaFill'],
          description='Returns annotations of individual protein and its residues', responses=uniprot_id_404_response)
-async def get_annotations_alphafill(uniprot_id: Uniprot_ID_Type):
+def get_annotations_alphafill(uniprot_id: Uniprot_ID_Type):
     annotations = Annotations().model_dump()
     fill_annotations(annotations, None, uniprot_id)
     return annotations
@@ -162,7 +162,7 @@ async def get_annotations_alphafill(uniprot_id: Uniprot_ID_Type):
 
 @app.get('/annotations/pdb/{pdb_id}', response_model=Annotations, name='Annotation data', tags=['PDB'],
          description='Returns annotations of individual protein and its residues', responses=pdb_id_404_response)
-async def get_annotations_pdb(pdb_id: PDB_ID_Type):
+def get_annotations_pdb(pdb_id: PDB_ID_Type):
     annotations = Annotations().model_dump()
     req = requests.get(f'https://ftp.ebi.ac.uk/pub/databases/msd/sifts/xml/{pdb_id}.xml.gz', timeout=10)
     if req.status_code >= 500:

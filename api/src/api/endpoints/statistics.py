@@ -17,6 +17,6 @@ class StatisticsModel(BaseModel):
 
 
 @app.get('/statistics', name='General statistics', tags=['General'], description='Returns summary statistics about the data stored')
-async def get_statistics() -> StatisticsModel:
+def get_statistics() -> StatisticsModel:
     with open(Path(config['dirs']['base']) / 'statistics.json') as f:
         return json.load(f)
