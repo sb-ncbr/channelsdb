@@ -1,16 +1,19 @@
 from enum import Enum
 from pathlib import Path
+from fastapi import APIRouter
 from fastapi.responses import FileResponse, RedirectResponse, PlainTextResponse, Response
 import io
 import json
 import zipfile
 
-from api.main import app
 from api.config import config, BASE_DIR
 from api.common import PDB_ID_Type, Uniprot_ID_Type, SourceDatabase, uniprot_id_404_response, pdb_id_404_response
 from api.endpoints.assembly import get_assembly_id
 from api.endpoints.channels import get_channels
-from api.export import *
+from api.export import get_PDB_file, get_Pymol_file, get_Chimera_file, get_VMD_file
+
+
+router = APIRouter()
 
 
 class DownloadType(str, Enum):
@@ -34,14 +37,14 @@ EXTENSIONS: dict[DownloadType, str] = {
 }
 
 
-@app.get('/download/alphafill/{uniprot_id}/{file_format}', name='Download data', tags=['AlphaFill'],
-         description='Download various data about the protein', responses=uniprot_id_404_response)
+@router.get('/download/alphafill/{uniprot_id}/{file_format}', name='Download data', tags=['AlphaFill'],
+            description='Download various data about the protein', responses=uniprot_id_404_response)
 def download_alphafill(file_format: DownloadType, uniprot_id: Uniprot_ID_Type):
     return download(SourceDatabase.AlphaFill, file_format, uniprot_id)
 
 
-@app.get('/download/pdb/{pdb_id}/{file_format}', name='Download data', tags=['PDB'],
-         description='Download various data about the protein', responses=pdb_id_404_response)
+@router.get('/download/pdb/{pdb_id}/{file_format}', name='Download data', tags=['PDB'],
+            description='Download various data about the protein', responses=pdb_id_404_response)
 def download_pdb(file_format: DownloadType, pdb_id: PDB_ID_Type):
     return download(SourceDatabase.PDB, file_format, pdb_id)
 

@@ -2,13 +2,15 @@ import json
 import sys
 from pathlib import Path
 from zipfile import ZipFile
-from fastapi import HTTPException
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, create_model
 
-from api.main import app
 from api.common import CHANNEL_TYPES_PDB, CHANNEL_TYPES_ALPHAFILL, CHANNEL_TYPES
 from api.config import config
 from api.common import SourceDatabase, PDB_ID_Type, Uniprot_ID_Type, pdb_id_404_response, uniprot_id_404_response
+
+
+router = APIRouter()
 
 
 ChannelModel = create_model('ChannelModel', **{tunnel: (list, []) for tunnel in CHANNEL_TYPES.values()})
@@ -19,14 +21,14 @@ class Channels(BaseModel):
     Channels: ChannelModel = ChannelModel()
 
 
-@app.get('/channels/pdb/{pdb_id}', response_model=Channels, name='Channel data', tags=['PDB'],
-         description='Returns information about channels for a given protein', responses=pdb_id_404_response)
+@router.get('/channels/pdb/{pdb_id}', response_model=Channels, name='Channel data', tags=['PDB'],
+            description='Returns information about channels for a given protein', responses=pdb_id_404_response)
 def get_channels_pdb(pdb_id: PDB_ID_Type):
     return get_channels(SourceDatabase.PDB, pdb_id)
 
 
-@app.get('/channels/alphafill/{uniprot_id}', response_model=Channels, name='Channel data', tags=['AlphaFill'],
-         description='Returns information about channels for a given protein', responses=uniprot_id_404_response)
+@router.get('/channels/alphafill/{uniprot_id}', response_model=Channels, name='Channel data', tags=['AlphaFill'],
+            description='Returns information about channels for a given protein', responses=uniprot_id_404_response)
 def get_channels_alphafill(uniprot_id: Uniprot_ID_Type):
     return get_channels(SourceDatabase.AlphaFill, uniprot_id)
 

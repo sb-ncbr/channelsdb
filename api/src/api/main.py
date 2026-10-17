@@ -2,12 +2,17 @@ import requests
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+from api.endpoints import annotations, assembly, channels, content, statistics, download
+
 
 app = FastAPI(title='ChannelsDB 2.0 API',
               contact={'name': 'Tomáš Raček', 'email': 'tomas.racek@muni.cz'},
               redoc_url=None, docs_url='/',
               version='1.0.0',
               swagger_ui_parameters={'syntaxHighlight': False, 'defaultModelsExpandDepth': -1})
+
+for module in (annotations, assembly, channels, content, statistics, download):
+    app.include_router(module.router)
 
 
 @app.exception_handler(requests.ConnectionError)

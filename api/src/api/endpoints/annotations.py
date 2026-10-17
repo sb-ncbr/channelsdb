@@ -4,12 +4,14 @@ import sys
 import requests
 from pathlib import Path
 import xml.etree.ElementTree as ET
-from fastapi import HTTPException
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from api.main import app
 from api.config import config
 from api.common import PDB_ID_Type, Uniprot_ID_Type, uniprot_id_404_response, pdb_id_404_response
+
+
+router = APIRouter()
 
 
 def parse_sifts_data(xml_data: str) -> dict[str, tuple[str, dict[str, str]]]:
@@ -152,16 +154,16 @@ class Annotations(BaseModel):
     ResidueAnnotations: ResidueAnnotationsModel = ResidueAnnotationsModel()
 
 
-@app.get('/annotations/alphafill/{uniprot_id}', response_model=Annotations, name='Annotation data', tags=['AlphaFill'],
-         description='Returns annotations of individual protein and its residues', responses=uniprot_id_404_response)
+@router.get('/annotations/alphafill/{uniprot_id}', response_model=Annotations, name='Annotation data', tags=['AlphaFill'],
+            description='Returns annotations of individual protein and its residues', responses=uniprot_id_404_response)
 def get_annotations_alphafill(uniprot_id: Uniprot_ID_Type):
     annotations = Annotations().model_dump()
     fill_annotations(annotations, None, uniprot_id)
     return annotations
 
 
-@app.get('/annotations/pdb/{pdb_id}', response_model=Annotations, name='Annotation data', tags=['PDB'],
-         description='Returns annotations of individual protein and its residues', responses=pdb_id_404_response)
+@router.get('/annotations/pdb/{pdb_id}', response_model=Annotations, name='Annotation data', tags=['PDB'],
+            description='Returns annotations of individual protein and its residues', responses=pdb_id_404_response)
 def get_annotations_pdb(pdb_id: PDB_ID_Type):
     annotations = Annotations().model_dump()
     req = requests.get(f'https://ftp.ebi.ac.uk/pub/databases/msd/sifts/xml/{pdb_id}.xml.gz', timeout=10)

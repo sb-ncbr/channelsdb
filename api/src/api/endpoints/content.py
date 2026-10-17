@@ -1,9 +1,12 @@
 import json
 from pathlib import Path
+from fastapi import APIRouter
 from pydantic import BaseModel
 
-from api.main import app
 from api.config import config
+
+
+router = APIRouter()
 
 
 class ContentModel(BaseModel):
@@ -11,7 +14,7 @@ class ContentModel(BaseModel):
     AlphaFill: dict[str, list[int]]
 
 
-@app.get('/content', name='Database content', tags=['General'], description='Returns the counts of tunnels for each stored entry')
+@router.get('/content', name='Database content', tags=['General'], description='Returns the counts of tunnels for each stored entry')
 def get_content() -> ContentModel:
     with open(Path(config['dirs']['base']) / 'db_content.json') as f:
         return json.load(f)
