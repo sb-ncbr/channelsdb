@@ -1,9 +1,17 @@
 FROM python:3.11-alpine
 
+COPY --from=ghcr.io/astral-sh/uv:0.12.24 /uv /bin/uv
+
+ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=0
+
 WORKDIR /channelsdb
 
-RUN --mount=type=bind,source=requirements.txt,target=/channelsdb/requirements.txt,readonly \
-    pip install --no-cache-dir --upgrade --root-user-action=ignore -r /channelsdb/requirements.txt
+COPY pyproject.toml uv.lock /channelsdb/
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --no-dev --no-install-project
+
+ENV PATH="/channelsdb/.venv/bin:$PATH"
 
 COPY config_docker.ini /channelsdb/config.ini
 
