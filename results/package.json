@@ -1,17 +1,19 @@
 {
   "name": "ChannelsDB-ResultView",
   "version": "1.0",
+  "type": "module",
   "description": "",
   "scripts": {
     "concat-assets": "node tools/concat-assets.js",
-    "build-webpack": "npx webpack --mode production",
-    "build": "npm run concat-assets && npm run build-webpack"
+    "dev": "npm run concat-assets && vite",
+    "build": "npm run concat-assets && tsc -p ChannelsDB --noEmit && vite build",
+    "preview": "vite preview"
   },
   "main": "index.js",
   "typings": "index.d.ts",
   "author": "Dominik Tousek tousekdominik@gmail.com>",
   "contributors": [
-    "Dušan Veľký <dvelky@mail.muni.cz>"
+    "Du\u0161an Ve\u013ek\u00fd <dvelky@mail.muni.cz>"
   ],
   "homepage": "https://channelsdb2.biodata.ceitec.cz/",
   "keywords": [],
@@ -22,14 +24,9 @@
     "@types/react": "^18.2.14",
     "@types/react-dom": "^18.2.6",
     "byline": "^5.0.0",
-    "copy-webpack-plugin": "^11.0.0",
-    "css-loader": "^6.10.0",
-    "sass-loader": "^10.5.2",
-    "style-loader": "^3.3.4",
-    "ts-loader": "^9.5.1",
+    "rolldown": "^1.2.14",
     "typescript": "^5.1.6",
-    "webpack": "^5.90.0",
-    "webpack-cli": "^5.1.4"
+    "vite": "^8.3.4"
   },
   "dependencies": {
     "immutable": "^5.0.0-beta.5",

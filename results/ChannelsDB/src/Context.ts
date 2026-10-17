@@ -273,12 +273,18 @@ export class Context {
         if (this.selectedParams && this.selectedParams.nonSelectedColor) {
             this.visual.reset({ theme: true });
         }
+        const structure = this.plugin.managers.structure.hierarchy.current.structures[structIndex];
+        // Nothing more to clear before the structure is loaded (e.g. on Mol*'s initial click event at startup)
+        if (!structure) {
+            this.selectedParams = undefined;
+            return;
+        }
         // remove overpaints
-        await clearStructureOverpaint(this.plugin, this.plugin.managers.structure.hierarchy.current.structures[structIndex].components);
+        await clearStructureOverpaint(this.plugin, structure.components);
         // remove selection representations
         if (this.selectedParams && this.selectedParams.addedRepr) {
             const selReprCells = [];
-            for (const c of this.plugin.managers.structure.hierarchy.current.structures[structIndex].components) {
+            for (const c of structure.components) {
                 if (c.cell && c.cell.params && c.cell.params.values && c.cell.params.values.label === '[Focus] Target - Lining Residues') selReprCells.push(c.cell);
             }
             if (selReprCells.length > 0) {

@@ -56,13 +56,13 @@ The code is checked with [ruff](https://docs.astral.sh/ruff/). Run it in `/api`:
 $ uv run ruff check src
 ```
 
-## Main page development
+## Frontend development
 
-The main page (`/frontend`) is built with [Vite](https://vite.dev/). With the application running (see above), start a development server with live reload in `/frontend`:
+The main page (`/frontend`) and the results page (`/results`) are built with [Vite](https://vite.dev/). With the application running (see above), start a development server with live reload in either directory:
 
 ```bash
 $ npm install
 $ npm run dev
 ```
 
-It serves the pages at http://localhost:5173 and forwards the API and the results pages to the running application, using the same `CHANNELSDB_PORT` as docker compose (port `80` by default). To use another instance, set `CHANNELSDB_URL` to its address.
+It serves the pages at http://localhost:5173 (the results page at http://localhost:5173/detail/?pid=1ymg&subDB=pdb) and forwards the API and the results pages to the running application, using the same `CHANNELSDB_PORT` as docker compose (port `80` by default). To use another instance, set `CHANNELSDB_URL` to its address.

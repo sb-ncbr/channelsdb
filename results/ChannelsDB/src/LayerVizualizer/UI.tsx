@@ -7,6 +7,7 @@ import { SelectionHelper } from "../CommonUtils/Selection";
 import { LayerData, convertLayersToLayerData } from "../DataInterface";
 import { QueryParam } from "../VizualizerMol/helpers";
 import { Context } from "../Context";
+import noImageUrl from "../../images/no_img.png";
 
 declare function $(p:any): any;
 
@@ -480,7 +481,7 @@ class ImgOverlay extends React.Component<State,{}>{
             <img className="fake-canvas"
                 id={`layer-vizualizer-fake-canvas${this.props.instanceId}`}
                 useMap={`#layersInteractiveMap${this.props.instanceId}`}
-                src="../images/no_img.png"
+                src={noImageUrl}
                 ></img>
         );
     }

@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "es2020",
     "lib": [ "es6", "dom", "esnext.asynciterable", "es2016" ],
     "allowJs": true,
     "skipLibCheck": true,
@@ -21,10 +21,12 @@
     "declaration": false,
     "strictNullChecks": true,
     "noImplicitThis": true,
-    "types": [],
+    "types": ["vite/client"],
+    "isolatedModules": true,
     "skipDefaultLibCheck": true
   },
     "files": [
+    "src/main.ts",
       
     //Static Data
     "src/StaticData.ts",

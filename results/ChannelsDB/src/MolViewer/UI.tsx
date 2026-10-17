@@ -7,7 +7,7 @@ import type { Context } from "../Context";
 import { Plugin } from "molstar/lib/mol-plugin-ui/plugin";
 import { GlobalRouter } from "../SimpleRouter";
 import React from "react";
-require("molstar/lib/mol-plugin-ui/skin/dark.scss");
+import "molstar/lib/mol-plugin-ui/skin/dark.scss";
 
 export class Viewer extends React.Component<{ context: Context }> {
     
