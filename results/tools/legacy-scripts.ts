@@ -1,4 +1,4 @@
-/* Provides the libraries and scripts that the code uses as globals (jQuery, Bootstrap, canvas2svg, ...) as a single
+/* Provides the libraries and scripts that the code uses as globals (jQuery, Bootstrap, ...) as a single
  * script. They are plain browser scripts, not modules, so they cannot be bundled with the rest of the code.
  * src/main.ts imports the script's URL from 'virtual:legacy-scripts' and loads it before starting the application.
  */
@@ -11,7 +11,6 @@ import type { Plugin } from 'vite';
 const files = [
     'js/jquery-3.7.1.js',
     'js/bootstrap.min.js',
-    'js/canvas2svg.js',
     'js/datagrid.js',
     'js/tabsConfig.js',
 ];

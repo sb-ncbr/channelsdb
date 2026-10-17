@@ -5,9 +5,9 @@ import Tabs from "../CommonUtils/Tabs";
 import { Paintable, Positionable, Axis } from "./Components";
 import { LayerData } from "../DataInterface";
 import { interpolateRGB } from "./Colors";
+import { C2S } from "../vendor/canvas2svg";
 
 declare function $(p:any): any;    
-declare var C2S: any;
 
 export type DataURL = string;
 

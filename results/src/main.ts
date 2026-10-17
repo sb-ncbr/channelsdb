@@ -15,7 +15,7 @@ import '../css/PDBID.css';
 import '../css/style.css';
 import '../css/tooltips.css';
 
-// jQuery, Bootstrap, canvas2svg and others are plain scripts (see tools/legacy-scripts.ts), so they are loaded as such,
+// jQuery, Bootstrap and others are plain scripts (see tools/legacy-scripts.ts), so they are loaded as such,
 // and the application starts only after they are available
 await new Promise((resolve, reject) => {
     const script = document.createElement('script');

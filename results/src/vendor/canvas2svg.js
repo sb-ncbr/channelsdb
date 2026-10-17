@@ -9,9 +9,11 @@
  *  Kerry Liu
  *
  *  Copyright (c) 2014 Gliffy Inc.
+ *
+ *  ChannelsDB: exported as an ES module instead of the global C2S, otherwise unchanged.
  */
 
-;(function() {
+export const C2S = (function() {
     "use strict";
 
     var STYLES, ctx, CanvasGradient, CanvasPattern, namedEntities;
@@ -1196,14 +1198,5 @@
     ctx.prototype.globalCompositeOperation = function(){};
     ctx.prototype.setTransform = function(){};
 
-    //add options for alternative namespace
-    if (typeof window === "object") {
-        window.C2S = ctx;
-    }
-
-    // CommonJS/Browserify
-    if (typeof module === "object" && typeof module.exports === "object") {
-        module.exports = ctx;
-    }
-
+    return ctx;
 }());
