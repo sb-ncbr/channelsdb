@@ -1,22 +1,16 @@
 {
-  "compileOnSave": false,
   "compilerOptions": {
+    "target": "es2018",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "lib": ["es2018", "dom"],
+    "jsx": "react",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
     "noImplicitAny": true,
-    "noEmitOnError": true,
-    "removeComments": false,
-    "sourceMap": false,
-    "declaration": false,
     "strictNullChecks": true,
     "noImplicitThis": true,
-    "lib": [ "es6", "dom" ],
-    "target": "es5",
-    "jsx": "react",
-    "module": "none",
-    "types": [ "rx", "react", "react-dom" ],
-    "skipDefaultLibCheck": true,
-    "out": "assets/js/search.js"
+    "noEmitOnError": true
   },
-  "include": [
-    "src/**/*"
-  ]
+  "include": ["src/**/*"]
 }

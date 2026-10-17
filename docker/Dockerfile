@@ -8,7 +8,7 @@ RUN npm ci
 
 COPY ./frontend /build
 
-RUN ./node_modules/.bin/tsc
+RUN npm run build
 
 FROM node:20-slim AS results
 
@@ -24,9 +24,7 @@ RUN npm run build
 
 FROM nginx:1.26-alpine-slim
 
-COPY --from=frontend /build/assets /var/www/assets
-
-COPY --from=frontend /build/*.html /var/www/
+COPY --from=frontend /build/dist /var/www
 
 COPY --from=results /build/dist/ChannelsDB /var/www/detail
 

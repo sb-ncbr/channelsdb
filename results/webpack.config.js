@@ -16,8 +16,9 @@ class HashedAssetsInHtmlPlugin {
           const plain = name.replace(/\.[0-9a-f]{8}(\.[a-z]+)$/, '$1');
           if (plain !== name) hashed[plain] = name;
         }
-        const html = assets['index.html'].source().toString().replace(/(src|href)="([^"?#]+)"/g,
-          (match, attr, file) => hashed[file] ? `${attr}="${hashed[file]}"` : match);
+        // Attribute values may be unquoted, as newer webpack versions minify the HTML before this runs
+        const html = assets['index.html'].source().toString().replace(/(src|href)=("?)([^"\s>?#]+)\2/g,
+          (match, attr, quote, file) => hashed[file] ? `${attr}=${quote}${hashed[file]}${quote}` : match);
         compilation.updateAsset('index.html', new compiler.webpack.sources.RawSource(html));
       });
     });
