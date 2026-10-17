@@ -1,16 +1,15 @@
-import $ from '../jquery';
-
 export function getTabLinkById(tabbedElementId:string, tabId:string){
-    let tabs = $(`#${tabbedElementId} li a`);
-    for(let t of tabs){
-        if($(t).attr('href')===`#${tabbedElementId}-${tabId}`){
-            return $(t);
-        }
-    }
+    const links = document.querySelectorAll<HTMLAnchorElement>(`#${tabbedElementId} li a`);
+    return [...links].find((link) => link.getAttribute('href') === `#${tabbedElementId}-${tabId}`)!;
+}
+
+function isShown(link: HTMLAnchorElement) {
+    const pane = document.querySelector(link.getAttribute('href')!)!;
+    return link.parentElement!.classList.contains('active') && getComputedStyle(pane).display !== 'none';
 }
 
 export function isActive(tabbedElementId:string, tabId:string){
-    return getTabLinkById(tabbedElementId,tabId).parent().attr("class").indexOf("active")>=0;
+    return getTabLinkById(tabbedElementId,tabId).parentElement!.classList.contains('active');
 }
 
 export function activateTab(tabbedElementId:string, tabId:string){
@@ -18,14 +17,12 @@ export function activateTab(tabbedElementId:string, tabId:string){
 }
 
 export function doAfterTabActivated(tabbedElementId:string, tabId:string, callback:()=>void){
-    var checker = function(){
-        let link = getTabLinkById(tabbedElementId,tabId);
-        let href = link.attr("href");
-        if(link.parent().attr("class").indexOf("active")>=0 && $(href).css("display")!=="none"){
+    const checker = () => {
+        if(isShown(getTabLinkById(tabbedElementId,tabId))){
             callback();
         }
         else{
-            window.setTimeout(checker,10);    
+            window.setTimeout(checker,10);
         }
     };
     window.setTimeout(checker,10);

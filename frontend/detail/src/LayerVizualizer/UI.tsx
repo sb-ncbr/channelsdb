@@ -389,7 +389,7 @@ class ExportTypeButton extends React.Component<{instanceId:number,exportType:str
     private triggerDownload(dataUrl:string, fileName:string){
         let a = document.createElement("a");
         document.body.appendChild(a);
-        $(a).css("display","none");
+        a.style.display = "none";
         let blob = this.dataURItoBlob(dataUrl)
         let url = window.URL.createObjectURL(blob);
         a.href = url;

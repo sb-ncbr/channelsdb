@@ -2,71 +2,78 @@
  * Panel togglers and sizes of the tables (datagrids) and panels, which fill the space available in their tabs.
  */
 
-import $ from '../jquery';
 import { emit, emitResize, listen } from './Events';
 
-function parseStyleNumeric(value: string) {
-    const number = Number(value.split('px')[0]);
+function element(selector: string) {
+    return document.querySelector(selector) as HTMLElement;
+}
+
+function toggleClass(selector: string, className: string) {
+    document.querySelectorAll(selector).forEach((e) => e.classList.toggle(className));
+}
+
+function styleNumber(e: Element, property: string) {
+    const number = parseFloat(getComputedStyle(e).getPropertyValue(property));
     return isNaN(number) ? 0 : number;
 }
 
+function sumStyleNumbers(e: Element, properties: string[]) {
+    return properties.reduce((sum, property) => sum + styleNumber(e, property), 0);
+}
+
+// Width of the content, without padding and border
+function contentWidth(e: Element) {
+    let width = styleNumber(e, 'width');
+    if (getComputedStyle(e).boxSizing === 'border-box') {
+        width -= sumStyleNumbers(e, ['padding-left', 'padding-right', 'border-left-width', 'border-right-width']);
+    }
+    return width;
+}
+
 function datagridOnResize(elementId: string, lowLevelContainerId: string, highLevelContainerId: string) {
-    const datagridJ = $(`#${elementId}`);
-    const datagrid = datagridJ[0];
-    const parent = $(`#${highLevelContainerId}`)[0];
-    const header = $(`#${elementId} .header`)[0];
+    const datagrid = element(`#${elementId}`);
+    const parent = element(`#${highLevelContainerId}`);
+    const header = element(`#${elementId} .header`);
 
     const headHeight = header.clientHeight;
 
     // Make body and header width correspond
-    const btWidth = $(`#${elementId} .body table`)[0].clientWidth;
-    $(`#${elementId} .header table`).css('width', String(btWidth));
+    const btWidth = element(`#${elementId} .body table`).clientWidth;
+    document.querySelectorAll<HTMLElement>(`#${elementId} .header table`).forEach((table) => table.style.width = `${btWidth}px`);
 
     const parentHeight = parent.clientHeight;
     let filledHeight = 0;
-    for (const element of parent.children) {
-        if (element.id === lowLevelContainerId) {
+    for (const child of parent.children) {
+        if (child.id === lowLevelContainerId) {
             continue;
         }
-        filledHeight += element.clientHeight;
+        filledHeight += child.clientHeight;
     }
 
-    let paddingAndMargin = parseStyleNumeric(datagridJ.css('padding-top'));
-    paddingAndMargin += parseStyleNumeric(datagridJ.css('padding-bottom'));
-    paddingAndMargin += parseStyleNumeric(datagridJ.css('margin-top'));
-    paddingAndMargin += parseStyleNumeric(datagridJ.css('margin-bottom'));
+    const paddingAndMargin = sumStyleNumbers(datagrid, ['padding-top', 'padding-bottom', 'margin-top', 'margin-bottom']);
 
     datagrid.style.height = `${parentHeight - filledHeight}px`;
 
-    const body = $(`#${elementId} .body`)[0];
+    const body = element(`#${elementId} .body`);
     body.style.height = `${parentHeight - filledHeight - headHeight - paddingAndMargin}px`;
 }
 
 function fillSpaceOnResize(elementId: string, highLevelContainerId: string, height = 100) {
-    const elementJ = $(`#${elementId}`);
-    const element = elementJ[0];
-    const parentJ = $(`#${highLevelContainerId}`);
-    const parent = parentJ[0];
+    const filled = element(`#${elementId}`);
+    const parent = element(`#${highLevelContainerId}`);
 
     const parentHeight = parent.clientHeight;
-    const parentWidth = parentJ.width();
+    const parentWidth = contentWidth(parent);
 
-    const filledHeight = $(`#${highLevelContainerId} ul.nav.nav-tabs`)[0].clientHeight;
+    const filledHeight = element(`#${highLevelContainerId} ul.nav.nav-tabs`).clientHeight;
 
-    let paddingAndMarginH = parseStyleNumeric(elementJ.css('padding-left'));
-    paddingAndMarginH += parseStyleNumeric(elementJ.css('padding-right'));
-    paddingAndMarginH += parseStyleNumeric(elementJ.css('margin-left'));
-    paddingAndMarginH += parseStyleNumeric(elementJ.css('margin-right'));
-
-    paddingAndMarginH += parseStyleNumeric(parentJ.css('padding-left'));
-    paddingAndMarginH += parseStyleNumeric(parentJ.css('padding-right'));
-    paddingAndMarginH += parseStyleNumeric(parentJ.css('margin-left'));
-    paddingAndMarginH += parseStyleNumeric(parentJ.css('margin-right'));
+    const horizontalSpacing = ['padding-left', 'padding-right', 'margin-left', 'margin-right'];
+    const paddingAndMarginH = sumStyleNumbers(filled, horizontalSpacing) + sumStyleNumbers(parent, horizontalSpacing);
 
     const availableHeight = parentHeight - filledHeight;
 
-    element.style.height = `${(availableHeight / 100) * height}px`;
-    element.style.width = `${parentWidth - paddingAndMarginH}px`;
+    filled.style.height = `${(availableHeight / 100) * height}px`;
+    filled.style.width = `${parentWidth - paddingAndMarginH}px`;
 }
 
 function resizePanels() {
@@ -82,11 +89,10 @@ function resizePanels() {
 }
 
 // Resizes the content of a tab once it is shown
-function resizeTabAfterActivate(this: HTMLElement) {
-    const link = this;
+function resizeTabAfterActivate(link: HTMLElement) {
     const checker = () => {
-        const href = $(link).attr('href');
-        if ($(link).parent().attr('class').indexOf('active') >= 0 && $(href).css('display') !== 'none') {
+        const href = link.getAttribute('href')!;
+        if (link.parentElement!.classList.contains('active') && getComputedStyle(element(href)).display !== 'none') {
             resizePanels();
             emit('lvContentResize');
         } else {
@@ -105,22 +111,23 @@ function onPanelToggled() {
 
 /** Sets up the panels, to be called once the application has rendered them */
 export function initLayout() {
-    $('#right-tabs a').on('click', resizeTabAfterActivate);
-    $('#left-tabs a').on('click', resizeTabAfterActivate);
+    document.querySelectorAll<HTMLElement>('#right-tabs a, #left-tabs a').forEach((link) => {
+        link.addEventListener('click', () => resizeTabAfterActivate(link));
+    });
 
-    $('#bottom-tabs-toggler').on('click', () => {
-        $('.left-tabs').toggleClass('bottom-tabs-toggled');
-        $('.right-tabs').toggleClass('bottom-tabs-toggled');
+    element('#bottom-tabs-toggler').addEventListener('click', () => {
+        toggleClass('.left-tabs', 'bottom-tabs-toggled');
+        toggleClass('.right-tabs', 'bottom-tabs-toggled');
         onPanelToggled();
     });
-    $('#bottom-panel-toggler').on('click', () => {
-        $('.plugin').toggleClass('bottom-panel-toggled');
-        $('.bottom-panel').toggleClass('bottom-panel-toggled');
+    element('#bottom-panel-toggler').addEventListener('click', () => {
+        toggleClass('.plugin', 'bottom-panel-toggled');
+        toggleClass('.bottom-panel', 'bottom-panel-toggled');
         onPanelToggled();
     });
-    $('#right-panel-toggler').on('click', () => {
-        $('.ui').toggleClass('toggled');
-        $('.bottom').toggleClass('toggled');
+    element('#right-panel-toggler').addEventListener('click', () => {
+        toggleClass('.ui', 'toggled');
+        toggleClass('.bottom', 'toggled');
         // Aglomered parameters and datagrids
         emitResize();
         emit('contentResize');
