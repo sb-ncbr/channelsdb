@@ -6,7 +6,7 @@ import { Context } from "../Context";
 
 let DGTABLE_COLS_COUNT = 2;
 
-import $ from "../jquery";
+import { emit } from "../CommonUtils/Events";
 
 interface State{
     data: string[] | null,
@@ -99,7 +99,7 @@ export class ResidueAnnotations extends React.Component<{controller: Context }, 
                 s.data = this.sortResidues(list, true);
                 this.setState(s);
                 setTimeout(function(){
-                    $( window ).trigger('contentResize');
+                    emit('contentResize');
                 },1);
             }).bind(this))
         }

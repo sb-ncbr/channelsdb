@@ -7,7 +7,7 @@ import { LayerData } from "../DataInterface";
 import { interpolateRGB } from "./Colors";
 import { C2S } from "../vendor/canvas2svg";
 
-import $ from "../jquery";
+import { listen } from "../CommonUtils/Events";
 
 export type DataURL = string;
 
@@ -198,7 +198,7 @@ export class Vizualizer{
         return this.isElementVisible(element.parentElement);
     }
 
-    private onContentResize(e: Event){
+    private onContentResize(){
         if(document.getElementById(this.canvasId) === null){
             return;
         }
@@ -418,7 +418,7 @@ export class Vizualizer{
         //Dynamic canvas resizing
         this.resizePercentPrecision = 1; //5% difference between real and given => cause resizing of canvas
         window.addEventListener("resize", this.onWindowResize.bind(this));
-        $( window ).on("lvContentResize", this.onContentResize.bind(this));
+        listen("lvContentResize", this.onContentResize.bind(this));
     }
 
     public deselectLayer(){

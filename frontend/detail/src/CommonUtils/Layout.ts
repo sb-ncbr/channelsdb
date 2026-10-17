@@ -3,6 +3,7 @@
  */
 
 import $ from '../jquery';
+import { emit, emitResize, listen } from './Events';
 
 function parseStyleNumeric(value: string) {
     const number = Number(value.split('px')[0]);
@@ -87,7 +88,7 @@ function resizeTabAfterActivate(this: HTMLElement) {
         const href = $(link).attr('href');
         if ($(link).parent().attr('class').indexOf('active') >= 0 && $(href).css('display') !== 'none') {
             resizePanels();
-            $(window).trigger('lvContentResize');
+            emit('lvContentResize');
         } else {
             window.setTimeout(checker, 10);
         }
@@ -97,9 +98,9 @@ function resizeTabAfterActivate(this: HTMLElement) {
 
 function onPanelToggled() {
     // Aglomered parameters, datagrids and the canvas of the 2D vizualizer
-    $(window).trigger('resize');
-    $(window).trigger('contentResize');
-    $(window).trigger('lvContentResize');
+    emitResize();
+    emit('contentResize');
+    emit('lvContentResize');
 }
 
 /** Sets up the panels, to be called once the application has rendered them */
@@ -121,12 +122,12 @@ export function initLayout() {
         $('.ui').toggleClass('toggled');
         $('.bottom').toggleClass('toggled');
         // Aglomered parameters and datagrids
-        $(window).trigger('resize');
-        $(window).trigger('contentResize');
+        emitResize();
+        emit('contentResize');
     });
 
-    $(window).on('resize', resizePanels);
-    $(window).on('contentResize', resizePanels);
+    window.addEventListener('resize', resizePanels);
+    listen('contentResize', resizePanels);
 
     fillSpaceOnResize('layer-residues', 'right-tabs', 39);
     fillSpaceOnResize('layer-properties', 'right-tabs', 59);

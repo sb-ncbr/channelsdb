@@ -6,7 +6,7 @@ import React from "react";
 
 let DGTABLE_COLS_COUNT = 3;
 
-import $ from "../jquery";
+import { emit } from "../CommonUtils/Events";
 
 interface State{
     data: ProteinAnnotation[] | null,
@@ -29,7 +29,7 @@ export class ProteinAnnotations extends React.Component<{controller: Context }, 
             state.data = annotations;
             this.setState(state);
             setTimeout(function(){
-                $( window ).trigger('contentResize');
+                emit('contentResize');
             },1);
         }
     }

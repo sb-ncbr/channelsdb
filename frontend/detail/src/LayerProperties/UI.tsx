@@ -8,7 +8,7 @@ import { Context } from "../Context";
 let DGTABLE_COLS_COUNT = 2;
 let NO_DATA_MESSAGE = "Hover over channel(2D) for details...";
 
-import $ from "../jquery";
+import { emit, listen } from "../CommonUtils/Events";
 
 interface State{
     data: LayersInfo[] | null,
@@ -27,10 +27,10 @@ export class LayerProperties extends React.Component<{controller: Context }, Sta
     layerIdx = -1;
 
     componentDidMount() {
-        $( window ).on('layerTriggered', this.layerTriggerHandler.bind(this));
+        listen('layerTriggered', this.layerTriggerHandler.bind(this));
     }
 
-    private layerTriggerHandler(event:any,layerIdx:number){
+    private layerTriggerHandler(layerIdx:number){
 
         this.layerIdx = layerIdx;
 
@@ -48,7 +48,7 @@ export class LayerProperties extends React.Component<{controller: Context }, Sta
         }
 
         setTimeout(function(){
-            $( window ).trigger('contentResize');
+            emit('contentResize');
         },1);
     }
 

@@ -13,7 +13,7 @@ import { ChannelsDBData, Tunnel, TunnelMetaInfo } from "./DataInterface";
 import { Context } from "./Context";
 import { Subscription } from "rxjs"
 
-import $ from "./jquery";
+import { listen } from "./CommonUtils/Events";
 
 export class UI extends React.Component<{ plugin: Context }, { isLoading?: boolean, error?: string, data?: any, isWaitingForData?: boolean, apiStatus: number|undefined }> {
 
@@ -24,13 +24,13 @@ export class UI extends React.Component<{ plugin: Context }, { isLoading?: boole
 
     componentDidMount() {
         this.load();
-        $(window).on("contentResize", this.onContentResize.bind(this));
+        listen("contentResize", this.onContentResize.bind(this));
         let globalRouter = GlobalRouter;
         const url = `${globalRouter.getChannelsURL()}/statistics`;
         fetch(url).then(resp => this.setState({apiStatus: resp.status}));
     }
 
-    private onContentResize(_:any){
+    private onContentResize(){
         let prevState = this.props.plugin.plugin.layout.state;
         this.props.plugin.plugin.layout.setProps({isExpanded:true});
         this.props.plugin.plugin.layout.setProps(prevState);

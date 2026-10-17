@@ -10,7 +10,7 @@ import { PluginCommands } from "molstar/lib/mol-plugin/commands";
 let DGTABLE_COLS_COUNT = 2;
 let NO_DATA_MESSAGE = "Select channel in 3D view for details...";
 
-import $ from "../jquery";
+import { emit } from "../CommonUtils/Events";
 
 interface State{
     data: string[] | null,
@@ -39,7 +39,7 @@ export class LiningResidues extends React.Component<{controller: Context }, Stat
             this.setState(state);
 
             setTimeout(function(){
-                $( window ).trigger('contentResize');
+                emit('contentResize');
             },1);
         });
     }

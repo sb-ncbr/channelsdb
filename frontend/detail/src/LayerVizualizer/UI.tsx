@@ -10,6 +10,7 @@ import { Context } from "../Context";
 import noImageUrl from "../../images/no_img.png";
 
 import $ from "../jquery";
+import { emit, emitResize, listen } from "../CommonUtils/Events";
 
 export class LayerVizualizer extends React.Component<{ vizualizer: Vizualizer, controller: Context }, State> {
 
@@ -77,10 +78,10 @@ export class LayerVizualizer extends React.Component<{ vizualizer: Vizualizer, c
             },50);
         });
 
-        $( window ).on("lvContentResize",(()=>{
+        listen("lvContentResize",(()=>{
             this.forceUpdate();
         }).bind(this));
-        $( window ).on("resize",(()=>{
+        window.addEventListener("resize",(()=>{
             this.forceUpdate();
         }).bind(this));
     }
@@ -553,7 +554,7 @@ class InteractionMap extends React.Component<State & {controller: Context},{}>{
             let state = this.props.app.state;
             state.layerId= layerIdx;
             this.props.app.setState(state);    
-            $( window ).trigger('layerTriggered',layerIdx);
+            emit('layerTriggered',layerIdx);
         }      
     }
 
@@ -578,8 +579,8 @@ class InteractionMap extends React.Component<State & {controller: Context},{}>{
             await this.showLayerResidues3DAndFocus(layerIdx);
             instance.deselectLayer();
             instance.selectLayer(layerIdx);
-            $( window ).trigger('layerTriggered',layerIdx);
-            $( window ).trigger('resize');
+            emit('layerTriggered',layerIdx);
+            emitResize();
         }
         SelectionHelper.highlightSelectedChannel(this.props.controller);
     }
