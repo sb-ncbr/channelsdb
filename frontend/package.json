@@ -1,16 +1,13 @@
 {
-  "name": "channels-db",
-  "version": "1.0.0",
+  "name": "channelsdb-frontend",
   "private": true,
   "type": "module",
-  "description": "",
+  "description": "ChannelsDB main web pages",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview"
   },
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

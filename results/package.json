@@ -1,23 +1,19 @@
 {
-  "name": "ChannelsDB-ResultView",
-  "version": "1.0",
+  "name": "channelsdb-results",
+  "private": true,
   "type": "module",
-  "description": "",
+  "description": "ChannelsDB results page (/detail)",
   "scripts": {
     "concat-assets": "node tools/concat-assets.js",
     "dev": "npm run concat-assets && vite",
     "build": "npm run concat-assets && tsc -p ChannelsDB --noEmit && vite build",
     "preview": "vite preview"
   },
-  "main": "index.js",
-  "typings": "index.d.ts",
-  "author": "Dominik Tousek tousekdominik@gmail.com>",
+  "author": "Dominik Tousek <tousekdominik@gmail.com>",
   "contributors": [
     "Dušan Veľký <dvelky@mail.muni.cz>"
   ],
   "homepage": "https://channelsdb2.biodata.ceitec.cz/",
-  "keywords": [],
-  "license": "",
   "devDependencies": {
     "@types/node": "^20.4.2",
     "@types/react": "^18.2.14",
