@@ -1,3 +1,4 @@
+import http.cookiejar
 from enum import StrEnum
 from typing import Annotated
 
@@ -5,6 +6,15 @@ import requests
 from fastapi import Depends, HTTPException
 from fastapi import Path as AnnotationPath
 from pydantic import BaseModel
+
+
+# Shared session to reuse connections to the external APIs. Each thread uses at most one connection at a time,
+# so keeping up to 40 connections per host (the size of FastAPI's default thread pool) means none are discarded.
+# This is not a limit, more connections are opened when needed. Cookies are not stored, so that no state is shared
+# between requests.
+session = requests.Session()
+session.mount('https://', requests.adapters.HTTPAdapter(pool_maxsize=40))
+session.cookies.set_policy(http.cookiejar.DefaultCookiePolicy(allowed_domains=[]))
 
 
 class IDError(BaseModel):
@@ -19,7 +29,7 @@ UNIPROT_ID_REGEX = '^([OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[
 # The validators are dependencies rather than pydantic validators, so that FastAPI runs their blocking requests
 # in the thread pool instead of on the event loop
 def validate_uniprot_id(uniprot_id: Annotated[str, AnnotationPath(description='Uniprot ID', pattern=UNIPROT_ID_REGEX)]) -> str:
-    req = requests.head(f'https://rest.uniprot.org/uniprotkb/{uniprot_id}.txt', timeout=10)
+    req = session.head(f'https://rest.uniprot.org/uniprotkb/{uniprot_id}.txt', timeout=10)
     if req.status_code >= 500:
         raise HTTPException(status_code=502, detail=f'UniProt API returned an error when accessing: {req.url}')
     if req.status_code != 200:
@@ -30,7 +40,7 @@ def validate_uniprot_id(uniprot_id: Annotated[str, AnnotationPath(description='U
 def validate_pdb_id(pdb_id: Annotated[str, AnnotationPath(description='PDB ID', pattern=PDB_ID_REGEX)]) -> str:
     pdb_id = pdb_id.lower()
 
-    req = requests.get(f"https://www.ebi.ac.uk/pdbe/api/pdb/entry/summary/{pdb_id}", timeout=10)
+    req = session.get(f"https://www.ebi.ac.uk/pdbe/api/pdb/entry/summary/{pdb_id}", timeout=10)
 
     if req.status_code >= 500:
         raise HTTPException(status_code=502, detail=f'PDBe API returned an error when accessing: {req.url}')

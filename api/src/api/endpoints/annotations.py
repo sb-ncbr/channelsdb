@@ -5,11 +5,10 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
-import requests
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from api.common import PDB_ID_Type, Uniprot_ID_Type, pdb_id_404_response, uniprot_id_404_response
+from api.common import PDB_ID_Type, Uniprot_ID_Type, pdb_id_404_response, session, uniprot_id_404_response
 from api.config import config
 
 
@@ -148,7 +147,7 @@ def get_channelsdb_residue_annotations(uniprot_id: str, mapping: SiftsMapping | 
 
 
 def fill_annotations(annotations: Annotations, mapping: SiftsMapping | None, uniprot_id: str) -> None:
-    req = requests.get(f'https://www.ebi.ac.uk/proteins/api/proteins/{uniprot_id}', headers={'accept': 'application/xml'}, timeout=10)
+    req = session.get(f'https://www.ebi.ac.uk/proteins/api/proteins/{uniprot_id}', headers={'accept': 'application/xml'}, timeout=10)
     if req.status_code >= 500:
         raise HTTPException(status_code=502, detail=f'EBI Proteins API returned an error when accessing: {req.url}')
     if req.status_code != 200:
@@ -172,7 +171,7 @@ def get_annotations_alphafill(uniprot_id: Uniprot_ID_Type) -> Annotations:
             description='Returns annotations of individual protein and its residues', responses=pdb_id_404_response)
 def get_annotations_pdb(pdb_id: PDB_ID_Type) -> Annotations:
     annotations = Annotations()
-    req = requests.get(f'https://ftp.ebi.ac.uk/pub/databases/msd/sifts/xml/{pdb_id}.xml.gz', timeout=10)
+    req = session.get(f'https://ftp.ebi.ac.uk/pub/databases/msd/sifts/xml/{pdb_id}.xml.gz', timeout=10)
     if req.status_code >= 500:
         raise HTTPException(status_code=502, detail=f'PDBe server returned an error when accessing: {req.url}')
     if req.status_code != 200:
