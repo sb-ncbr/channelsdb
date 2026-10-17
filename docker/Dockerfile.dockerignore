@@ -1,0 +1,7 @@
+# The build context is the repository root, but only the frontends are needed
+*
+!frontend
+!results
+**/node_modules
+**/dist
+results/ChannelsDB/js/scripts.js
