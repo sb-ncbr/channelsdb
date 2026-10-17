@@ -7,4 +7,4 @@ services:
   web:
     volumes:
       - ../frontend/dist:/var/www:ro,z
-      - ../results/dist/ChannelsDB:/var/www/detail:ro,z
+      - ../results/dist:/var/www/detail:ro,z

@@ -26,6 +26,6 @@ FROM nginx:1.30-alpine-slim
 
 COPY --from=frontend /build/dist /var/www
 
-COPY --from=results /build/dist/ChannelsDB /var/www/detail
+COPY --from=results /build/dist /var/www/detail
 
 CMD ["nginx", "-g", "daemon off;"]

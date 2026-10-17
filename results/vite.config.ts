@@ -1,4 +1,3 @@
-import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 
 // Running ChannelsDB, used by the dev server for the API. By default the docker compose setup on this machine,
@@ -6,12 +5,9 @@ import { defineConfig } from 'vite';
 const backend = process.env.CHANNELSDB_URL ?? `http://localhost:${process.env.CHANNELSDB_PORT ?? 80}`;
 
 export default defineConfig({
-    root: 'ChannelsDB',
     // The page is served at /detail/
     base: '/detail/',
     build: {
-        outDir: resolve(import.meta.dirname, 'dist/ChannelsDB'),
-        emptyOutDir: true,
         // Bootstrap is already minified; minifying it again rounds its line heights and shifts the layout by a pixel
         cssMinify: false,
         rollupOptions: {

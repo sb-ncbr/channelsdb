@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-/* Builds ChannelsDB/js/scripts.js from the libraries and scripts that the code uses as globals (jQuery, Bootstrap,
+/* Builds js/scripts.js from the libraries and scripts that the code uses as globals (jQuery, Bootstrap,
  * canvas2svg, ...). They are plain browser scripts, not modules, so they cannot be bundled with the rest of the code.
- * ChannelsDB/src/main.ts loads the result before starting the application.
+ * src/main.ts loads the result before starting the application.
  */
 
 import fs from 'node:fs';
@@ -10,15 +10,15 @@ import path from 'node:path';
 import { minify } from 'rolldown/utils';
 
 const jsFiles = [
-  './ChannelsDB/js/jquery-3.7.1.js',
-  './ChannelsDB/js/bootstrap.min.js',
-  './ChannelsDB/js/canvas2svg.js',
-  './ChannelsDB/js/datagrid.js',
-  './ChannelsDB/js/Palette.js',
-  './ChannelsDB/js/tabsConfig.js',
+  './js/jquery-3.7.1.js',
+  './js/bootstrap.min.js',
+  './js/canvas2svg.js',
+  './js/datagrid.js',
+  './js/Palette.js',
+  './js/tabsConfig.js',
 ];
 
-const outPath = 'ChannelsDB/js/scripts.js';
+const outPath = 'js/scripts.js';
 
 // Scripts like tabsConfig.js run code when the page is ready, which expects the application to be started already.
 // The application starts only after these scripts are loaded, so it releases jQuery's ready event (see main.ts).
