@@ -2,7 +2,7 @@
  * Entry point: loads the styles and the libraries the code uses as globals, then starts the application.
  */
 
-import legacyScriptsUrl from '../js/scripts.js?url';
+import legacyScriptsUrl from 'virtual:legacy-scripts';
 
 import '../css/AglomeredParameters.css';
 import '../css/bootstrap.min.css';
@@ -15,7 +15,7 @@ import '../css/PDBID.css';
 import '../css/style.css';
 import '../css/tooltips.css';
 
-// jQuery, Bootstrap, canvas2svg and others are plain scripts (see tools/concat-assets.js), so they are loaded as such,
+// jQuery, Bootstrap, canvas2svg and others are plain scripts (see tools/legacy-scripts.ts), so they are loaded as such,
 // and the application starts only after they are available
 await new Promise((resolve, reject) => {
     const script = document.createElement('script');

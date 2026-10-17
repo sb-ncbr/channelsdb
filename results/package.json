@@ -4,9 +4,8 @@
   "type": "module",
   "description": "ChannelsDB results page (/detail)",
   "scripts": {
-    "concat-assets": "node tools/concat-assets.js",
-    "dev": "npm run concat-assets && vite",
-    "build": "npm run concat-assets && tsc --noEmit && vite build",
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
     "preview": "vite preview"
   },
   "author": "Dominik Tousek <tousekdominik@gmail.com>",
