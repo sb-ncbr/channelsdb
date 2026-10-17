@@ -52,6 +52,7 @@ def validate_data(database: SourceDatabase) -> bool:
                     for file in z.namelist():
                         if Path(file).suffix != '.json' or Path(file).stem not in channel_types | {'annotations'}:
                             print(f'{datafile} contains invalid file {file}', file=sys.stderr)
+                            is_ok = False
                             continue
                         with z.open(file) as f:
                             try:
