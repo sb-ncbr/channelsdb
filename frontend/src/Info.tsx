@@ -102,7 +102,7 @@ namespace ChannelsDB {
                             </small>
                         </p>
                     </div>
-                    <div className='channelsdb-logo col-lg-3'><a href='https://dx.doi.org/10.1093/nar/gkx868' target='_blank'><img src={'assets/img/channelsdb_cover.png'} style={{width: '100%'}} /></a></div>
+                    <div className='channelsdb-logo col-lg-3'><a href='https://dx.doi.org/10.1093/nar/gkx868' target='_blank'><img src={'assets/img/channelsdb_cover.webp'} style={{width: '100%'}} /></a></div>
                 </div>
             </div>;
         }
@@ -172,7 +172,7 @@ namespace ChannelsDB {
                                 </div>
                                 <div className='col-lg-4'>
                                     <a href='/detail/alphafill/P10635'>
-                                        <img style={centerStyle} className='img-circle' src={'assets/img/alphafill_example.png'} alt='P10635 channel detail' width='140' height='140' />
+                                        <img style={centerStyle} className='img-circle' src={'assets/img/alphafill_example.webp'} alt='P10635 channel detail' width='140' height='140' />
                                     </a>
                                     <a href='#ex-P10635' role='button'><h3>Cytochrome P450 2D6 tunnels in AlphaFill model</h3></a>
                                     <p style={justify}>Complex net of multiple channels in cytochrome P450 2D6 leading towards the active site is visible even in AlphaFold structures.</p>
@@ -236,7 +236,7 @@ namespace ChannelsDB {
                             Wang, A., et al.  <span style={{ fontStyle: 'italic' }}>Contributions of Ionic Interactions and Protein Dynamics to Cytochrome P450 2D6 (CYP2D6) Substrate and Inhibitor Binding</span> J.Biol.Chem. 290: 5092-5104 (2015)</a></small></p>
                     </div>
                     <div className='col-md-5'>
-                        <img className='featurette-image img-responsive center-block' src={'assets/img/alphafill_example.png'} alt='Cytochrome P450 substrate channel details' />
+                        <img className='featurette-image img-responsive center-block' src={'assets/img/alphafill_example.webp'} alt='Cytochrome P450 substrate channel details' />
                     </div>
                 </div>
 

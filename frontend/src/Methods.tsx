@@ -43,7 +43,7 @@ namespace ChannelsDB {
                           Pravda,L. and Berka,K. et al. <i>Anatomy of enzyme channels</i>. BMC Bioinformatics, 15, 379. (2014)</a></small></p>
                     </div>
                     <div className='col-md-5'>
-                        <img style={{margin: '60px 0'}} className='featurette-image img-responsive center-block' src={'assets/img/channel_detail.png'} width='500' height='500' alt='Channel details' />
+                        <img style={{margin: '60px 0'}} className='featurette-image img-responsive center-block' src={'assets/img/channel_detail.webp'} width='500' height='500' alt='Channel details' />
                     </div>
                 </div>
 

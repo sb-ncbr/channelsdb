@@ -65,7 +65,7 @@ namespace ChannelsDB {
                         </p>
                     </div>
                     <div className='col-md-4'>
-                        <img className='featurette-image img-responsive center-block' src={'assets/img/pretty_channel.png'} width='500' height='500' alt='Channel details' />
+                        <img className='featurette-image img-responsive center-block' src={'assets/img/pretty_channel.webp'} width='500' height='500' alt='Channel details' />
                     </div>
                 </div>
 
@@ -464,12 +464,12 @@ namespace ChannelsDB {
                             
                         </div>                    
                     <div className='col-md-7'>
-                        <img className='featurette-image img-responsive center-block' src={'assets/img/web-fig1.png'} width='500' height='500' alt='Result window detail' />
+                        <img className='featurette-image img-responsive center-block' src={'assets/img/web-fig1.webp'} width='500' height='500' alt='Result window detail' />
                     </div>                    
                 </div>
 
                 <div style={{ margin: '50px 0' }} className='row featurette col-md-12'>
-                        <img className='featurette-image img-responsive center-block' src={'assets/img/web-fig2.png'} width='800' alt='2D detailed channel view' />
+                        <img className='featurette-image img-responsive center-block' src={'assets/img/web-fig2.webp'} width='800' alt='2D detailed channel view' />
                 </div>  
 
                 {React.createElement('a' as any, { 'name': 'db-api' })}
