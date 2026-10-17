@@ -13,8 +13,11 @@ from api.common import PDB_ID_Type, Uniprot_ID_Type, uniprot_id_404_response, pd
 
 router = APIRouter()
 
+# Chain ID and mapping of UniProt residue numbers to PDB residue numbers
+type SiftsMapping = tuple[str, dict[str, str]]
 
-def parse_sifts_data(xml_data: str) -> dict[str, tuple[str, dict[str, str]]]:
+
+def parse_sifts_data(xml_data: str) -> dict[str, SiftsMapping]:
     tree = ET.fromstring(xml_data)
     data = {}
     ns = {'': 'http://www.ebi.ac.uk/pdbe/docs/sifts/eFamily.xsd'}
@@ -35,7 +38,7 @@ def parse_sifts_data(xml_data: str) -> dict[str, tuple[str, dict[str, str]]]:
     return data
 
 
-def get_entry_annotations(uniprot_id: str, tree: ET) -> dict:
+def get_entry_annotations(uniprot_id: str, tree: ET.Element) -> dict:
     ns = {'': 'https://uniprot.org/uniprot'}
 
     entry = {'UniProtId': uniprot_id,
@@ -58,7 +61,7 @@ def get_entry_annotations(uniprot_id: str, tree: ET) -> dict:
     return entry
 
 
-def get_uniprot_residue_annotations(mapping: tuple[str, dict[str, str]] | None, tree: ET) -> list[dict]:
+def get_uniprot_residue_annotations(mapping: SiftsMapping | None, tree: ET.Element) -> list[dict]:
     ns = {'': 'https://uniprot.org/uniprot'}
 
     references: dict[str, tuple[str, str]] = {}
@@ -112,7 +115,7 @@ def get_uniprot_residue_annotations(mapping: tuple[str, dict[str, str]] | None, 
     return residue_annotations
 
 
-def get_channelsdb_residue_annotations(uniprot_id: str, mapping: tuple[str, dict[str, str]] | None) -> list[dict]:
+def get_channelsdb_residue_annotations(uniprot_id: str, mapping: SiftsMapping | None) -> list[dict]:
     path = Path(config['dirs']['annotations']) / f'{uniprot_id}.json'
     if not path.exists():
         return []
@@ -131,7 +134,7 @@ def get_channelsdb_residue_annotations(uniprot_id: str, mapping: tuple[str, dict
     return data
 
 
-def fill_annotations(annotations: dict, mapping: tuple[str, dict[str, str]] | None, uniprot_id: str):
+def fill_annotations(annotations: dict, mapping: SiftsMapping | None, uniprot_id: str) -> None:
     req = requests.get(f'https://www.ebi.ac.uk/proteins/api/proteins/{uniprot_id}', headers={'accept': 'application/xml'}, timeout=10)
     if req.status_code >= 500:
         raise HTTPException(status_code=502, detail=f'EBI Proteins API returned an error when accessing: {req.url}')
