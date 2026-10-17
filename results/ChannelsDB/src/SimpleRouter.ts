@@ -190,7 +190,7 @@ export class GlobalRouter{
 
     private static router:Router;
 
-    private static defaultChannelsURL = "https://channelsdb2.biodata.ceitec.cz/api";
+    private static defaultChannelsURL = "/api";
 
     private static isInitialized:boolean = false;
 

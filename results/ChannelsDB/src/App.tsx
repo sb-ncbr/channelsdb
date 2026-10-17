@@ -25,6 +25,7 @@ import { Controls } from "./Controls/UI";
 import ReactDOM from 'react-dom';
 import { Viewer } from "./MolViewer/UI";
 import { SbNcbrTunnels } from "molstar/lib/extensions/sb-ncbr";
+import { TunnelsServerConfig } from "molstar/lib/extensions/sb-ncbr/tunnels/props";
 
 (function() {
     const ROUTING_OPTIONS:any = {
@@ -65,6 +66,10 @@ import { SbNcbrTunnels } from "molstar/lib/extensions/sb-ncbr";
                 },
             },
         },
+        config: [
+            // Mol* defaults to the production ChannelsDB API, use the one serving this page instead
+            [TunnelsServerConfig.DefaultServerUrl, '/api'],
+        ],
         behaviors: [
             PluginSpec.Behavior(SbNcbrTunnels),
             ...DefaultPluginUISpec().behaviors,
