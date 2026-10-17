@@ -11,7 +11,7 @@ from api.common import CHANNEL_TYPES, CHANNEL_TYPES_ALPHAFILL, CHANNEL_TYPES_PDB
 
 def get_statistics(database: SourceDatabase) -> dict[str, Counter]:
     counts = {}
-    root = Path(config['dirs'][database.value.lower()])
+    root = Path(config['dirs'][database.lower()])
     for datafile in root.rglob('data.zip'):
         protein_id = datafile.parts[-2]
         if database == SourceDatabase.PDB:

@@ -30,7 +30,7 @@ def validate_data(database: SourceDatabase) -> bool:
         channel_types = set(CHANNEL_TYPES_ALPHAFILL)
         regex = UNIPROT_ID_REGEX
     is_ok = True
-    root = Path(config['dirs'][database.value.lower()])
+    root = Path(config['dirs'][database.lower()])
     for datafile in root.rglob('*'):
         relpath = datafile.relative_to(root)
         if datafile.is_dir():
@@ -41,7 +41,7 @@ def validate_data(database: SourceDatabase) -> bool:
                 print(f'{datafile} is not a correctly placed directory', file=sys.stderr)
                 is_ok = False
             elif pathlen == 2 and re.search(regex, relpath.parts[1]) is None:
-                print(f'{datafile} does not represent a valid ID for {database.value}', file=sys.stderr)
+                print(f'{datafile} does not represent a valid ID for {database}', file=sys.stderr)
                 is_ok = False
         elif datafile.is_file():
             if len(relpath.parts) != 3:

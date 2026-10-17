@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 from fastapi import APIRouter
 from fastapi.responses import FileResponse, RedirectResponse, PlainTextResponse, Response
@@ -16,7 +16,7 @@ from api.export import get_PDB_file, get_Pymol_file, get_Chimera_file, get_VMD_f
 router = APIRouter()
 
 
-class DownloadType(str, Enum):
+class DownloadType(StrEnum):
     png = 'png'
     json = 'json'
     pdb = 'pdb'

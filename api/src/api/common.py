@@ -1,6 +1,6 @@
 from fastapi import Depends, Path as AnnotationPath, HTTPException
 from typing import Annotated
-from enum import Enum
+from enum import StrEnum
 import requests
 from pydantic import BaseModel
 
@@ -45,7 +45,7 @@ PDB_ID_Type = Annotated[str, Depends(validate_pdb_id)]
 Uniprot_ID_Type = Annotated[str, Depends(validate_uniprot_id)]
 
 
-class SourceDatabase(Enum):
+class SourceDatabase(StrEnum):
     PDB = 'PDB'
     AlphaFill = 'AlphaFill'
 

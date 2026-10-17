@@ -37,7 +37,7 @@ def get_channels(source_db: SourceDatabase, protein_id: str):
 
     data = Channels().model_dump()
 
-    protein_dir = Path(config['dirs'][source_db.value.lower()]) / protein_id[1:3].lower() / protein_id.lower()
+    protein_dir = Path(config['dirs'][source_db.lower()]) / protein_id[1:3].lower() / protein_id.lower()
 
     if source_db == SourceDatabase.PDB:
         channel_types = CHANNEL_TYPES_PDB
@@ -45,7 +45,7 @@ def get_channels(source_db: SourceDatabase, protein_id: str):
         channel_types = CHANNEL_TYPES_ALPHAFILL
 
     if not (protein_dir / 'data.zip').exists():
-        raise HTTPException(status_code=404, detail=f'Protein with ID \'{protein_id}\' not found in ChannelsDB ({source_db.value})')
+        raise HTTPException(status_code=404, detail=f'Protein with ID \'{protein_id}\' not found in ChannelsDB ({source_db})')
 
     with ZipFile(protein_dir / 'data.zip') as z:
         for json_file in z.namelist():
