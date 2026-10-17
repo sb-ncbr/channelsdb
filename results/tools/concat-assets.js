@@ -10,7 +10,6 @@ const path = require('path');
 
 const jsFiles = [
   './ChannelsDB/js/jquery-1.12.4.js',
-  './ChannelsDB/js/jquery-ui.js',
   './ChannelsDB/js/jspdf.min.js',
   './ChannelsDB/js/bootstrap.min.js',
   './ChannelsDB/js/canvas2svg.js',
@@ -28,7 +27,6 @@ const cssFiles = [
   './ChannelsDB/css/ChannelsDescriptions.css',
   './ChannelsDB/css/datagrid.css',
   './ChannelsDB/css/DownloadReport.css',
-  './ChannelsDB/css/jquery-ui.css',
   './ChannelsDB/css/LayerVizualizerStyles.css',
   './ChannelsDB/css/lining-residues.css',
   './ChannelsDB/css/PDBID.css',
