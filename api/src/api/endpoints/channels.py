@@ -41,7 +41,7 @@ def get_channels(source_db: SourceDatabase, protein_id: str):
     else:
         channel_types = CHANNEL_TYPES_ALPHAFILL
 
-    if not Path(protein_dir).exists():
+    if not (protein_dir / 'data.zip').exists():
         raise HTTPException(status_code=404, detail=f'Protein with ID \'{protein_id}\' not found in ChannelsDB ({source_db.value})')
 
     with ZipFile(protein_dir / 'data.zip') as z:
