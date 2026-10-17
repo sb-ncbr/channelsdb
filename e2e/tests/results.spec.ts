@@ -54,6 +54,39 @@ for (const { path, group } of entries) {
     });
 }
 
+test('layers of the 2D profile show their properties and residues', async ({ page }) => {
+    await selectFirstChannel(page, '/detail/pdb/1ymg');
+    const layers = page.locator('area[data-layeridx]');
+    await expect.poll(() => layers.count()).toBeGreaterThan(5);
+
+    // The layers are areas of an image map over the canvas, so they are reached with the mouse
+    const map = (await page.locator('[usemap]').first().boundingBox())!;
+    const pointAt = async (index: number) => {
+        const [x1, y1, x2, y2] = (await layers.nth(index).getAttribute('coords'))!.split(',').map(Number);
+        return { x: map.x + (x1 + x2) / 2, y: map.y + (y1 + y2) / 2 };
+    };
+    const properties = page.locator('#layer-properties');
+    const residues = page.locator('#layer-residues');
+
+    // Hovering shows the layer
+    let point = await pointAt(3);
+    await page.mouse.move(point.x, point.y);
+    await expect(properties).toContainText(/Hydropathy\s*-?\d/);
+    await expect(residues).toContainText(/[A-Z]{3} \d+ [A-Z]/);
+    const hovered = await properties.innerText();
+
+    // Clicking another one selects it in 3D, then marks it in the profile
+    point = await pointAt(5);
+    await page.mouse.move(point.x, point.y);
+    await expect(properties).not.toHaveText(hovered);
+    await expect(properties).toContainText(/Hydropathy\s*-?\d/);
+    const profile = () => page.locator('#layer-vizualizer-canvas0').evaluate((canvas: HTMLCanvasElement) => canvas.toDataURL());
+    const beforeClick = await profile();
+    await page.mouse.down();
+    await page.mouse.up();
+    await expect.poll(profile).not.toBe(beforeClick);
+});
+
 test('tooltips, tabs and panel togglers work', async ({ page }) => {
     await selectFirstChannel(page, '/detail/pdb/1ymg');
 

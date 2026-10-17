@@ -34,8 +34,9 @@ export class Context {
   assemblyRef = '';
   selectedParams: any;
   selectedLoci: Loci | null = null;
-  defaultRendererProps: Canvas3DProps['renderer'];
-  defaultMarkingProps: Canvas3DProps['marking'];
+  // Colors of the 3D view after loading, which visual.reset returns to
+  defaultRendererProps?: Canvas3DProps['renderer'];
+  defaultMarkingProps?: Canvas3DProps['marking'];
   isHighlightColorUpdated = false;
   isSelectedColorUpdated = false;
 
@@ -117,7 +118,11 @@ export class Context {
       this.assemblyRef = pivot.cell.transform.ref;
       this.assemblyRef = pivot.cell.transform.ref;
     };
-    this.visual.setDefaultColor({r:255,g:0,b:255});
+    await this.visual.setDefaultColor({r:255,g:0,b:255});
+    if (this.plugin.canvas3d) {
+      this.defaultRendererProps = { ...this.plugin.canvas3d.props.renderer };
+      this.defaultMarkingProps = { ...this.plugin.canvas3d.props.marking };
+    }
   }
 
   getData() {
@@ -351,7 +356,7 @@ export class Context {
         }
 
         if (params.highlightColor || params.selectColor) {
-            if (!this.plugin.canvas3d) return;
+            if (!this.plugin.canvas3d || !this.defaultRendererProps || !this.defaultMarkingProps) return;
             const renderer = { ...this.plugin.canvas3d.props.renderer };
             const marking = { ...this.plugin.canvas3d.props.marking };
             if (params.highlightColor) {

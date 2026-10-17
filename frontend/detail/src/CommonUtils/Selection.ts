@@ -93,6 +93,7 @@ export class SelectionHelper{
     }
 
     public static channelSelected(current: (Tunnel & TunnelMetaInfo), plugin: Context, preserveSelection:boolean) {
+        this.selectedChannelData = current.Layers;
         this.invokeOnSelectionHandlers(current.Type + " " + current.Id);
         this.invokeOnChannelSelectHandlers(current.Layers);
         if (this.selectedChannelReprLoci?.loci === current.__loci) {
