@@ -1,16 +1,17 @@
-from enum import StrEnum
-from pathlib import Path
-from fastapi import APIRouter
-from fastapi.responses import FileResponse, RedirectResponse, PlainTextResponse, Response
 import io
 import json
 import zipfile
+from enum import StrEnum
+from pathlib import Path
 
-from api.config import config, BASE_DIR
-from api.common import PDB_ID_Type, Uniprot_ID_Type, SourceDatabase, uniprot_id_404_response, pdb_id_404_response
+from fastapi import APIRouter
+from fastapi.responses import FileResponse, PlainTextResponse, RedirectResponse, Response
+
+from api.common import PDB_ID_Type, SourceDatabase, Uniprot_ID_Type, pdb_id_404_response, uniprot_id_404_response
+from api.config import BASE_DIR, config
 from api.endpoints.assembly import get_assembly_id
 from api.endpoints.channels import get_channels
-from api.export import get_PDB_file, get_Pymol_file, get_Chimera_file, get_VMD_file
+from api.export import get_Chimera_file, get_PDB_file, get_Pymol_file, get_VMD_file
 
 
 router = APIRouter()

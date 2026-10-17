@@ -47,3 +47,11 @@ $ uv run pytest
 ```
 
 By default, all stored entries are tested. To test only a subset, use `--subset random` or `--subset first` together with `--count N` (default 10).
+
+### Linting
+
+The code is checked with [ruff](https://docs.astral.sh/ruff/). Run it in `/api`:
+
+```bash
+$ uv run ruff check src
+```

@@ -1,7 +1,9 @@
-from fastapi import Depends, Path as AnnotationPath, HTTPException
-from typing import Annotated
 from enum import StrEnum
+from typing import Annotated
+
 import requests
+from fastapi import Depends, HTTPException
+from fastapi import Path as AnnotationPath
 from pydantic import BaseModel
 
 

@@ -15,8 +15,23 @@ dependencies = [
 dev = [
     "httpx2>=2.13.1",
     "pytest>=9.1.1",
+    "ruff>=0.17.1",
 ]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["src/tests"]
+
+[tool.ruff]
+line-length = 140
+src = ["src"]
+
+[tool.ruff.lint]
+extend-select = ["E", "W", "B", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+# Templates of the generated scripts, their content ends up in the output files
+"src/api/export/*.py" = ["E501", "W291"]
+
+[tool.ruff.lint.isort]
+lines-after-imports = 2

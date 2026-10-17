@@ -1,10 +1,11 @@
 import json
 from pathlib import Path
 
-from api.config import config
-from api.common import CHANNEL_TYPES
 from fastapi import APIRouter
 from pydantic import BaseModel, create_model
+
+from api.common import CHANNEL_TYPES
+from api.config import config
 
 
 router = APIRouter()

@@ -2,7 +2,7 @@ import requests
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from api.endpoints import annotations, assembly, channels, content, statistics, download
+from api.endpoints import annotations, assembly, channels, content, download, statistics
 
 
 app = FastAPI(title='ChannelsDB 2.0 API',

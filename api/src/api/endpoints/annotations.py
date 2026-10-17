@@ -1,14 +1,15 @@
 import gzip
 import json
 import sys
-import requests
-from pathlib import Path
 import xml.etree.ElementTree as ET
+from pathlib import Path
+
+import requests
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from api.common import PDB_ID_Type, Uniprot_ID_Type, pdb_id_404_response, uniprot_id_404_response
 from api.config import config
-from api.common import PDB_ID_Type, Uniprot_ID_Type, uniprot_id_404_response, pdb_id_404_response
 
 
 router = APIRouter()
@@ -77,8 +78,8 @@ def get_uniprot_residue_annotations(mapping: SiftsMapping | None, tree: ET.Eleme
 
     residue_annotations = []
 
-    for feature_type in features.keys():
-        for item in features[feature_type]:
+    for feature_type, items in features.items():
+        for item in items:
             residue_annotation = {
                 'Id': '',
                 'Chain': '',

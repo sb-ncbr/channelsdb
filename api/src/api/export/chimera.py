@@ -31,7 +31,7 @@ def get_Chimera_file(channels: dict) -> str:
             lines.append(f'def {name}(channel_object):')
             lines.append(f'    channel = channel_object.newResidue(\'{name}\', \'\', 1, \'\')')
             profile = channel['Profile']
-            for current_atom_id, atom in enumerate(profile):
+            for atom in profile:
                 line = (f'    add_atom(channel_object, \'{name}\', channel, '
                         f'{atom["X"]:.3f}, {atom["Y"]:.3f}, {atom["Z"]:.3f}, {atom["Radius"]:.3f})')
                 lines.append(line)

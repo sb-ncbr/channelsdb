@@ -2,12 +2,21 @@ import json
 import sys
 from pathlib import Path
 from zipfile import ZipFile
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, create_model
 
-from api.common import CHANNEL_TYPES_PDB, CHANNEL_TYPES_ALPHAFILL, CHANNEL_TYPES
+from api.common import (
+    CHANNEL_TYPES,
+    CHANNEL_TYPES_ALPHAFILL,
+    CHANNEL_TYPES_PDB,
+    PDB_ID_Type,
+    SourceDatabase,
+    Uniprot_ID_Type,
+    pdb_id_404_response,
+    uniprot_id_404_response,
+)
 from api.config import config
-from api.common import SourceDatabase, PDB_ID_Type, Uniprot_ID_Type, pdb_id_404_response, uniprot_id_404_response
 
 
 router = APIRouter()
@@ -39,10 +48,7 @@ def get_channels(source_db: SourceDatabase, protein_id: str):
 
     protein_dir = Path(config['dirs'][source_db.lower()]) / protein_id[1:3].lower() / protein_id.lower()
 
-    if source_db == SourceDatabase.PDB:
-        channel_types = CHANNEL_TYPES_PDB
-    else:
-        channel_types = CHANNEL_TYPES_ALPHAFILL
+    channel_types = CHANNEL_TYPES_PDB if source_db == SourceDatabase.PDB else CHANNEL_TYPES_ALPHAFILL
 
     if not (protein_dir / 'data.zip').exists():
         raise HTTPException(status_code=404, detail=f'Protein with ID \'{protein_id}\' not found in ChannelsDB ({source_db})')

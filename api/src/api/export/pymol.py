@@ -43,7 +43,8 @@ def get_Pymol_file(channels: dict) -> str:
             lines.append('    model = chempy.models.Indexed()')
             profile = channel['Profile']
             for current_atom_id, atom in enumerate(profile):
-                line = f'    add_atom(model, \'{current_atom_id}\', {atom["Radius"]:.3f}, {atom["X"]:.3f}, {atom["Y"]:.3f}, {atom["Z"]:.3f})'
+                line = (f'    add_atom(model, \'{current_atom_id}\', '
+                        f'{atom["Radius"]:.3f}, {atom["X"]:.3f}, {atom["Y"]:.3f}, {atom["Z"]:.3f})')
                 lines.append(line)
             lines.append(FOOTER.format(name=name, color=COLORS[(channel_count - 1) % len(COLORS)]))
 

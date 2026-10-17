@@ -1,12 +1,12 @@
 import json
 import sys
-from datetime import date
 from collections import Counter
-from zipfile import ZipFile
+from datetime import date
 from pathlib import Path
+from zipfile import ZipFile
 
-from api.config import config
 from api.common import CHANNEL_TYPES, CHANNEL_TYPES_ALPHAFILL, CHANNEL_TYPES_PDB, SourceDatabase
+from api.config import config
 
 
 def get_statistics(database: SourceDatabase) -> dict[str, Counter]:

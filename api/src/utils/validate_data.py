@@ -1,11 +1,11 @@
 import json
+import re
+import sys
 from pathlib import Path
 from zipfile import ZipFile
-import sys
-import re
 
+from api.common import CHANNEL_TYPES_ALPHAFILL, CHANNEL_TYPES_PDB, PDB_ID_LOWER_REGEX, UNIPROT_ID_REGEX, SourceDatabase
 from api.config import config
-from api.common import CHANNEL_TYPES_PDB, CHANNEL_TYPES_ALPHAFILL, SourceDatabase, UNIPROT_ID_REGEX, PDB_ID_LOWER_REGEX
 
 
 def validate_annotations() -> bool:
@@ -35,8 +35,8 @@ def validate_data(database: SourceDatabase) -> bool:
         relpath = datafile.relative_to(root)
         if datafile.is_dir():
             pathlen = len(relpath.parts)
-            if pathlen == 1 and len(relpath.parts[0]) != 2 or \
-               pathlen == 2 and (relpath.parts[0] != relpath.parts[1][1:3]) or \
+            if (pathlen == 1 and len(relpath.parts[0]) != 2) or \
+               (pathlen == 2 and (relpath.parts[0] != relpath.parts[1][1:3])) or \
                pathlen > 2:
                 print(f'{datafile} is not a correctly placed directory', file=sys.stderr)
                 is_ok = False
