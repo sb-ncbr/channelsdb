@@ -1,6 +1,6 @@
 # ChannelsDB 2
 
-The project consists of three parts: Python API (`/api`), main page (`/frontend`) and the results page (`/results`).
+The project consists of two parts: Python API (`/api`) and the web pages (`/frontend`), which include the results page (`/frontend/detail`).
 
 ## Running
 
@@ -58,18 +58,18 @@ $ uv run ruff check src
 
 ## Frontend development
 
-The main page (`/frontend`) and the results page (`/results`) are built with [Vite](https://vite.dev/). With the application running (see above), start a development server with live reload in either directory:
+The web pages (`/frontend`) are built with [Vite](https://vite.dev/). With the application running (see above), start a development server with live reload there:
 
 ```bash
 $ npm install
 $ npm run dev
 ```
 
-It serves the pages at http://localhost:5173 (the results page at http://localhost:5173/detail/?pid=1ymg&subDB=pdb) and forwards the API and the results pages to the running application, using the same `CHANNELSDB_PORT` as docker compose (port `80` by default). To use another instance, set `CHANNELSDB_URL` to its address.
+It serves the pages at http://localhost:5173 (a results page at http://localhost:5173/detail/pdb/1ymg) and forwards the API to the running application, using the same `CHANNELSDB_PORT` as docker compose (port `80` by default). To use another instance, set `CHANNELSDB_URL` to its address.
 
 ### End-to-end tests
 
-`/e2e` contains browser tests of both frontends, using [Playwright](https://playwright.dev/) with the installed Google Chrome. They test the running application, so start it first (see above). The main page examples and the detail pages they use (`1ymg`, `P10635`) must be in its data. Run them in `/e2e`:
+`/e2e` contains browser tests of the web pages, using [Playwright](https://playwright.dev/) with the installed Google Chrome. They test the running application, so start it first (see above). The main page examples and the detail pages they use (`1ymg`, `P10635`) must be in its data. Run them in `/e2e`:
 
 ```bash
 $ npm install
@@ -78,7 +78,7 @@ $ npm test
 
 Like the development servers, they use `CHANNELSDB_PORT` (port `80` by default) or `CHANNELSDB_URL`. A test fails on any error in the page, and the pages are compared with screenshots in `tests/*-snapshots`. After an intended visual change, update them with `npm run test:update` and review the new images. Failed tests leave a trace with screenshots, DOM and network log in `test-results`, see `npx playwright show-trace`.
 
-To test a frontend change without rebuilding the image, build it with `npm run build` and serve the built files:
+To test a change of the web pages without rebuilding the image, build them with `npm run build` in `/frontend` and serve the built files:
 
 ```bash
 $ docker compose -f docker/docker-compose.yaml -f docker/docker-compose.local-dist.yaml up -d

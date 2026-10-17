@@ -1,6 +1,5 @@
-# The build context is the repository root, but only the frontends are needed
+# The build context is the repository root, but only the frontend is needed
 *
 !frontend
-!results
 **/node_modules
 **/dist

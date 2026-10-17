@@ -2,8 +2,13 @@
   "name": "channelsdb-frontend",
   "private": true,
   "type": "module",
-  "description": "ChannelsDB main web pages",
+  "description": "ChannelsDB web pages: the main pages and the results page (/detail)",
   "license": "Apache-2.0",
+  "contributors": [
+    "Dominik Tousek <tousekdominik@gmail.com>",
+    "Dušan Veľký <dvelky@mail.muni.cz>"
+  ],
+  "homepage": "https://channelsdb2.biodata.ceitec.cz/",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -11,13 +16,19 @@
   },
   "dependencies": {
     "bootstrap": "^3.4.1",
+    "immutable": "^5.1.9",
+    "jquery": "^3.7.1",
+    "molstar": "^4.18.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "rxjs": "^7.8.2"
   },
   "devDependencies": {
+    "@types/jquery": "^3.5.34",
+    "@types/node": "^24.19.2",
     "@types/react": "^18.3.31",
     "@types/react-dom": "^18.3.7",
+    "sass": "^1.105.2",
     "typescript": "^5.9.3",
     "vite": "^8.3.4"
   }
