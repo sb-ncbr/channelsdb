@@ -6,7 +6,7 @@ import json
 import zipfile
 
 from api.main import app
-from api.config import config
+from api.config import config, BASE_DIR
 from api.common import PDB_ID_Type, Uniprot_ID_Type, SourceDatabase, uniprot_id_404_response, pdb_id_404_response
 from api.endpoints.assembly import get_assembly_id
 from api.endpoints.channels import get_channels
@@ -59,7 +59,7 @@ def download(source_db: SourceDatabase, file_format: DownloadType, protein_id: s
             return RedirectResponse(f'https://www.ebi.ac.uk/pdbe/static/entry/'
                                     f'{protein_id}_assembly_{assembly_id}_chemically_distinct_molecules_front_image-200x200.png')
         case SourceDatabase.AlphaFill, DownloadType.png:
-            return FileResponse('../assets/alphafill.png')
+            return FileResponse(BASE_DIR / 'assets' / 'alphafill.png')
 
     channels = get_channels(source_db, protein_id)
     headers = {'Content-Disposition': f'attachment; filename="channelsdb_{protein_id}.{EXTENSIONS[file_format]}"'}
