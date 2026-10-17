@@ -1,4 +1,4 @@
-FROM node:20-slim AS frontend
+FROM node:24-slim AS frontend
 
 WORKDIR /build
 
@@ -10,7 +10,7 @@ COPY ./frontend /build
 
 RUN npm run build
 
-FROM node:20-slim AS results
+FROM node:24-slim AS results
 
 WORKDIR /build
 
@@ -22,7 +22,7 @@ COPY ./results /build
 
 RUN npm run build
 
-FROM nginx:1.26-alpine-slim
+FROM nginx:1.30-alpine-slim
 
 COPY --from=frontend /build/dist /var/www
 
