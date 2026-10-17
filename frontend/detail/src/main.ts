@@ -15,6 +15,8 @@ import '../css/tooltips.css';
 
 // Renders the application when imported
 import './App';
+import { initTabsAndDropdowns } from './CommonUtils/Bootstrap';
 import { initLayout } from './CommonUtils/Layout';
 
+initTabsAndDropdowns();
 initLayout();

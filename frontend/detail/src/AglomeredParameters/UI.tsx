@@ -10,7 +10,7 @@ import { SimpleObservable } from "../CommonUtils/Observable";
 
 let DGTABLE_COLS_COUNT = 7;
 
-import $ from "../jquery";
+import { initTooltips } from "../CommonUtils/Bootstrap";
 
 interface State{
     data: Tunnel[] | null,
@@ -76,7 +76,7 @@ export class AglomeredParameters extends React.Component<{controller: Context },
     }
 
     render() {
-        $('.init-agp-tooltip').tooltip({container:'body'});
+        initTooltips('.init-agp-tooltip', { container: document.body });
         return(
             <div>
                 <DGTable {...this.state} />

@@ -9,7 +9,7 @@ import { QueryParam } from "../VizualizerMol/helpers";
 import { Context } from "../Context";
 import noImageUrl from "../../images/no_img.png";
 
-import $ from "../jquery";
+import { initTooltips } from "../CommonUtils/Bootstrap";
 import { emit, emitResize, listen } from "../CommonUtils/Events";
 
 export class LayerVizualizer extends React.Component<{ vizualizer: Vizualizer, controller: Context }, State> {
@@ -92,7 +92,7 @@ export class LayerVizualizer extends React.Component<{ vizualizer: Vizualizer, c
 
     render() {
         if (this.state.hasData) {
-            $('.init-lvz-tooltip').tooltip();
+            initTooltips('.init-lvz-tooltip');
             return <PaintingArea {...this.state} controller={this.props.controller}/>
         } 
         

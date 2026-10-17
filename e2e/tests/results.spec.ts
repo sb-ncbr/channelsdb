@@ -87,6 +87,45 @@ test('layers of the 2D profile show their properties and residues', async ({ pag
     await expect.poll(profile).not.toBe(beforeClick);
 });
 
+test('dropdowns and their tooltips work with the keyboard', async ({ page }) => {
+    await selectFirstChannel(page, '/detail/pdb/1ymg');
+    const focused = () => page.evaluate(() => document.activeElement?.textContent?.trim());
+
+    // Opening, moving between the items and closing returns the focus
+    const exportMenu = page.locator('#layer-vizualizer-ui').getByRole('button', { name: 'Export' }).first();
+    await exportMenu.focus();
+    await page.keyboard.press('ArrowDown');
+    await expect(exportMenu).toHaveAttribute('aria-expanded', 'true');
+    await page.keyboard.press('ArrowDown');
+    expect(await focused()).toBe('PNG');
+    await page.keyboard.press('ArrowDown');
+    expect(await focused()).toBe('SVG');
+    await page.keyboard.press('ArrowUp');
+    expect(await focused()).toBe('PNG');
+    await page.keyboard.press('Escape');
+    await expect(exportMenu).toHaveAttribute('aria-expanded', 'false');
+    await expect(exportMenu).toBeFocused();
+
+    // A focused item shows its tooltip, also after the mouse leaves it, and Enter selects it
+    const property = page.locator('.lvz-properties').first();
+    const colorMenu = property.locator('xpath=ancestor::div[contains(@class, "dropup")][1]/*[@data-toggle="dropdown"]');
+    await colorMenu.focus();
+    await page.keyboard.press('ArrowDown');
+    // Not all items have a tooltip
+    for (let i = 0; i < 10 && !(await property.evaluate((item) => item === document.activeElement)); i++) {
+        await page.keyboard.press('ArrowDown');
+    }
+    await expect(property).toBeFocused();
+    await expect(page.locator('.tooltip.in')).toHaveCount(1);
+    await property.hover();
+    await page.mouse.move(5, 5);
+    await expect(page.locator('.tooltip.in')).toHaveCount(1);
+    const name = (await property.textContent())!;
+    await page.keyboard.press('Enter');
+    await expect(colorMenu).toHaveAttribute('aria-expanded', 'false');
+    await expect(colorMenu).toContainText(name);
+});
+
 test('tooltips, tabs and panel togglers work', async ({ page }) => {
     await selectFirstChannel(page, '/detail/pdb/1ymg');
 
