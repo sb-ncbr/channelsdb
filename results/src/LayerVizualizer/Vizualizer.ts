@@ -4,9 +4,9 @@ import { Numbers } from "../CommonUtils/Numbers";
 import Tabs from "../CommonUtils/Tabs";
 import { Paintable, Positionable, Axis } from "./Components";
 import { LayerData } from "../DataInterface";
+import { interpolateRGB } from "./Colors";
 
 declare function $(p:any): any;    
-declare var ChannelDbPlugin: any;
 declare var C2S: any;
 
 export type DataURL = string;
@@ -1585,21 +1585,21 @@ export class Vizualizer{
         var rgb: RGBColor;
 
         if(value<(minVal+maxVal)/2){
-            rgb = ChannelDbPlugin.Palette.interpolate(minVal,minColor,middle,maxColorMiddle,value);
+            rgb = interpolateRGB(minVal,minColor,middle,maxColorMiddle,value);
         }
         else{
-            rgb = ChannelDbPlugin.Palette.interpolate(middle,minColorMiddle,maxVal,maxColor,value);
+            rgb = interpolateRGB(middle,minColorMiddle,maxVal,maxColor,value);
         }
 
         if(skipMiddle&&settings.centerAbsolute){
             throw new Error("Cannot config absolute center and skip center at once! Forbidden configuration -> skipMiddle=true && centerAbsolute=true");
         }
         if(skipMiddle&&!settings.centerAbsolute){
-            rgb = ChannelDbPlugin.Palette.interpolate(minVal,minColor,maxVal,maxColor,value);
+            rgb = interpolateRGB(minVal,minColor,maxVal,maxColor,value);
         }
 
         if(minVal === maxVal){
-            rgb = ChannelDbPlugin.Palette.interpolate(0,minColor,1,maxColorMiddle,0.5);
+            rgb = interpolateRGB(0,minColor,1,maxColorMiddle,0.5);
         }
 
         return "rgb("+String(Math.floor(rgb.r))+","+String(Math.floor(rgb.g))+","+String(Math.floor(rgb.b))+")";

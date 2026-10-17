@@ -13,7 +13,6 @@ const files = [
     'js/bootstrap.min.js',
     'js/canvas2svg.js',
     'js/datagrid.js',
-    'js/Palette.js',
     'js/tabsConfig.js',
 ];
 

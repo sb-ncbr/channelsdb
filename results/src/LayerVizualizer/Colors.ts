@@ -94,6 +94,16 @@ interface HSV{
 interface RGBColor{
     r:number,g:number,b:number
 }
+
+// Color at the value's position between min (minColor) and max (maxColor)
+export function interpolateRGB(min:number, minColor:RGBColor, max:number, maxColor:RGBColor, value:number):RGBColor{
+    const t = (value - min) / (max - min);
+    return {
+        r: minColor.r + (maxColor.r - minColor.r) * t,
+        g: minColor.g + (maxColor.g - minColor.g) * t,
+        b: minColor.b + (maxColor.b - minColor.b) * t,
+    };
+}
 function RGB2HSV(rgb:RGBColor) {
     let hsv = new Object() as HSV;
     let max=max3(rgb.r,rgb.g,rgb.b);
