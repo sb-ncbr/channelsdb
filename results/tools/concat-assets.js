@@ -16,7 +16,6 @@ const jsFiles = [
   './ChannelsDB/js/datagrid.js',
   './ChannelsDB/js/Palette.js',
   './ChannelsDB/js/tabsConfig.js',
-  './ChannelsDB/js/tooltipConfig.js',
   './ChannelsDB/js/utf8.js',
 ];
 

@@ -13,17 +13,15 @@
   "typings": "index.d.ts",
   "author": "Dominik Tousek tousekdominik@gmail.com>",
   "contributors": [
-    "Du\u0161an Ve\u013ek\u00fd <dvelky@mail.muni.cz>"
+    "Dušan Veľký <dvelky@mail.muni.cz>"
   ],
   "homepage": "https://channelsdb2.biodata.ceitec.cz/",
   "keywords": [],
   "license": "",
   "devDependencies": {
-    "@types/byline": "^4.2.33",
     "@types/node": "^20.4.2",
     "@types/react": "^18.2.14",
     "@types/react-dom": "^18.2.6",
-    "byline": "^5.0.0",
     "rolldown": "^1.2.14",
     "typescript": "^5.1.6",
     "vite": "^8.3.4"
