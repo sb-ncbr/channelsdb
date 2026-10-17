@@ -9,12 +9,6 @@ declare function $(p:any): any;
 declare var ChannelDbPlugin: any;
 declare var C2S: any;
 
-declare var utf8: {
-    encode: (a:string)=>string,
-    decode: (a:string)=>string
-};
-
-
 export type DataURL = string;
 
 type PropertyKey = "Polarity" | "Mutability" | "Hydropathy" | "Hydrophobicity" | "Charge" | "NumNegatives" | "NumPositives"
@@ -1441,9 +1435,10 @@ export class Vizualizer{
 
         let xmlSerializer = new XMLSerializer();
         let serializedSVG = `<?xml version="1.0" encoding="utf-8"?>${xmlSerializer.serializeToString(svg)}`;
-        serializedSVG = utf8.encode(serializedSVG);
+        // btoa accepts only single-byte characters, so the UTF-8 bytes are passed as such
+        const bytes = new TextEncoder().encode(serializedSVG);
 
-        return `data:image/svg+xml;charset=utf-8;base64,${btoa(serializedSVG)}`;
+        return `data:image/svg+xml;charset=utf-8;base64,${btoa(Array.from(bytes, (byte) => String.fromCharCode(byte)).join(''))}`;
     }
 
     private getSVGData(){
