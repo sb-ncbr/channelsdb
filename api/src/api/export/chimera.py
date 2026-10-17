@@ -39,7 +39,7 @@ def get_Chimera_file(channels: dict) -> str:
             lines.append(FOOTER.format(name=name))
 
     for i in range(channel_count):
-        lines.append(f'chimera.runCommand(\'color {COLORS[i % len(COLORS)]} #{i + 1})\'')
-        lines.append(f'chimera.runCommand(\'repr cpk: {i + 1})\'')
+        lines.append(f'chimera.runCommand(\'color {COLORS[i % len(COLORS)]} #{i + 1}\')')
+        lines.append(f'chimera.runCommand(\'repr cpk #{i + 1}\')')
 
     return HEADER + '\n'.join(lines) + '\n'
