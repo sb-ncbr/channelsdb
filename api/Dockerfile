@@ -21,4 +21,6 @@ COPY src/api /channelsdb/code/api
 
 WORKDIR /channelsdb/code
 
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "80"]
+USER nobody
+
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
