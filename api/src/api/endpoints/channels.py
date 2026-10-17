@@ -1,5 +1,5 @@
 import json
-import sys
+import logging
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -18,6 +18,8 @@ from api.common import (
 )
 from api.config import config
 
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -64,7 +66,7 @@ def get_channels(source_db: SourceDatabase, protein_id: str):
                             res.extend(orig['Channels'][key])
                         data['Channels'][channel_types[name]] = res
                     except json.decoder.JSONDecodeError:
-                        print(f'{protein_id} / {json_file} not a correct JSON', file=sys.stderr)
+                        logger.warning('%s / %s not a correct JSON', protein_id, json_file)
                         continue
         try:
             with z.open('annotations.json') as f:

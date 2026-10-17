@@ -1,6 +1,6 @@
 import gzip
 import json
-import sys
+import logging
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -11,6 +11,8 @@ from pydantic import BaseModel
 from api.common import PDB_ID_Type, Uniprot_ID_Type, pdb_id_404_response, uniprot_id_404_response
 from api.config import config
 
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -186,7 +188,7 @@ def get_annotations_pdb(pdb_id: PDB_ID_Type):
         if e.status_code >= 500:
             raise
         # We should never get here, this would mean incorrect SIFTS data
-        print(e, file=sys.stderr)
+        logger.warning('Inconsistent SIFTS data for PDB ID %s: %s', pdb_id, e.detail)
         raise HTTPException(status_code=502, detail=f'Cannot load annotations for PDB ID \'{pdb_id}\'') from e
 
     return annotations
