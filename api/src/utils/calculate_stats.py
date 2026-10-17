@@ -1,4 +1,5 @@
 import json
+import sys
 from datetime import date
 from collections import Counter
 from zipfile import ZipFile
@@ -26,7 +27,7 @@ def get_statistics(database: SourceDatabase) -> dict[str, Counter]:
                             for key in ('Paths', 'Tunnels', 'Pores', 'MergedPores'):
                                 counts[protein_id][CHANNEL_TYPES[name]] += len(orig['Channels'][key])
                         except json.decoder.JSONDecodeError:
-                            print(f'{protein_id} / {json_file} not a correct JSON')
+                            print(f'{protein_id} / {json_file} not a correct JSON', file=sys.stderr)
                             continue
     return counts
 
