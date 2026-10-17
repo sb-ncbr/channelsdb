@@ -179,7 +179,7 @@ namespace ChannelsDB {
                                 </div>
                                 <div className='col-lg-4'>
                                     <a href='/detail/pdb/5lka'>
-                                        <img style={centerStyle} className='img-circle' src={'assets/img/examples-figure-HLD.png'} alt='HLD channel detail' width='140' height='140' />
+                                        <img style={centerStyle} className='img-circle' src={'assets/img/examples-figure-HLD.webp'} alt='HLD channel detail' width='140' height='140' />
                                     </a>
                                     <a href='#ex-HLD' role='button'><h3>Haloalkane dehalogenase LinB with engineered tunnels</h3></a>
                                     <p style={justify}>Haloalkane dehalogenase LinB is an important model enzyme used in various practical applications, including biodegradation, bioremediation, and biosensing. The access tunnels present in haloalkane dehalogenases have been well studied and were a target of engineering by mutagenesis to change their properties.</p>
@@ -204,7 +204,7 @@ namespace ChannelsDB {
                             Harries, W. E. C., et. al. <span style={{ fontStyle: 'italic' }}>The channel architecture of aquaporin 0 at a 2.2&#8491; resolution</span>. Proc. Natl. Acad. Sci. 101, 14045–14050 (2004)</a></small></p>
                     </div>
                     <div className='col-md-5'>
-                        <img className='featurette-image img-responsive center-block' src={'assets/img/1ymg_detail.png'} width='500' height='500' alt='1ymg detailed channel view' />
+                        <img className='featurette-image img-responsive center-block' src={'assets/img/1ymg_detail.webp'} width='500' height='500' alt='1ymg detailed channel view' />
                     </div>
                 </div>
 
@@ -220,7 +220,7 @@ namespace ChannelsDB {
                             Wang, A., et al. <span style={{ fontStyle: 'italic' }}>Contributions of Ionic Interactions and Protein Dynamics to Cytochrome P450 2D6 (CYP2D6) Substrate and Inhibitor Binding</span> J.Biol.Chem. 290: 5092-5104 (2015)</a></small></p>
                     </div>
                     <div className='col-md-5 col-md-pull-7'>
-                        <img className='featurette-image img-responsive center-block' src={'assets/img/3tbg_detail.png'} alt='Cytochrome P450 substrate channel details' />
+                        <img className='featurette-image img-responsive center-block' src={'assets/img/3tbg_detail.webp'} alt='Cytochrome P450 substrate channel details' />
                     </div>
                 </div>
 
@@ -252,7 +252,7 @@ namespace ChannelsDB {
                             Voss, N. R., et. al. <span style={{ fontStyle: 'italic' }}>The geometry of the ribosomal polypeptide exit tunnel.</span>. J. Mol. Biol. 360, 893–906 (2006)</a></small></p>
                     </div>
                     <div className='col-md-5 '>
-                        <img className='featurette-image img-responsive center-block' src={'assets/img/1jj2_detail.png'} alt='Polypeptide exit tunnel' />
+                        <img className='featurette-image img-responsive center-block' src={'assets/img/1jj2_detail.webp'} alt='Polypeptide exit tunnel' />
                     </div>
                 </div>
 
@@ -270,7 +270,7 @@ namespace ChannelsDB {
                             Singh,H., et al. <span style={{ fontStyle: 'italic' }}>Structures of the PutA peripheral membrane flavoenzyme reveal a dynamic substrate-channeling tunnel and the quinone-binding site</span> Proc. Natl. Acad. Sci., 111, 3389–3394. (2014)</a></small></p>
                     </div>
                     <div className='col-md-5 col-md-pull-7'>
-                        <img className='featurette-image img-responsive center-block' src={'assets/img/4nm9_detail.png'} alt='PutA channel system' />
+                        <img className='featurette-image img-responsive center-block' src={'assets/img/4nm9_detail.webp'} alt='PutA channel system' />
                     </div>
                 </div>
 
@@ -288,7 +288,7 @@ namespace ChannelsDB {
                             Brezovsky,J., et al. <span style={{ fontStyle: 'italic' }}>Engineering a de Novo Transport Tunnel</span> ACS Catalysis, 6 (11), 7597-7610. (2016)</a></small></p>
                     </div>
                     <div className='col-md-5 '>
-                        <img className='featurette-image img-responsive center-block' src={'assets/img/examples-figure-HLD.png'} alt='HLD channel detail' />
+                        <img className='featurette-image img-responsive center-block' src={'assets/img/examples-figure-HLD.webp'} alt='HLD channel detail' />
                     </div>
                 </div>
 
