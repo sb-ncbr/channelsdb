@@ -15,4 +15,6 @@ def get_assembly_id(pdb_id: PDB_ID_Type) -> str:
     if req.status_code != 200:
         raise HTTPException(status_code=404, detail=f'Cannot find assembly for PDB ID \'{pdb_id}\'')
     data = json.loads(req.content)[pdb_id][0]['assemblies']
-    return next(assembly['assembly_id'] for assembly in data if assembly['preferred'])
+    if (assembly_id := next((assembly['assembly_id'] for assembly in data if assembly['preferred']), None)) is None:
+        raise HTTPException(status_code=404, detail=f'No preferred assembly found for PDB ID \'{pdb_id}\'')
+    return assembly_id
