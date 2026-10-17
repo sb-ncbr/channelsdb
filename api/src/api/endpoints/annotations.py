@@ -3,6 +3,7 @@ import json
 import logging
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from typing import Any
 
 import requests
 from fastapi import APIRouter, HTTPException
@@ -18,6 +19,32 @@ router = APIRouter()
 
 # Chain ID and mapping of UniProt residue numbers to PDB residue numbers
 type SiftsMapping = tuple[str, dict[str, str]]
+
+
+class EntryAnnotation(BaseModel):
+    UniProtId: str
+    Function: str = ''
+    Catalytics: list[str] = []
+    Name: str = ''
+
+
+class ResidueAnnotation(BaseModel):
+    Id: str
+    Chain: str
+    Reference: str = ''
+    ReferenceType: str = ''
+    Text: str
+
+
+class ResidueAnnotationsModel(BaseModel):
+    # Loaded from the stored files as they are
+    ChannelsDB: list[dict[str, Any]] = []
+    UniProt: list[ResidueAnnotation] = []
+
+
+class Annotations(BaseModel):
+    EntryAnnotations: list[EntryAnnotation] = []
+    ResidueAnnotations: ResidueAnnotationsModel = ResidueAnnotationsModel()
 
 
 def parse_sifts_data(xml_data: str) -> dict[str, SiftsMapping]:
@@ -41,30 +68,26 @@ def parse_sifts_data(xml_data: str) -> dict[str, SiftsMapping]:
     return data
 
 
-def get_entry_annotations(uniprot_id: str, tree: ET.Element) -> dict:
+def get_entry_annotations(uniprot_id: str, tree: ET.Element) -> EntryAnnotation:
     ns = {'': 'https://uniprot.org/uniprot'}
 
-    entry = {'UniProtId': uniprot_id,
-             'Function': '',
-             'Catalytics': [],
-             'Name': ''
-             }
+    entry = EntryAnnotation(UniProtId=uniprot_id)
 
     if (function := tree.find('entry/comment[@type="function"]/text', ns)) is not None:
-        entry['Function'] = function.text
+        entry.Function = function.text or ''
 
     for name_type in ('recommendedName', 'alternativeName', 'submittedName'):
         if (node := tree.find(f'entry/protein/{name_type}/fullName', ns)) is not None:
-            entry['Name'] = node.text
+            entry.Name = node.text or ''
             break
 
     for catalytics in tree.iterfind('entry/comment[@type="catalytic activity"]/*/text', ns):
-        entry['Catalytics'].append(catalytics.text)
+        entry.Catalytics.append(catalytics.text or '')
 
     return entry
 
 
-def get_uniprot_residue_annotations(mapping: SiftsMapping | None, tree: ET.Element) -> list[dict]:
+def get_uniprot_residue_annotations(mapping: SiftsMapping | None, tree: ET.Element) -> list[ResidueAnnotation]:
     ns = {'': 'https://uniprot.org/uniprot'}
 
     references: dict[str, tuple[str, str]] = {}
@@ -82,43 +105,30 @@ def get_uniprot_residue_annotations(mapping: SiftsMapping | None, tree: ET.Eleme
 
     for feature_type, items in features.items():
         for item in items:
-            residue_annotation = {
-                'Id': '',
-                'Chain': '',
-                'Reference': '',
-                'ReferenceType': '',
-                'Text': ''
-            }
             try:
-                position = item.find('location/position', ns)
-                if mapping is None:
-                    residue_annotation['Chain'] = 'A'
-                    residue_annotation['Id'] = position.attrib['position']
-                else:
-                    residue_annotation['Chain'] = mapping[0]
-                    residue_annotation['Id'] = mapping[1][position.attrib['position']]
+                position = item.find('location/position', ns).attrib['position']
+                chain, residue_id = ('A', position) if mapping is None else (mapping[0], mapping[1][position])
 
-                if (evidence := item.attrib.get('evidence', None)) is not None:
+                ref_id, ref_type = '', ''
+                if (evidence_keys := item.attrib.get('evidence', None)) is not None:
                     # Picking only a first reference if multiple ones are provided
-                    evidence = evidence.split()[0]
-                    residue_annotation['Reference'] = references[evidence][0]
-                    residue_annotation['ReferenceType'] = references[evidence][1]
+                    ref_id, ref_type = references[evidence_keys.split()[0]]
 
                 if feature_type in ('sequence variant', 'mutagenesis site'):
-                    residue_annotation[
-                        'Text'] = f'{item.find("original", ns).text} &rarr; {item.find("variation", ns).text}: {item.attrib["description"]}'
+                    text = f'{item.find("original", ns).text} &rarr; {item.find("variation", ns).text}: {item.attrib["description"]}'
                 else:
-                    residue_annotation['Text'] = f'{item.attrib["type"].title()}: {item.attrib["description"]}'
+                    text = f'{item.attrib["type"].title()}: {item.attrib["description"]}'
 
             except (AttributeError, KeyError):
                 continue
 
-            residue_annotations.append(residue_annotation)
+            residue_annotations.append(ResidueAnnotation(Id=residue_id, Chain=chain, Reference=ref_id,
+                                                         ReferenceType=ref_type, Text=text))
 
     return residue_annotations
 
 
-def get_channelsdb_residue_annotations(uniprot_id: str, mapping: SiftsMapping | None) -> list[dict]:
+def get_channelsdb_residue_annotations(uniprot_id: str, mapping: SiftsMapping | None) -> list[dict[str, Any]]:
     path = Path(config['dirs']['annotations']) / f'{uniprot_id}.json'
     if not path.exists():
         return []
@@ -137,7 +147,7 @@ def get_channelsdb_residue_annotations(uniprot_id: str, mapping: SiftsMapping | 
     return data
 
 
-def fill_annotations(annotations: dict, mapping: SiftsMapping | None, uniprot_id: str) -> None:
+def fill_annotations(annotations: Annotations, mapping: SiftsMapping | None, uniprot_id: str) -> None:
     req = requests.get(f'https://www.ebi.ac.uk/proteins/api/proteins/{uniprot_id}', headers={'accept': 'application/xml'}, timeout=10)
     if req.status_code >= 500:
         raise HTTPException(status_code=502, detail=f'EBI Proteins API returned an error when accessing: {req.url}')
@@ -145,33 +155,23 @@ def fill_annotations(annotations: dict, mapping: SiftsMapping | None, uniprot_id
         raise HTTPException(status_code=404, detail=f'Cannot load annotations for Uniprot ID \'{uniprot_id}\'')
     xml_data = req.content.decode('utf-8')
     tree = ET.fromstring(xml_data)
-    annotations['EntryAnnotations'].append(get_entry_annotations(uniprot_id, tree))
-    annotations['ResidueAnnotations']['UniProt'].extend(get_uniprot_residue_annotations(mapping, tree))
-    annotations['ResidueAnnotations']['ChannelsDB'].extend(get_channelsdb_residue_annotations(uniprot_id, mapping))
+    annotations.EntryAnnotations.append(get_entry_annotations(uniprot_id, tree))
+    annotations.ResidueAnnotations.UniProt.extend(get_uniprot_residue_annotations(mapping, tree))
+    annotations.ResidueAnnotations.ChannelsDB.extend(get_channelsdb_residue_annotations(uniprot_id, mapping))
 
 
-class ResidueAnnotationsModel(BaseModel):
-    ChannelsDB: list = []
-    UniProt: list = []
-
-
-class Annotations(BaseModel):
-    EntryAnnotations: list = []
-    ResidueAnnotations: ResidueAnnotationsModel = ResidueAnnotationsModel()
-
-
-@router.get('/annotations/alphafill/{uniprot_id}', response_model=Annotations, name='Annotation data', tags=['AlphaFill'],
+@router.get('/annotations/alphafill/{uniprot_id}', name='Annotation data', tags=['AlphaFill'],
             description='Returns annotations of individual protein and its residues', responses=uniprot_id_404_response)
-def get_annotations_alphafill(uniprot_id: Uniprot_ID_Type):
-    annotations = Annotations().model_dump()
+def get_annotations_alphafill(uniprot_id: Uniprot_ID_Type) -> Annotations:
+    annotations = Annotations()
     fill_annotations(annotations, None, uniprot_id)
     return annotations
 
 
-@router.get('/annotations/pdb/{pdb_id}', response_model=Annotations, name='Annotation data', tags=['PDB'],
+@router.get('/annotations/pdb/{pdb_id}', name='Annotation data', tags=['PDB'],
             description='Returns annotations of individual protein and its residues', responses=pdb_id_404_response)
-def get_annotations_pdb(pdb_id: PDB_ID_Type):
-    annotations = Annotations().model_dump()
+def get_annotations_pdb(pdb_id: PDB_ID_Type) -> Annotations:
+    annotations = Annotations()
     req = requests.get(f'https://ftp.ebi.ac.uk/pub/databases/msd/sifts/xml/{pdb_id}.xml.gz', timeout=10)
     if req.status_code >= 500:
         raise HTTPException(status_code=502, detail=f'PDBe server returned an error when accessing: {req.url}')
