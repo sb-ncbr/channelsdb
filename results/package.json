@@ -25,6 +25,6 @@
   },
   "dependencies": {
     "immutable": "^5.1.9",
-    "molstar": "^4.3.0"
+    "molstar": "^4.18.0"
   }
 }
