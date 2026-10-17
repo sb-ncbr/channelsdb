@@ -11,7 +11,7 @@ from api.endpoints import annotations, assembly, channels, content, download, st
 # Log in the same format as uvicorn, which only configures its own loggers
 handler = logging.StreamHandler()
 handler.setFormatter(DefaultFormatter('%(levelprefix)s %(message)s'))
-logging.basicConfig(level=logging.INFO, handlers=[handler])
+logging.basicConfig(handlers=[handler])
 
 app = FastAPI(title='ChannelsDB 2.0 API',
               contact={'name': 'Tomáš Raček', 'email': 'tomas.racek@muni.cz'},
