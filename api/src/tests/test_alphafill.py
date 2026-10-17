@@ -45,15 +45,13 @@ class TestAnnotations:
 class TestDownloadPNG:
     def test_stored(self, stored_uniprot_ids):
         response = client.get(f'/download/alphafill/{stored_uniprot_ids}/png')
-        if response.status_code == 200:
-            assert response.headers['content-type'] == 'image/png'
+        assert response.status_code == 200
+        assert response.headers['content-type'] == 'image/png'
 
     def test_non_existent_uniprot_id(self):
-        # Now we are unable to find, whether the Uniprot ID is valid or not
         response = client.get('/download/alphafill/A0A000ZZZ9/png')
         assert response.status_code == 404
 
     def test_invalid_uniprot_id(self):
-        # Now we are unable to find, whether the Uniprot ID is valid or not
         response = client.get('/download/alphafill/invalid_uniprot_id/png')
         assert response.status_code == 422
