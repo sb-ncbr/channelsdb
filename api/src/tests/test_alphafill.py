@@ -15,7 +15,7 @@ class TestChannels:
         assert 'Channels' in json
 
     def test_non_existent_uniprot_id(self):
-        response = client.get('/channels/alphafill/NonExistentUniprotID')
+        response = client.get('/channels/alphafill/A0A000ZZZ9')
         assert response.status_code == 404
 
     def test_invalid_uniprot_id(self):
@@ -33,7 +33,7 @@ class TestAnnotations:
         assert 'ResidueAnnotations' in json
 
     def test_non_existent_uniprot_id(self):
-        response = client.get('/annotations/alphafill/NonExistentUniprotID')
+        response = client.get('/annotations/alphafill/A0A000ZZZ9')
         assert response.status_code == 404
 
     def test_invalid_uniprot_id(self):
@@ -49,7 +49,7 @@ class TestDownloadPNG:
 
     def test_non_existent_uniprot_id(self):
         # Now we are unable to find, whether the Uniprot ID is valid or not
-        response = client.get('/download/alphafill/NonExistentUniprotID/png')
+        response = client.get('/download/alphafill/A0A000ZZZ9/png')
         assert response.status_code == 404
 
     def test_invalid_uniprot_id(self):
