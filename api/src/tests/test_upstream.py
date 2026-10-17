@@ -2,9 +2,11 @@ import gzip
 
 import pytest
 import requests
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from api.common import session
+from api.endpoints.assembly import get_assembly_id
 from api.main import app
 
 
@@ -17,6 +19,8 @@ SIFTS = ('<entry xmlns="http://www.ebi.ac.uk/pdbe/docs/sifts/eFamily.xsd">'
          '<entity entityId="B"><segment><listResidue><residue>'
          '<crossRefDb dbCoordSys="UniProt" dbAccessionId="P22222" dbResNum="1"/><crossRefDb dbCoordSys="PDBresnum" dbResNum="1"/>'
          '</residue></listResidue></segment></entity></entry>')
+
+SUMMARY = '{"1abc": [{"assemblies": [{"assembly_id": "1", "preferred": true}]}]}'
 
 UNIPROT = '<uniprot xmlns="https://uniprot.org/uniprot"><entry><protein><recommendedName><fullName>Protein</fullName></recommendedName></protein></entry></uniprot>'
 
@@ -31,19 +35,26 @@ def response(status_code: int, content: bytes = b'') -> requests.Response:
 
 @pytest.fixture
 def upstream(monkeypatch):
-    """Mock the external APIs, the EBI Proteins API returns given status codes for given UniProt IDs"""
+    """Mock the external APIs. Status codes can be set for 'pdbe', 'sifts', 'uniprot' (ID validation)
+    or for individual UniProt IDs (EBI Proteins API); everything else succeeds."""
     statuses: dict[str, int] = {}
+
+    def reply(key: str, content: str) -> requests.Response:
+        status = statuses.get(key, 200)
+        return response(status, content.encode() if status == 200 else b'')
 
     def get(url, **kwargs):
         if 'sifts' in url:
-            return response(200, gzip.compress(SIFTS.encode()))
+            status = statuses.get('sifts', 200)
+            return response(status, gzip.compress(SIFTS.encode()) if status == 200 else b'')
         if 'proteins/api' in url:
-            status = statuses.get(url.rsplit('/', 1)[-1], 200)
-            return response(status, UNIPROT.encode() if status == 200 else b'')
-        return response(200)
+            return reply(url.rsplit('/', 1)[-1], UNIPROT)
+        if 'pdbe/api' in url:
+            return reply('pdbe', SUMMARY)
+        raise AssertionError(f'Unexpected request: {url}')
 
     monkeypatch.setattr(session, 'get', get)
-    monkeypatch.setattr(session, 'head', lambda url, **kwargs: response(200))
+    monkeypatch.setattr(session, 'head', lambda url, **kwargs: reply('uniprot', ''))
     return statuses
 
 
@@ -83,3 +94,29 @@ def test_alphafill_upstream_status(upstream, status_code, expected):
     upstream['P11111'] = status_code
     response = client.get('/annotations/alphafill/P11111')
     assert response.status_code == expected
+
+
+UPSTREAM_STATUSES = [(404, 404), (403, 502), (429, 502), (503, 502)]
+
+
+@pytest.mark.parametrize('status_code, expected', UPSTREAM_STATUSES)
+@pytest.mark.parametrize('service, path', [('pdbe', '/channels/pdb/1abc'),
+                                           ('uniprot', '/channels/alphafill/P11111'),
+                                           ('sifts', '/annotations/pdb/1abc')])
+def test_upstream_status(upstream, service, path, status_code, expected):
+    upstream[service] = status_code
+    response = client.get(path)
+    assert response.status_code == expected
+
+
+@pytest.mark.parametrize('status_code, expected', UPSTREAM_STATUSES)
+def test_assembly_upstream_status(upstream, status_code, expected):
+    # Called directly, as the endpoint's PDB ID validation would request the same URL first
+    upstream['pdbe'] = status_code
+    with pytest.raises(HTTPException) as e:
+        get_assembly_id('1abc')
+    assert e.value.status_code == expected
+
+
+def test_assembly(upstream):
+    assert get_assembly_id('1abc') == '1'

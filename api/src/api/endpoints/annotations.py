@@ -8,7 +8,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from api.common import PDB_ID_Type, Uniprot_ID_Type, pdb_id_404_response, session, uniprot_id_404_response
+from api.common import PDB_ID_Type, Uniprot_ID_Type, check_response, pdb_id_404_response, session, uniprot_id_404_response
 from api.config import config
 
 
@@ -148,11 +148,7 @@ def get_channelsdb_residue_annotations(uniprot_id: str, mapping: SiftsMapping | 
 
 def fill_annotations(annotations: Annotations, mapping: SiftsMapping | None, uniprot_id: str) -> None:
     req = session.get(f'https://www.ebi.ac.uk/proteins/api/proteins/{uniprot_id}', headers={'accept': 'application/xml'}, timeout=10)
-    if req.status_code == 404:
-        raise HTTPException(status_code=404, detail=f'Cannot load annotations for Uniprot ID \'{uniprot_id}\'')
-    # Any other failure (server error, rate limiting, ...) is an upstream problem
-    if req.status_code != 200:
-        raise HTTPException(status_code=502, detail=f'EBI Proteins API returned an error ({req.status_code}) when accessing: {req.url}')
+    check_response(req, 'EBI Proteins API', f'Cannot load annotations for Uniprot ID \'{uniprot_id}\'')
     xml_data = req.content.decode('utf-8')
     tree = ET.fromstring(xml_data)
     annotations.EntryAnnotations.append(get_entry_annotations(uniprot_id, tree))
@@ -173,10 +169,7 @@ def get_annotations_alphafill(uniprot_id: Uniprot_ID_Type) -> Annotations:
 def get_annotations_pdb(pdb_id: PDB_ID_Type) -> Annotations:
     annotations = Annotations()
     req = session.get(f'https://ftp.ebi.ac.uk/pub/databases/msd/sifts/xml/{pdb_id}.xml.gz', timeout=10)
-    if req.status_code >= 500:
-        raise HTTPException(status_code=502, detail=f'PDBe server returned an error when accessing: {req.url}')
-    if req.status_code != 200:
-        raise HTTPException(status_code=404, detail=f'Cannot find annotations for PDB ID \'{pdb_id}\'')
+    check_response(req, 'PDBe server', f'Cannot find annotations for PDB ID \'{pdb_id}\'')
 
     xml_data = gzip.decompress(req.content).decode('utf-8')
     sifts = parse_sifts_data(xml_data)
