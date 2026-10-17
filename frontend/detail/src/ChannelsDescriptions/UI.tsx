@@ -99,10 +99,10 @@ class DGHead extends React.Component<State,{}>{
         return(
             <table>
                 <tr>
-                    <th title="Name" className="col col-1">
+                    <th title="Name" className="dg-col dg-col-1">
                         Name
                     </th>
-                    <th title="Description" className="col col-2">
+                    <th title="Description" className="dg-col dg-col-2">
                         Description
                     </th>                 
                 </tr>
@@ -175,10 +175,10 @@ class DGRow extends React.Component<{tunnelName: string, description:string, cha
 
         return (
                 <tr>
-                    <td className="col col-1">
+                    <td className="dg-col dg-col-1">
                         <a className="hand" onClick={()=>this.selectChannel(this.props.channelId)}>{name}</a>
                     </td>
-                    <td className="col col-2">
+                    <td className="dg-col dg-col-2">
                         {description}
                     </td>                  
                 </tr>);

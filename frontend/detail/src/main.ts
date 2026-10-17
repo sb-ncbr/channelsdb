@@ -3,7 +3,9 @@
  */
 
 import '../css/AglomeredParameters.css';
-import 'bootstrap3/dist/css/bootstrap.min.css';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap-icons/font/bootstrap-icons.min.css';
+import '../../assets/css/base.css';
 import '../css/ChannelsDescriptions.css';
 import '../css/datagrid.css';
 import '../css/DownloadReport.css';
@@ -15,8 +17,6 @@ import '../css/tooltips.css';
 
 // Renders the application when imported
 import './App';
-import { initTabsAndDropdowns } from './CommonUtils/Bootstrap';
 import { initLayout } from './CommonUtils/Layout';
 
-initTabsAndDropdowns();
 initLayout();

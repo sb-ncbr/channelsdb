@@ -5,11 +5,11 @@ export function getTabLinkById(tabbedElementId:string, tabId:string){
 
 function isShown(link: HTMLAnchorElement) {
     const pane = document.querySelector(link.getAttribute('href')!)!;
-    return link.parentElement!.classList.contains('active') && getComputedStyle(pane).display !== 'none';
+    return link.classList.contains('active') && getComputedStyle(pane).display !== 'none';
 }
 
 export function isActive(tabbedElementId:string, tabId:string){
-    return getTabLinkById(tabbedElementId,tabId).parentElement!.classList.contains('active');
+    return getTabLinkById(tabbedElementId,tabId).classList.contains('active');
 }
 
 export function activateTab(tabbedElementId:string, tabId:string){

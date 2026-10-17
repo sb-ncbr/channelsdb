@@ -124,10 +124,10 @@ class DGHead extends React.Component<State,{}>{
         return(
             <table>
                 <tr>
-                    <th title="Residue" className="col col-1">
+                    <th title="Residue" className="dg-col dg-col-1">
                         Residue
                     </th>
-                    <th title="Annotation" className="col col-2">
+                    <th title="Annotation" className="dg-col dg-col-2">
                         Annotation
                     </th>                             
                 </tr>
@@ -163,10 +163,10 @@ class DGBody extends React.Component<State,{}>{
                 first = false;
                 trs.push(
                     <tr>
-                        <td title={(this.isBackbone(residue)?residue:"")} className={`col col-1 ${(this.isBackbone(residue)?"help":"")}`} rowSpan={(annotations.length>1)?annotations.length:void 0}>
+                        <td title={(this.isBackbone(residue)?residue:"")} className={`dg-col dg-col-1 ${(this.isBackbone(residue)?"help":"")}`} rowSpan={(annotations.length>1)?annotations.length:void 0}>
                             {residueNameEl}
                         </td>    
-                        <td className={`col col-2`} >
+                        <td className={`dg-col dg-col-2`} >
                             {this.generateLink(annotation)}
                         </td>
                     </tr>
@@ -175,7 +175,7 @@ class DGBody extends React.Component<State,{}>{
             else{
                 trs.push(
                     <tr>    
-                        <td className={`col col-2`} >
+                        <td className={`dg-col dg-col-2`} >
                             {this.generateLink(annotation)}
                         </td>
                     </tr>

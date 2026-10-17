@@ -27,7 +27,7 @@ export class DownloadReport extends React.Component<{}, {disabled: boolean}> {
 class BootstrapDropDownMenuItem extends React.Component<{link: string, linkText:string, targetBlank: boolean},{}>{
     render(){
         return(
-            <li><a target={(this.props.targetBlank)?"_blank":""} href={this.props.link}>{this.props.linkText}</a></li>
+            <li><a className="dropdown-item" target={(this.props.targetBlank)?"_blank":""} href={this.props.link}>{this.props.linkText}</a></li>
         );
     }
 }
@@ -35,7 +35,7 @@ class BootstrapDropDownMenuItem extends React.Component<{link: string, linkText:
 class BootstrapDropDownMenuElementItem extends React.Component<{link: string, linkElement:JSX.Element, targetBlank: boolean},{}>{
     render(){
         return(
-            <li><a target={(this.props.targetBlank)?"_blank":""} href={this.props.link}>{this.props.linkElement}</a></li>
+            <li><a className="dropdown-item" target={(this.props.targetBlank)?"_blank":""} href={this.props.link}>{this.props.linkElement}</a></li>
         );
     }
 }
@@ -43,8 +43,8 @@ class BootstrapDropDownMenuElementItem extends React.Component<{link: string, li
 class BootstrapDropDownMenuButton extends React.Component<{label: string, items: JSX.Element[], disabled: boolean},{}>{
     render(){
         return <div className="btn-group dropdown">
-                <button type="button" className={this.props.disabled ? "download dropdown-toggle disabled" : "download dropdown-toggle"} data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    {this.props.label} <span className="glyphicon glyphicon-download"></span>
+                <button type="button" className={this.props.disabled ? "download disabled" : "download"} data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    {this.props.label} <span className="bi bi-download"></span>
                 </button>
                 <ul className="dropdown-menu">
                     {this.props.items}

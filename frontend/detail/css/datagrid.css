@@ -52,7 +52,7 @@ div#right-tabs-3 {
 	height:100%;
 	width:100%;
 }
-.datagrid .col,
+.datagrid .dg-col,
 .datagrid td{
 	padding-left:5px;
 	padding-right:5px;
@@ -62,7 +62,7 @@ div#right-tabs-3 {
 	height:100%;
 }
 
-.datagrid .col:last-child,
-.datagrid * .col:last-child{
+.datagrid .dg-col:last-child,
+.datagrid * .dg-col:last-child{
 	width:auto !important;
 }

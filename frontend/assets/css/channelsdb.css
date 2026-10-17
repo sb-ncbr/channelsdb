@@ -2,19 +2,7 @@
     box-sizing: border-box;
 }
 
-/* Closer to the look of Bootstrap 3, which the pages were designed with. Bootstrap 5 sizes text, headings, controls
-   and spacing in rem, so the 14px root size scales all of them like before. */
-html {
-    font-size: 14px;
-}
-
-:root {
-    --bs-body-font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-    --bs-body-line-height: 1.42857143;
-    --bs-body-color: #333;
-    --bs-body-color-rgb: 51, 51, 51;
-}
-
+/* The navbar and width of the content as with Bootstrap 3 */
 .navbar {
     --bs-navbar-color: #777;
     --bs-navbar-hover-color: #333;
@@ -24,23 +12,6 @@ html {
     .container {
         max-width: 1170px;
     }
-}
-
-/* Links as in Bootstrap 3: calmer blue, underlined only on hover. The rules are as specific as Bootstrap's for links,
-   so buttons, navigation and list items keep their own styles. */
-:root {
-    --bs-link-color: #337ab7;
-    --bs-link-color-rgb: 51, 122, 183;
-    --bs-link-hover-color: #23527c;
-    --bs-link-hover-color-rgb: 35, 82, 124;
-}
-
-a {
-    text-decoration: none;
-}
-
-a:where(:hover, :focus) {
-    text-decoration: underline;
 }
 
 /* Bootstrap 3's wells and justified text, which Bootstrap 5 dropped */

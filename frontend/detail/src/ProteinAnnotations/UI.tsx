@@ -92,13 +92,13 @@ class DGBody extends React.Component<State,{}>{
                 first = false;
                 trs.push(
                     <tr className={(annotation.isLining)?"highlight":""}>
-                        <td className={`col col-1`}>
+                        <td className={`dg-col dg-col-1`}>
                             {residue}
                         </td>    
-                        <td className={`col col-2`} >
+                        <td className={`dg-col dg-col-2`} >
                             {annotation.text}
                         </td>    
-                        <td className={`col col-3`} >
+                        <td className={`dg-col dg-col-3`} >
                             {this.generateLink(annotation)}
                         </td>
                     </tr>
@@ -107,10 +107,10 @@ class DGBody extends React.Component<State,{}>{
             else{
                 trs.push(
                     <tr className={(annotation.isLining)?"highlight":""}>    
-                        <td className={`col col-2`} >
+                        <td className={`dg-col dg-col-2`} >
                             {annotation.text}
                         </td>    
-                        <td className={`col col-3`} >
+                        <td className={`dg-col dg-col-3`} >
                             {this.generateLink(annotation)}
                         </td>
                     </tr>

@@ -92,7 +92,9 @@ export class LayerVizualizer extends React.Component<{ vizualizer: Vizualizer, c
 
     render() {
         if (this.state.hasData) {
-            initTooltips('.init-lvz-tooltip');
+            // Styled by tooltips.css
+            initTooltips('.init-lvz-tooltip.lvz-radius', { customClass: 'lvz-tooltip' });
+            initTooltips('.init-lvz-tooltip.lvz-properties', { customClass: 'lvz-tooltip lvz-properties-tooltip' });
             return <PaintingArea {...this.state} controller={this.props.controller}/>
         } 
         
@@ -180,12 +182,12 @@ class ColorMenuItem extends React.Component<State & {propertyName:string, isCust
     render(){
         if(Tooltips.hasTooltipText(this.props.propertyName)){
             return(
-                <li><a data-instanceidx={this.props.instanceId} data-propertyname={this.props.propertyName} data-toggle="tooltip" data-placement="right" title={Tooltips.getMessageOrLeaveText(`tooltip-${this.props.propertyName}`)} className="init-lvz-tooltip lvz-properties" onClick={this.changeColoringProperty.bind(this)}>{Tooltips.getMessageOrLeaveText(this.props.propertyName)}</a></li>
+                <li><button type="button" data-instanceidx={this.props.instanceId} data-propertyname={this.props.propertyName} data-bs-toggle="tooltip" data-bs-placement="right" title={Tooltips.getMessageOrLeaveText(`tooltip-${this.props.propertyName}`)} className="dropdown-item init-lvz-tooltip lvz-properties" onClick={this.changeColoringProperty.bind(this)}>{Tooltips.getMessageOrLeaveText(this.props.propertyName)}</button></li>
             );
         }
         else{
             return(
-                <li><a data-instanceidx={this.props.instanceId} data-propertyname={this.props.propertyName} onClick={this.changeColoringProperty.bind(this)}>{Tooltips.getMessageOrLeaveText(this.props.propertyName)}</a></li>
+                <li><button type="button" className="dropdown-item" data-instanceidx={this.props.instanceId} data-propertyname={this.props.propertyName} onClick={this.changeColoringProperty.bind(this)}>{Tooltips.getMessageOrLeaveText(this.props.propertyName)}</button></li>
             );
         }
     }
@@ -225,12 +227,12 @@ class RadiusMenuItem extends React.Component<State & {propertyName:string, isCus
     render(){
         if(Tooltips.hasTooltipText(this.props.propertyName)){
             return(
-                <li><a data-instanceidx={this.props.instanceId} data-propertyname={this.props.propertyName} data-toggle="tooltip" data-placement="right" title={Tooltips.getMessageOrLeaveText(`tooltip-${this.props.propertyName}`)} className="init-lvz-tooltip lvz-radius" onClick={this.changeRadiusProperty.bind(this)}>{Tooltips.getMessageOrLeaveText(this.props.propertyName)}</a></li>
+                <li><button type="button" data-instanceidx={this.props.instanceId} data-propertyname={this.props.propertyName} data-bs-toggle="tooltip" data-bs-placement="right" title={Tooltips.getMessageOrLeaveText(`tooltip-${this.props.propertyName}`)} className="dropdown-item init-lvz-tooltip lvz-radius" onClick={this.changeRadiusProperty.bind(this)}>{Tooltips.getMessageOrLeaveText(this.props.propertyName)}</button></li>
             );
         }
         else{
             return(
-                <li><a data-instanceidx={this.props.instanceId} data-propertyname={this.props.propertyName} onClick={this.changeRadiusProperty.bind(this)}>{Tooltips.getMessageOrLeaveText(this.props.propertyName)}</a></li>
+                <li><button type="button" className="dropdown-item" data-instanceidx={this.props.instanceId} data-propertyname={this.props.propertyName} onClick={this.changeRadiusProperty.bind(this)}>{Tooltips.getMessageOrLeaveText(this.props.propertyName)}</button></li>
             );
         }
     }
@@ -257,7 +259,7 @@ class ColorBoundsMenuItem extends React.Component<State & {mode:string},{}>{
 
     render(){
         return(
-            <li><a data-instanceidx={this.props.instanceId} data-mode={this.props.mode} onClick={this.changeColorBoundsMode.bind(this)}>{this.props.mode}</a></li>
+            <li><button type="button" className="dropdown-item" data-instanceidx={this.props.instanceId} data-mode={this.props.mode} onClick={this.changeColorBoundsMode.bind(this)}>{this.props.mode}</button></li>
         );
     }
 }
@@ -265,8 +267,8 @@ class ColorBoundsMenuItem extends React.Component<State & {mode:string},{}>{
 class BootstrapDropUpMenuButton extends React.Component<{label: string, items: JSX.Element[]},{}>{
     render(){
         return <div className="btn-group dropup">
-                <button type="button" className="btn btn-xs btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    {this.props.label} <span className="caret"></span>
+                <button type="button" className="btn btn-sm btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    {this.props.label}
                 </button>
                 <ul className="dropdown-menu">
                     {this.props.items}
@@ -425,7 +427,7 @@ class ExportTypeButton extends React.Component<{instanceId:number,exportType:str
     }
 
     render(){
-        return <li><a data-instanceidx={this.props.instanceId} data-exporttype={this.props.exportType} onClick={this.export.bind(this)}>{this.props.exportType}</a></li>
+        return <li><button type="button" className="dropdown-item" data-instanceidx={this.props.instanceId} data-exporttype={this.props.exportType} onClick={this.export.bind(this)}>{this.props.exportType}</button></li>
     }
 }
 

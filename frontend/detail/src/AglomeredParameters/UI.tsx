@@ -103,26 +103,26 @@ class DGHead extends React.Component<State,{}>{
         return(
             <table>
                 <tr>
-                    <th title="Name" className="col col-1 ATable-header-identifier init-agp-tooltip" data-toggle="tooltip" data-placement="bottom">
+                    <th title="Name" className="dg-col dg-col-1 ATable-header-identifier init-agp-tooltip" data-bs-toggle="tooltip" data-bs-placement="bottom">
                         Name
                     </th>
-                    <th title={getMessageOrLeaveText("tooltip-Length")} className="col col-2 ATable-header-length init-agp-tooltip" data-toggle="tooltip" data-placement="bottom">
-                        <span className="glyphicon glyphicon-resize-horizontal" /> <span className="ATable-label">Length</span>
+                    <th title={getMessageOrLeaveText("tooltip-Length")} className="dg-col dg-col-2 ATable-header-length init-agp-tooltip" data-bs-toggle="tooltip" data-bs-placement="bottom">
+                        <span className="bi bi-arrows" /> <span className="ATable-label">Length</span>
                     </th>
-                    <th title={getMessageOrLeaveText("tooltip-Bottleneck")} className="col col-3 ATable-header-bottleneck init-agp-tooltip" data-toggle="tooltip" data-placement="bottom">
+                    <th title={getMessageOrLeaveText("tooltip-Bottleneck")} className="dg-col dg-col-3 ATable-header-bottleneck init-agp-tooltip" data-bs-toggle="tooltip" data-bs-placement="bottom">
                         <span className="icon bottleneck" /> <span className="ATable-label">Bottleneck</span>
                     </th>
-                    <th title={getMessageOrLeaveText("tooltip-agl-Hydropathy")} className="col col-4 ATable-header-hydropathy init-agp-tooltip" data-toggle="tooltip" data-placement="bottom">
-                        <span className="glyphicon glyphicon-tint" /> <span className="ATable-label">Hydropathy</span>
+                    <th title={getMessageOrLeaveText("tooltip-agl-Hydropathy")} className="dg-col dg-col-4 ATable-header-hydropathy init-agp-tooltip" data-bs-toggle="tooltip" data-bs-placement="bottom">
+                        <span className="bi bi-droplet-fill" /> <span className="ATable-label">Hydropathy</span>
                     </th>
-                    <th title="Charge" className="col col-5 ATable-header-charge init-agp-tooltip" data-toggle="tooltip" data-placement="bottom">
-                        <span className="glyphicon glyphicon-flash" /> <span className="ATable-label">Charge</span>
+                    <th title="Charge" className="dg-col dg-col-5 ATable-header-charge init-agp-tooltip" data-bs-toggle="tooltip" data-bs-placement="bottom">
+                        <span className="bi bi-lightning-fill" /> <span className="ATable-label">Charge</span>
                     </th>
-                    <th title={getMessageOrLeaveText("tooltip-agl-Polarity")} className="col col-6 ATable-header-polarity init-agp-tooltip" data-toggle="tooltip" data-placement="bottom">
-                        <span className="glyphicon glyphicon-plus" /> <span className="ATable-label">Polarity</span>
+                    <th title={getMessageOrLeaveText("tooltip-agl-Polarity")} className="dg-col dg-col-6 ATable-header-polarity init-agp-tooltip" data-bs-toggle="tooltip" data-bs-placement="bottom">
+                        <span className="bi bi-plus-lg" /> <span className="ATable-label">Polarity</span>
                     </th>
-                    <th title={getMessageOrLeaveText("tooltip-agl-Mutability")} className="col col-7 ATable-header-mutability init-agp-tooltip" data-toggle="tooltip" data-placement="bottom">
-                        <span className="glyphicon glyphicon-scissors" /> <span className="ATable-label">Mutability</span>
+                    <th title={getMessageOrLeaveText("tooltip-agl-Mutability")} className="dg-col dg-col-7 ATable-header-mutability init-agp-tooltip" data-bs-toggle="tooltip" data-bs-placement="bottom">
+                        <span className="bi bi-scissors" /> <span className="ATable-label">Mutability</span>
                     </th>                     
                 </tr>
             </table>
@@ -204,25 +204,25 @@ class DGRow extends React.Component<{tunnel: Tunnel, app: AglomeredParameters},{
         }
         return (
                 <tr>
-                    <td className="col col-1">
+                    <td className="dg-col dg-col-1">
                         {tunnelID}
                     </td>
-                    <td className="col col-2">
+                    <td className="dg-col dg-col-2">
                         {Tunnels.getLength(this.props.tunnel)} Å
                     </td>
-                    <td className="col col-3">
+                    <td className="dg-col dg-col-3">
                         {Tunnels.getBottleneck(this.props.tunnel)} Å
                     </td>
-                    <td className="col col-4">
+                    <td className="dg-col dg-col-4">
                         {Numbers.roundToDecimal(this.props.tunnel.Properties.Hydropathy,2)}
                     </td>
-                    <td className="col col-5">
+                    <td className="dg-col dg-col-5">
                         {Numbers.roundToDecimal(this.props.tunnel.Properties.Charge,2)}
                     </td>
-                    <td className="col col-6">
+                    <td className="dg-col dg-col-6">
                         {Numbers.roundToDecimal(this.props.tunnel.Properties.Polarity,2)}
                     </td>
-                    <td className="col col-7">
+                    <td className="dg-col dg-col-7">
                         {Numbers.roundToDecimal(this.props.tunnel.Properties.Mutability,2)}
                     </td>                     
                 </tr>);

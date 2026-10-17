@@ -1,26 +1,27 @@
-.lvz-radius + .tooltip > .tooltip-inner,
-.lvz-properties + .tooltip > .tooltip-inner{
-    max-width:420px;
-    min-width:220px;
-    background-color:white;
-    color:black;
+/* Tooltips of the 2D profile's menus (customClass lvz-tooltip) */
+.lvz-tooltip {
+    --bs-tooltip-max-width: 420px;
+    --bs-tooltip-bg: white;
+    --bs-tooltip-color: black;
+}
+
+.lvz-tooltip .tooltip-inner {
+    min-width: 220px;
     box-shadow: #ccc 0px 0px 1px;
 }
 
-.tooltip.in{
-    opacity: 1 !important;
+.lvz-properties-tooltip .tooltip-inner {
+    width: 420px;
 }
 
-.lvz-properties + .tooltip > .tooltip-inner{
-    width:420px;
+.tooltip {
+    --bs-tooltip-opacity: 1;
 }
 
-.lvz-radius + .tooltip.right > .tooltip-arrow,
-.lvz-properties + .tooltip.right > .tooltip-arrow{
-    border-right:5px solid white;
+.tooltip:not(.lvz-tooltip) {
+    --bs-tooltip-max-width: 400px;
 }
 
-.tooltip > .tooltip-inner{
-    max-height:170px;
-    max-width:400px;
+.tooltip .tooltip-inner {
+    max-height: 170px;
 }

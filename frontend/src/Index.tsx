@@ -4,6 +4,7 @@
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.min.css';
+import '../assets/css/base.css';
 import '../assets/css/channelsdb.css';
 
 import * as React from 'react';

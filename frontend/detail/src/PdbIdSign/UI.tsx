@@ -13,7 +13,7 @@ export class PdbIdSign extends React.Component<{}, {}> {
         let pid = GlobalRouter.getCurrentPid();
         let subDB = GlobalRouter.getCurrentDB();
         return <div id="pdbid-sign" className="current-pdbid-sign">
-            <a href={subDB === "pdb" ? `https://pdbe.org/${pid}` : `https://alphafill.eu/model?id=${pid}`} style={subDB === "pdb" ? {} : {fontSize: "14px"}} target="_blank">{pid} <span className="glyphicon glyphicon-new-window href-ico"></span></a>
+            <a href={subDB === "pdb" ? `https://pdbe.org/${pid}` : `https://alphafill.eu/model?id=${pid}`} style={subDB === "pdb" ? {} : {fontSize: "14px"}} target="_blank">{pid} <span className="bi bi-box-arrow-up-right href-ico"></span></a>
         </div>
     }
 }

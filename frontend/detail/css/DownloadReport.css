@@ -1,4 +1,4 @@
-.download-button .glyphicon.glyphicon-download{
+.download-button .bi-download{
     vertical-align: text-bottom;
     font-size: 13pt;
 }
@@ -31,7 +31,7 @@
     border-right: 1px #ccc solid;
     border-bottom-left-radius: 30px;
   }
-button.download.dropdown-toggle {
+button.download {
     background-color: transparent;
     border: 0;
     box-shadow: none !important;

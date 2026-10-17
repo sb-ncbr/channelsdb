@@ -118,8 +118,8 @@ class Controls extends React.Component<State,{}>{
 
     render(){
         return <div className="lining-residues select-controls">
-            <span className="btn-xs btn-default bt-all hand" onClick={this.selectAll.bind(this)}>Select all</span>
-            <span className="btn-xs btn-default bt-none hand" onClick={this.clearSelection.bind(this)}>Clear selection</span>
+            <span className="small px-1 bt-all hand" onClick={this.selectAll.bind(this)}>Select all</span>
+            <span className="small px-1 bt-none hand" onClick={this.clearSelection.bind(this)}>Clear selection</span>
         </div>
     }
 }
@@ -158,10 +158,10 @@ class DGHead extends React.Component<State,{}>{
         return(
             <table>
                 <tr>
-                    <th title="Residue" className="col col-1">
+                    <th title="Residue" className="dg-col dg-col-1">
                         Residue
                     </th>
-                    <th title="Annotation" className="col col-2">
+                    <th title="Annotation" className="dg-col dg-col-2">
                         Annotation
                     </th>                             
                 </tr>
@@ -212,10 +212,10 @@ class DGBody extends React.Component<State,{}>{
                 first = false;
                 trs.push(
                     <tr title={(this.isBackbone(residue)?residue:"")} className={(this.isBackbone(residue)?"help":"")}>
-                        <td className={`col col-1`} rowSpan={(annotations.length>1)?annotations.length:void 0}>
+                        <td className={`dg-col dg-col-1`} rowSpan={(annotations.length>1)?annotations.length:void 0}>
                             {residueNameEl}
                         </td>    
-                        <td className={`col col-2`} >
+                        <td className={`dg-col dg-col-2`} >
                             {this.generateLink(annotation)}
                         </td>
                     </tr>
@@ -224,7 +224,7 @@ class DGBody extends React.Component<State,{}>{
             else{
                 trs.push(
                     <tr>    
-                        <td className={`col col-2`} >
+                        <td className={`dg-col dg-col-2`} >
                             {this.generateLink(annotation)}
                         </td>
                     </tr>

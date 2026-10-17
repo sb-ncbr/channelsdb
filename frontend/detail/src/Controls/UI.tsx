@@ -19,7 +19,7 @@ export class Controls extends React.Component<{controller: Context}, {viewerExpa
         return this.state.viewerExpanded
         ? (<div></div>)
         : (<div className="channelsdb-controls">
-            <div className="home-button" title="Home"><a href="/"><span className="glyphicon glyphicon-home" /></a></div>
+            <div className="home-button" title="Home"><a href="/"><span className="bi bi-house-fill" /></a></div>
             <PdbIdSign />
             <DownloadReport />
         </div>)

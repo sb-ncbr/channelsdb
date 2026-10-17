@@ -45,7 +45,7 @@ for (const { path, group } of entries) {
         for (const [type, signature] of [['PNG', '\x89PNG'], ['SVG', '<?xml']]) {
             await page.locator('#layer-vizualizer-ui').getByRole('button', { name: 'Export' }).click();
             const download = page.waitForEvent('download');
-            await page.locator(`a[data-exporttype="${type}"]`).click();
+            await page.locator(`[data-exporttype="${type}"]`).click();
             const file = await (await download).path();
             const content = (await import('node:fs')).readFileSync(file, 'latin1');
             expect(content.startsWith(signature), `${type} export`).toBe(true);
@@ -96,7 +96,6 @@ test('dropdowns and their tooltips work with the keyboard', async ({ page }) => 
     await exportMenu.focus();
     await page.keyboard.press('ArrowDown');
     await expect(exportMenu).toHaveAttribute('aria-expanded', 'true');
-    await page.keyboard.press('ArrowDown');
     expect(await focused()).toBe('PNG');
     await page.keyboard.press('ArrowDown');
     expect(await focused()).toBe('SVG');
@@ -108,7 +107,7 @@ test('dropdowns and their tooltips work with the keyboard', async ({ page }) => 
 
     // A focused item shows its tooltip, also after the mouse leaves it, and Enter selects it
     const property = page.locator('.lvz-properties').first();
-    const colorMenu = property.locator('xpath=ancestor::div[contains(@class, "dropup")][1]/*[@data-toggle="dropdown"]');
+    const colorMenu = property.locator('xpath=ancestor::div[contains(@class, "dropup")][1]/*[@data-bs-toggle="dropdown"]');
     await colorMenu.focus();
     await page.keyboard.press('ArrowDown');
     // Not all items have a tooltip
@@ -116,10 +115,10 @@ test('dropdowns and their tooltips work with the keyboard', async ({ page }) => 
         await page.keyboard.press('ArrowDown');
     }
     await expect(property).toBeFocused();
-    await expect(page.locator('.tooltip.in')).toHaveCount(1);
+    await expect(page.locator('.tooltip.show')).toHaveCount(1);
     await property.hover();
     await page.mouse.move(5, 5);
-    await expect(page.locator('.tooltip.in')).toHaveCount(1);
+    await expect(page.locator('.tooltip.show')).toHaveCount(1);
     const name = (await property.textContent())!;
     await page.keyboard.press('Enter');
     await expect(colorMenu).toHaveAttribute('aria-expanded', 'false');
@@ -131,13 +130,13 @@ test('tooltips, tabs and panel togglers work', async ({ page }) => {
 
     // Bootstrap tabs
     for (const name of ['Channels properties', 'Channels descriptions', 'Channel profile', 'Lining residues', 'Layer']) {
-        const tab = page.locator('a[data-toggle="tab"]', { hasText: name });
+        const tab = page.locator('[data-bs-toggle="tab"]', { hasText: name });
         await tab.click();
         await expect(page.locator((await tab.getAttribute('href'))!)).toHaveClass(/active/);
     }
 
     // Bootstrap tooltips, initialised by the application
-    await page.locator('a[data-toggle="tab"]', { hasText: 'Channels properties' }).click();
+    await page.locator('[data-bs-toggle="tab"]', { hasText: 'Channels properties' }).click();
     await page.locator('.init-agp-tooltip').first().hover();
     await expect(page.locator('.tooltip')).toBeVisible();
 

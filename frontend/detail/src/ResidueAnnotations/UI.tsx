@@ -165,10 +165,10 @@ class DGHead extends React.Component<State,{}>{
         return(
             <table>
                 <tr>
-                    <th title="Residue" className="col col-1">
+                    <th title="Residue" className="dg-col dg-col-1">
                         Residue
                     </th>
-                    <th title="Annotation" className="col col-2">
+                    <th title="Annotation" className="dg-col dg-col-2">
                         Annotation
                     </th>                          
                 </tr>
@@ -194,10 +194,10 @@ class DGBody extends React.Component<State,{}>{
                 first = false;
                 trs.push(
                     <tr className={(annotation.isLining)?"highlight":""}>
-                        <td rowSpan={(annotations.length>1)?annotations.length:void 0} className={`col col-1`}>
+                        <td rowSpan={(annotations.length>1)?annotations.length:void 0} className={`dg-col dg-col-1`}>
                             <a className="hand" onClick={()=>{this.props.app.selectResiude(residue)}}>{residue}</a>
                         </td>  
-                        <td className={`col col-2`} >
+                        <td className={`dg-col dg-col-2`} >
                             {this.generateLink(annotation)}
                         </td>
                     </tr>
@@ -206,7 +206,7 @@ class DGBody extends React.Component<State,{}>{
             else{
                 trs.push(
                     <tr className={(annotation.isLining)?"highlight":""}>       
-                        <td className={`col col-2`} >
+                        <td className={`dg-col dg-col-2`} >
                             {this.generateLink(annotation)}
                         </td>
                     </tr>
@@ -273,7 +273,7 @@ class DGRow extends React.Component<{columns: string[]},{}>{
         let tds = [];
         for(let i=0;i<columns.length;i++){
             tds.push(
-                <td className={`col col-${i+1}`}>
+                <td className={`dg-col dg-col-${i+1}`}>
                     {columns[i]}
                 </td>    
             );

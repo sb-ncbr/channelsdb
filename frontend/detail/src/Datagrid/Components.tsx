@@ -38,13 +38,13 @@ export class DGRow extends React.Component<{columns: string[], columnsCount?:num
 
         if(forceHtml){
             tds.push(
-                <td title={title[i]} className={`col col-${i+1} ${tdClass}`} dangerouslySetInnerHTML={html}>
+                <td title={title[i]} className={`dg-col dg-col-${i+1} ${tdClass}`} dangerouslySetInnerHTML={html}>
                 </td>    
             );  
         }
         else{
             tds.push(
-                <td title={title[i]} className={`col col-${i+1}`} >
+                <td title={title[i]} className={`dg-col dg-col-${i+1}`} >
                     {columns[i]}
                 </td>    
             );  
@@ -61,13 +61,13 @@ export class DGRow extends React.Component<{columns: string[], columnsCount?:num
 
         if(forceHtml){
             tds.push(
-                <td title={title[i]} className={`col col-${i+1} ${tdClass}`} colSpan={columnsCount-columns.length} dangerouslySetInnerHTML={html}>
+                <td title={title[i]} className={`dg-col dg-col-${i+1} ${tdClass}`} colSpan={columnsCount-columns.length} dangerouslySetInnerHTML={html}>
                 </td>    
             );  
         }
         else{
             tds.push(
-                <td title={title[i]} className={`col col-${i+1} ${tdClass}`} colSpan={columnsCount-columns.length}>
+                <td title={title[i]} className={`dg-col dg-col-${i+1} ${tdClass}`} colSpan={columnsCount-columns.length}>
                     {columns[i]}
                 </td>    
             );  
@@ -128,7 +128,7 @@ export class DGElementRow extends React.Component<{columns: JSX.Element[], colum
         for(let i=0;i<columns.length;i++){
             if(i===columns.length-1 && columns.length !== columnsCount){
                 tds.push(
-                    <td title={title[i]} className={`col col-${i+1} ${tdClass}`} colSpan={columnsCount-columns.length}>
+                    <td title={title[i]} className={`dg-col dg-col-${i+1} ${tdClass}`} colSpan={columnsCount-columns.length}>
                         {columns[i]}
                     </td>    
                 );    
@@ -136,7 +136,7 @@ export class DGElementRow extends React.Component<{columns: JSX.Element[], colum
             }
         
             tds.push(
-                <td title={title[i]} className={`col col-${i+1} ${tdClass}`}>
+                <td title={title[i]} className={`dg-col dg-col-${i+1} ${tdClass}`}>
                     {columns[i]}
                 </td>    
             );
@@ -161,7 +161,7 @@ export class DGElementRow extends React.Component<{columns: JSX.Element[], colum
 export class DGTdWithHtml extends React.Component<{contents:string, colIdx:number},{}>{
     render(){
         return (
-            <td className={`col col-${this.props.colIdx}`} dangerouslySetInnerHTML={{__html: this.props.contents}}></td>
+            <td className={`dg-col dg-col-${this.props.colIdx}`} dangerouslySetInnerHTML={{__html: this.props.contents}}></td>
         );
     }
 }

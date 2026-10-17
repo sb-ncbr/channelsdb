@@ -16,37 +16,37 @@
     height:63vh;
 }
 
-#dg-aglomered-parameters.datagrid .col.col-1{
+#dg-aglomered-parameters.datagrid .dg-col.dg-col-1{
     min-width: 80px;
     width:15%;
 }
-#dg-aglomered-parameters.datagrid .col.col-2{
+#dg-aglomered-parameters.datagrid .dg-col.dg-col-2{
     min-width: 55px;/*30px;*/
     width:15%;
 }
-#dg-aglomered-parameters.datagrid .col.col-3{
+#dg-aglomered-parameters.datagrid .dg-col.dg-col-3{
     min-width: 55px;/*30px;*/
     width:15%;
 }
-#dg-aglomered-parameters.datagrid .col.col-4{
+#dg-aglomered-parameters.datagrid .dg-col.dg-col-4{
     min-width: 120px;/*60px;*/
     width:15%;
 }
-.bottom-tabs-toggled #dg-aglomered-parameters.datagrid .col.col-4{
+.bottom-tabs-toggled #dg-aglomered-parameters.datagrid .dg-col.dg-col-4{
     min-width: 60px;
 }
-#dg-aglomered-parameters.datagrid .col.col-5{
+#dg-aglomered-parameters.datagrid .dg-col.dg-col-5{
     min-width: 30px;/*70px;*/
     width:12%;
 }
-#dg-aglomered-parameters.datagrid .col.col-6{
+#dg-aglomered-parameters.datagrid .dg-col.dg-col-6{
     min-width: 50px;
     width:15%;
 }
-#dg-aglomered-parameters.datagrid .col.col-7{
+#dg-aglomered-parameters.datagrid .dg-col.dg-col-7{
     min-width: 90px;/*50px;*/
 }
-.bottom-tabs-toggled #dg-aglomered-parameters.datagrid .col.col-7{
+.bottom-tabs-toggled #dg-aglomered-parameters.datagrid .dg-col.dg-col-7{
     min-width: 50px;
 }
 

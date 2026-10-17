@@ -104,10 +104,10 @@ class DGHead extends React.Component<State,{}>{
         return(
             <table>
                 <tr>
-                    <th title="Property" className="col col-1">
+                    <th title="Property" className="dg-col dg-col-1">
                         Property
                     </th>
-                    <th title="Value" className="col col-2">
+                    <th title="Value" className="dg-col dg-col-2">
                         Value
                     </th>                     
                 </tr>
@@ -130,19 +130,19 @@ class DGBody extends React.Component<State,{}>{
         let minRadius = this.props.data[this.props.layerIdx].LayerGeometry.MinRadius;
         
         rows.push(
-                <DGElementRow columns={[<span><span className="glyphicon glyphicon-tint properties-icon" />{"Hydropathy"}</span>,<span>{Numbers.roundToDecimal(layerData.Hydropathy,2).toString()}</span>]} />
+                <DGElementRow columns={[<span><span className="bi bi-droplet-fill properties-icon" />{"Hydropathy"}</span>,<span>{Numbers.roundToDecimal(layerData.Hydropathy,2).toString()}</span>]} />
             );
         rows.push(
-                <DGElementRow columns={[<span><span className="glyphicon glyphicon-plus properties-icon" />{"Polarity"}</span>,<span>{Numbers.roundToDecimal(layerData.Polarity,2).toString()}</span>]} />
+                <DGElementRow columns={[<span><span className="bi bi-plus-lg properties-icon" />{"Polarity"}</span>,<span>{Numbers.roundToDecimal(layerData.Polarity,2).toString()}</span>]} />
             );
         rows.push(
-                <DGElementRow columns={[<span><span className="glyphicon glyphicon-tint properties-icon upside-down" />{"Hydrophobicity"}</span>,<span>{Numbers.roundToDecimal(layerData.Hydrophobicity,2).toString()}</span>]} />
+                <DGElementRow columns={[<span><span className="bi bi-droplet-fill properties-icon upside-down" />{"Hydrophobicity"}</span>,<span>{Numbers.roundToDecimal(layerData.Hydrophobicity,2).toString()}</span>]} />
             );
         rows.push(
-                <DGElementRow columns={[<span><span className="glyphicon glyphicon-scissors properties-icon" />{"Mutability"}</span>,<span>{Numbers.roundToDecimal(layerData.Mutability,2).toString()}</span>]} />
+                <DGElementRow columns={[<span><span className="bi bi-scissors properties-icon" />{"Mutability"}</span>,<span>{Numbers.roundToDecimal(layerData.Mutability,2).toString()}</span>]} />
             );
         rows.push(
-                <DGElementRow columns={[<span><span className="glyphicon glyphicon-flash properties-icon" />{"Charge"}</span>,<span>{charge}</span>]} />
+                <DGElementRow columns={[<span><span className="bi bi-lightning-fill properties-icon" />{"Charge"}</span>,<span>{charge}</span>]} />
         );
         rows.push(
                 <DGElementRow columns={[<span><span className="icon bottleneck black properties-icon" />{"Radius"}</span>,<span>{Numbers.roundToDecimal(minRadius,1)}</span>]} />
@@ -169,7 +169,7 @@ class DGRow extends React.Component<{columns: string[]},{}>{
         let tds = [];
         for(let i=0;i<columns.length;i++){
             tds.push(
-                <td className={`col col-${i+1}`}>
+                <td className={`dg-col dg-col-${i+1}`}>
                     {columns[i]}
                 </td>    
             );

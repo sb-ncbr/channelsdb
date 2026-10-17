@@ -92,7 +92,7 @@ function resizePanels() {
 function resizeTabAfterActivate(link: HTMLElement) {
     const checker = () => {
         const href = link.getAttribute('href')!;
-        if (link.parentElement!.classList.contains('active') && getComputedStyle(element(href)).display !== 'none') {
+        if (link.classList.contains('active') && getComputedStyle(element(href)).display !== 'none') {
             resizePanels();
             emit('lvContentResize');
         } else {

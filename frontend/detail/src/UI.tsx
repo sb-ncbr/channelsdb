@@ -278,8 +278,8 @@ export class Renderable extends React.Component<{ label: string | JSX.Element, e
 
     private getAnnotationToggler(){
         return [(this.state.isAnnotationsVisible)
-            ?<span className="hand glyphicon glyphicon-chevron-up" title="Hide list annotations for this channel" onClick={this.toggleAnnotations.bind(this)} />
-        :<span className="hand glyphicon glyphicon-chevron-down" title="Show all annotations available for this channel" onClick={this.toggleAnnotations.bind(this)} />];
+            ?<span className="hand bi bi-chevron-up" title="Hide list annotations for this channel" onClick={this.toggleAnnotations.bind(this)} />
+        :<span className="hand bi bi-chevron-down" title="Show all annotations available for this channel" onClick={this.toggleAnnotations.bind(this)} />];
     }
 
     private getAnnotationsElements(){
@@ -293,7 +293,7 @@ export class Renderable extends React.Component<{ label: string | JSX.Element, e
         for(let annotation of this.props.annotations){
             let reference = <i>(No reference provided)</i>;
             if(annotation.reference!==""){
-                reference = <a target="_blank" href={annotation.link}>{annotation.reference} <span className="glyphicon glyphicon-new-window"/></a>;
+                reference = <a target="_blank" href={annotation.link}>{annotation.reference} <span className="bi bi-box-arrow-up-right"/></a>;
             }
             elements.push(
                 <div className="annotation-line">
@@ -305,7 +305,7 @@ export class Renderable extends React.Component<{ label: string | JSX.Element, e
     }
 
     render() {   
-        let emptyToggler = <span className="disabled glyphicon glyphicon-chevron-down" title="No annotations available for this channel" onClick={this.toggleAnnotations.bind(this)} />
+        let emptyToggler = <span className="disabled bi bi-chevron-down" title="No annotations available for this channel" onClick={this.toggleAnnotations.bind(this)} />
         return <div className="ui-label">
             <input type='checkbox' checked={!!this.props.element.__isVisible} onChange={() => this.toggle()} disabled={!!this.props.element.__isBusy} />
             <label className="ui-label-element">
@@ -343,7 +343,7 @@ export class Channels extends React.Component<{state: State, channels: any[], he
             children={ this.props.channels && this.props.channels.length > 0
                 ? this.props.channels.map((c, i) => <Channel key={i} channel={c} state={this.props.state} />)
                 : <div className="ui-label ui-no-data-available">No data available...</div>}
-            controls={<div className='ui-show-all'><button className="btn btn-primary btn-xs bt-all" onClick={() => this.show(true)} disabled={this.state.isBusy||this.isDisabled()}>All</button><button className="btn btn-primary btn-xs bt-none" onClick={() => this.show(false)} disabled={this.state.isBusy||this.isDisabled()}>None</button></div>}
+            controls={<div className='ui-show-all'><button className="btn btn-primary btn-sm bt-all" onClick={() => this.show(true)} disabled={this.state.isBusy||this.isDisabled()}>All</button><button className="btn btn-primary btn-sm bt-none" onClick={() => this.show(false)} disabled={this.state.isBusy||this.isDisabled()}>None</button></div>}
         />
     }
 }
@@ -429,7 +429,7 @@ export class Cavities extends React.Component<{ state:State, cavities: any[], he
             children={ this.props.cavities && this.props.cavities.length > 0
                 ? this.props.cavities.map((c, i) => <Cavity key={i} cavity={c} state={this.props.state} />)
                 : <div className="ui-label ui-no-data-available">No data available...</div>}
-            controls={<div className='ui-show-all'><button className="btn btn-primary btn-xs" onClick={() => this.show(true)} disabled={this.state.isBusy||this.isDisabled()}>All</button><button className="btn btn-primary btn-xs" onClick={() => this.show(false)} disabled={this.state.isBusy||this.isDisabled()}>None</button></div>}
+            controls={<div className='ui-show-all'><button className="btn btn-primary btn-sm" onClick={() => this.show(true)} disabled={this.state.isBusy||this.isDisabled()}>All</button><button className="btn btn-primary btn-sm" onClick={() => this.show(false)} disabled={this.state.isBusy||this.isDisabled()}>None</button></div>}
         />
     }
 }
