@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 
 const jsFiles = [
-  './ChannelsDB/js/jquery-1.12.4.js',
+  './ChannelsDB/js/jquery-3.7.1.js',
   './ChannelsDB/js/jspdf.min.js',
   './ChannelsDB/js/bootstrap.min.js',
   './ChannelsDB/js/canvas2svg.js',
