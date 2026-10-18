@@ -1,5 +1,5 @@
 import React from "react";
-import { DGRowEmpty } from "../Datagrid/Components";
+import { DGRowEmpty, keyedByPosition } from "../Datagrid/Components";
 import { Events } from "../Bridge";
 import { AnnotationDataProvider } from "../AnnotationDataProvider";
 import { Tunnel, ChannelsDBData } from "../DataInterface";
@@ -97,7 +97,7 @@ class DGTable extends React.Component<State,{}>{
 class DGHead extends React.Component<State,{}>{
     render(){
         return(
-            <table>
+            <table><tbody>
                 <tr>
                     <th title="Name" className="dg-col dg-col-1">
                         Name
@@ -106,7 +106,7 @@ class DGHead extends React.Component<State,{}>{
                         Description
                     </th>                 
                 </tr>
-            </table>
+            </tbody></table>
         );
     };
 }
@@ -155,11 +155,11 @@ class DGBody extends React.Component<State,{}>{
     }
 
     render(){
-        let rows = this.generateRows();
+        let rows = keyedByPosition(this.generateRows());
         return(
-            <table>
+            <table><tbody>
                 {rows}
-            </table>
+            </tbody></table>
         );
     };
 }

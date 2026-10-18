@@ -1,5 +1,5 @@
 import React from "react";
-import { DGElementRow, DGRowEmpty, DGNoDataInfoRow } from "../Datagrid/Components";
+import { DGElementRow, DGRowEmpty, DGNoDataInfoRow, keyedByPosition } from "../Datagrid/Components";
 import { Numbers } from "../CommonUtils/Numbers";
 import { SelectionHelper } from "../CommonUtils/Selection";
 import { LayersInfo } from "../DataInterface";
@@ -77,10 +77,10 @@ class DGNoData extends React.Component<State,{}>{
                         <DGHead {...this.props}/>			
                     </div>
                     <div className="body">
-                        <table>
+                        <table><tbody>
                             <DGNoDataInfoRow columnsCount={DGTABLE_COLS_COUNT} infoText={NO_DATA_MESSAGE}/>
                             <DGRowEmpty columnsCount={DGTABLE_COLS_COUNT}/>
-                        </table>
+                        </tbody></table>
                     </div>
                 </div>);
     }
@@ -102,7 +102,7 @@ class DGTable extends React.Component<State,{}>{
 class DGHead extends React.Component<State,{}>{
     render(){
         return(
-            <table>
+            <table><tbody>
                 <tr>
                     <th title="Property" className="dg-col dg-col-1">
                         Property
@@ -111,7 +111,7 @@ class DGHead extends React.Component<State,{}>{
                         Value
                     </th>                     
                 </tr>
-            </table>
+            </tbody></table>
         );
     };
 }
@@ -153,12 +153,12 @@ class DGBody extends React.Component<State,{}>{
     }
 
     render(){
-        let rows = this.generateRows();
+        let rows = keyedByPosition(this.generateRows());
         
         return(
-            <table>
+            <table><tbody>
                 {rows}
-            </table>
+            </tbody></table>
         );
     };
 }
@@ -169,7 +169,7 @@ class DGRow extends React.Component<{columns: string[]},{}>{
         let tds = [];
         for(let i=0;i<columns.length;i++){
             tds.push(
-                <td className={`dg-col dg-col-${i+1}`}>
+                <td key={tds.length} className={`dg-col dg-col-${i+1}`}>
                     {columns[i]}
                 </td>    
             );

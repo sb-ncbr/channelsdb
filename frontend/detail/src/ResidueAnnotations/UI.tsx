@@ -1,6 +1,6 @@
 import React from "react";
 import { Residues } from "../CommonUtils/Residues";
-import { DGNoDataInfoRow, DGRowEmpty, DGElementRow } from "../Datagrid/Components";
+import { DGNoDataInfoRow, DGRowEmpty, DGElementRow, keyedByPosition } from "../Datagrid/Components";
 import { AnnotationDataProvider, ResidueAnnotation } from "../AnnotationDataProvider";
 import { Context } from "../Context";
 
@@ -163,7 +163,7 @@ class DGTable extends React.Component<State,{}>{
 class DGHead extends React.Component<State,{}>{
     render(){
         return(
-            <table>
+            <table><tbody>
                 <tr>
                     <th title="Residue" className="dg-col dg-col-1">
                         Residue
@@ -172,7 +172,7 @@ class DGHead extends React.Component<State,{}>{
                         Annotation
                     </th>                          
                 </tr>
-            </table>
+            </tbody></table>
         );
     };
 }
@@ -257,12 +257,12 @@ class DGBody extends React.Component<State,{}>{
     }
 
     render(){
-        let rows = this.generateRows();
+        let rows = keyedByPosition(this.generateRows());
         
         return(
-            <table>
+            <table><tbody>
                 {rows}
-            </table>
+            </tbody></table>
         );
     };
 }
@@ -273,7 +273,7 @@ class DGRow extends React.Component<{columns: string[]},{}>{
         let tds = [];
         for(let i=0;i<columns.length;i++){
             tds.push(
-                <td className={`dg-col dg-col-${i+1}`}>
+                <td key={tds.length} className={`dg-col dg-col-${i+1}`}>
                     {columns[i]}
                 </td>    
             );

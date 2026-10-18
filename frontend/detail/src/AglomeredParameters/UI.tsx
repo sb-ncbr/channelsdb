@@ -2,7 +2,7 @@ import React from "react";
 import { Tunnels } from "../CommonUtils/Tunnels";
 import { Numbers } from "../CommonUtils/Numbers";
 import { getMessageOrLeaveText } from "../CommonUtils/Tooltips";
-import { DGRowEmpty } from "../Datagrid/Components";
+import { DGRowEmpty, keyedByPosition } from "../Datagrid/Components";
 import { AnnotationDataProvider } from "../AnnotationDataProvider";
 import { Tunnel, ChannelsDBData } from "../DataInterface";
 import { Context } from "../Context";
@@ -101,7 +101,7 @@ class DGTable extends React.Component<State,{}>{
 class DGHead extends React.Component<State,{}>{
     render(){
         return(
-            <table>
+            <table><tbody>
                 <tr>
                     <th title="Name" className="dg-col dg-col-1 ATable-header-identifier init-agp-tooltip" data-bs-toggle="tooltip" data-bs-placement="bottom">
                         Name
@@ -125,7 +125,7 @@ class DGHead extends React.Component<State,{}>{
                         <span className="bi bi-scissors" /> <span className="ATable-label">Mutability</span>
                     </th>                     
                 </tr>
-            </table>
+            </tbody></table>
         );
     };
 }
@@ -180,12 +180,12 @@ class DGBody extends React.Component<State,{}>{
     }
 
     render(){
-        let rows = this.generateRows();
+        let rows = keyedByPosition(this.generateRows());
         
         return(
-            <table>
+            <table><tbody>
                 {rows}
-            </table>
+            </tbody></table>
         );
     };
 }

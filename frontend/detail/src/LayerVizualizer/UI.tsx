@@ -305,7 +305,7 @@ class ColorBySwitch extends React.Component<{state: State, coloringProperty:stri
         let rv = [];
         for(let prop in this.props.state.data[0].Properties){
             rv.push(
-                <ColorMenuItem propertyName={prop} isCustom={this.props.isCustom} {...this.props.state} />
+                <ColorMenuItem key={rv.length} propertyName={prop} isCustom={this.props.isCustom} {...this.props.state} />
             );
         }
 
@@ -328,7 +328,7 @@ class RadiusSwitch extends React.Component<{state: State, radiusProperty:RadiusP
         let rv = [];
         for(let prop of properties){
             rv.push(
-                <RadiusMenuItem propertyName={prop} isCustom={this.props.isCustom} {...this.props.state} />
+                <RadiusMenuItem key={rv.length} propertyName={prop} isCustom={this.props.isCustom} {...this.props.state} />
             );
         }
 
@@ -351,7 +351,7 @@ class CommonButtonArea extends React.Component<State,{}>{
         let rv = [];
         for(let prop of properties){
             rv.push(
-                <ColorBoundsMenuItem mode={prop} {...this.props} />
+                <ColorBoundsMenuItem key={rv.length} mode={prop} {...this.props} />
             );
         }
         
@@ -437,7 +437,7 @@ class ExportButton extends React.Component<{instanceId:number},{}>{
         let supportedExportTypes = ["PNG","SVG"];
         for(let type of supportedExportTypes){
             rv.push(
-                <ExportTypeButton instanceId={this.props.instanceId} exportType={type} />
+                <ExportTypeButton key={rv.length} instanceId={this.props.instanceId} exportType={type} />
             );
         }
         
@@ -699,7 +699,7 @@ class InteractionMap extends React.Component<State & {controller: Context},{}>{
         if(this.props.isDOMReady){
             let hitboxesCoords = this.generatePhysicalHitboxesCoords();
             for(let i=0;i<hitboxesCoords.length;i++){
-                areas.push(<area shape="rect" 
+                areas.push(<area key={areas.length} shape="rect"
                     coords={hitboxesCoords[i].coords.valueOf()} 
                     data-layeridx={String(hitboxesCoords[i].layerIdx.valueOf())}
                     data-instanceidx={String(this.props.instanceId)}

@@ -62,25 +62,25 @@ class DownloadResultsMenu extends React.Component<{disabled: boolean},{}>{
         let items:JSX.Element[] = [];
     
         items.push(
-            <BootstrapDropDownMenuItem linkText=".zip" link={`${linkBase}/zip`} targetBlank={true} />
+            <BootstrapDropDownMenuItem key={items.length} linkText=".zip" link={`${linkBase}/zip`} targetBlank={true} />
         );
         items.push(
-            <BootstrapDropDownMenuItem linkText=".pdb" link={`${linkBase}/pdb`} targetBlank={true} />
+            <BootstrapDropDownMenuItem key={items.length} linkText=".pdb" link={`${linkBase}/pdb`} targetBlank={true} />
         );
         items.push(
-            <BootstrapDropDownMenuItem linkText=".json" link={`${linkBase}/json`} targetBlank={true} />
+            <BootstrapDropDownMenuItem key={items.length} linkText=".json" link={`${linkBase}/json`} targetBlank={true} />
         );
         items.push(
-            <BootstrapDropDownMenuItem linkText=".py" link={`${linkBase}/pymol`} targetBlank={true} />
+            <BootstrapDropDownMenuItem key={items.length} linkText=".py" link={`${linkBase}/pymol`} targetBlank={true} />
         );
         items.push(
-            <BootstrapDropDownMenuItem linkText=".vmd" link={`${linkBase}/vmd`} targetBlank={true} />
+            <BootstrapDropDownMenuItem key={items.length} linkText=".vmd" link={`${linkBase}/vmd`} targetBlank={true} />
         );
         items.push(
-            <BootstrapDropDownMenuItem linkText=".png" link={`${linkBase}/png`} targetBlank={true} />
+            <BootstrapDropDownMenuItem key={items.length} linkText=".png" link={`${linkBase}/png`} targetBlank={true} />
         );
         items.push(
-            <BootstrapDropDownMenuItem linkText="chimera" link={`${linkBase}/chimera`} targetBlank={true} />
+            <BootstrapDropDownMenuItem key={items.length} linkText="chimera" link={`${linkBase}/chimera`} targetBlank={true} />
         );
         
         return <BootstrapDropDownMenuButton label="Download report" items={items} disabled={this.props.disabled} />

@@ -1,4 +1,4 @@
-import { DGNoDataInfoRow, DGRowEmpty, DGRow, DGElementRow } from "../Datagrid/Components";
+import { DGNoDataInfoRow, DGRowEmpty, DGRow, DGElementRow, keyedByPosition } from "../Datagrid/Components";
 import { ProteinAnnotation, AnnotationDataProvider, ResidueAnnotation } from "../AnnotationDataProvider";
 import { GlobalRouter } from "../SimpleRouter";
 import { Context } from "../Context";
@@ -160,7 +160,7 @@ class DGBody extends React.Component<State,{}>{
             /*
             let catalytics:JSX.Element[] = [];
             for(let entry of annotation.catalytics){
-                catalytics.push(<li><span dangerouslySetInnerHTML={{__html:entry}}></span></li>);
+                catalytics.push(<li key={catalytics.length}><span dangerouslySetInnerHTML={{__html:entry}}></span></li>);
             }
             rows.push(
                 <DGComponents.DGElementRow columns={[<ul>{catalytics}</ul>]} columnsCount={DGTABLE_COLS_COUNT} trClass="catalytics" />
@@ -178,12 +178,12 @@ class DGBody extends React.Component<State,{}>{
     }
 
     render(){
-        let rows = this.generateRows();
+        let rows = keyedByPosition(this.generateRows());
         
         return(
-            <table>
+            <table><tbody>
                 {rows}
-            </table>
+            </tbody></table>
         );
     };
 }

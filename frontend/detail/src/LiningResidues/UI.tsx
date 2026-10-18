@@ -1,7 +1,7 @@
 import React from "react";
 import { Residues } from "../CommonUtils/Residues";
 import { SelectionHelper } from "../CommonUtils/Selection";
-import { DGNoDataInfoRow, DGRowEmpty, DGElementRow } from "../Datagrid/Components";
+import { DGNoDataInfoRow, DGRowEmpty, DGElementRow, keyedByPosition } from "../Datagrid/Components";
 import { AnnotationDataProvider, ResidueAnnotation } from "../AnnotationDataProvider";
 import { Context } from "../Context";
 import { QueryParam } from "../VizualizerMol/helpers";
@@ -131,10 +131,10 @@ class DGNoData extends React.Component<State,{}>{
                         <DGHead {...this.props}/>			
                     </div>
                     <div className="body">
-                        <table>
+                        <table><tbody>
                             <DGNoDataInfoRow columnsCount={DGTABLE_COLS_COUNT} infoText={NO_DATA_MESSAGE}/>
                             <DGRowEmpty columnsCount={DGTABLE_COLS_COUNT}/>
-                        </table>
+                        </tbody></table>
                     </div>
                 </div>);
     }
@@ -156,7 +156,7 @@ class DGTable extends React.Component<State,{}>{
 class DGHead extends React.Component<State,{}>{
     render(){
         return(
-            <table>
+            <table><tbody>
                 <tr>
                     <th title="Residue" className="dg-col dg-col-1">
                         Residue
@@ -165,7 +165,7 @@ class DGHead extends React.Component<State,{}>{
                         Annotation
                     </th>                             
                 </tr>
-            </table>
+            </tbody></table>
         );
     };
 }
@@ -293,12 +293,12 @@ class DGBody extends React.Component<State,{}>{
     }
 
     render(){
-        let rows = this.generateRows();
+        let rows = keyedByPosition(this.generateRows());
         
         return(
-            <table>
+            <table><tbody>
                 {rows}
-            </table>
+            </tbody></table>
         );
     };
 }

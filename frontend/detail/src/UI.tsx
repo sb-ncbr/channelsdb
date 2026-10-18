@@ -76,7 +76,7 @@ export class UI extends React.Component<{ plugin: Context }, { isLoading?: boole
         } else {
             let controls = [];
             if (this.state.isLoading) {
-                controls.push(<h1>Loading...</h1>);
+                controls.push(<h1 key={controls.length}>Loading...</h1>);
             } else {
                 if (this.state.error) {
                     let error = this.state.error as string|undefined;
@@ -84,7 +84,7 @@ export class UI extends React.Component<{ plugin: Context }, { isLoading?: boole
                     if (this.state.apiStatus) {
                         if (this.state.apiStatus !== 404) {
                             controls.push(
-                                <div className="error-message">
+                                <div key={controls.length} className="error-message">
                                     <div>
                                         <b>Data for specified protein are not available.</b>
                                     </div>
@@ -92,10 +92,10 @@ export class UI extends React.Component<{ plugin: Context }, { isLoading?: boole
                                         <b>Reason:</b> <i dangerouslySetInnerHTML={{__html:errorMessage}}></i>
                                     </div>
                                 </div>);
-                            controls.push(<button className="reload-data btn btn-primary" onClick={() => this.load()}>Reload Data</button>);
+                            controls.push(<button key={controls.length} className="reload-data btn btn-primary" onClick={() => this.load()}>Reload Data</button>);
                         } else {
                             controls.push(
-                                <div className="error-message">
+                                <div key={controls.length} className="error-message">
                                     <div>
                                         <b>Data for specified protein are not available.</b>
                                     </div>
@@ -106,7 +106,7 @@ export class UI extends React.Component<{ plugin: Context }, { isLoading?: boole
                         }
                     } else {
                         controls.push(
-                            <div className="error-message">
+                            <div key={controls.length} className="error-message">
                                 <div>
                                     <b>Data for specified protein are not available.</b>
                                 </div>
@@ -114,7 +114,7 @@ export class UI extends React.Component<{ plugin: Context }, { isLoading?: boole
                                     <b>Reason:</b> <i dangerouslySetInnerHTML={{__html:errorMessage}}></i>
                                 </div>
                             </div>);
-                        controls.push(<button className="reload-data btn btn-primary" onClick={() => this.load()}>Reload Data</button>);
+                        controls.push(<button key={controls.length} className="reload-data btn btn-primary" onClick={() => this.load()}>Reload Data</button>);
                     }
                 }
             }
@@ -189,12 +189,12 @@ export class Selection extends React.Component<State, { label?: string|JSX.Eleme
     
     private observer: Subscription;
     private observerChannels: Subscription;
-    componentWillMount() {           
+    componentDidMount() {
         SelectionHelper.attachOnSelect((label: string|string[]) => {
             if (Array.isArray(label)) {
                 this.setState({
                     label: <div className="columns">
-                        {label.map(element => (<div>{element},</div>))}
+                        {label.map((element, i) => (<div key={i}>{element},</div>))}
                     </div>
                 });
             } else {
@@ -278,8 +278,8 @@ export class Renderable extends React.Component<{ label: string | JSX.Element, e
 
     private getAnnotationToggler(){
         return [(this.state.isAnnotationsVisible)
-            ?<span className="hand bi bi-chevron-up" title="Hide list annotations for this channel" onClick={this.toggleAnnotations.bind(this)} />
-        :<span className="hand bi bi-chevron-down" title="Show all annotations available for this channel" onClick={this.toggleAnnotations.bind(this)} />];
+            ?<span key={0} className="hand bi bi-chevron-up" title="Hide list annotations for this channel" onClick={this.toggleAnnotations.bind(this)} />
+        :<span key={0} className="hand bi bi-chevron-down" title="Show all annotations available for this channel" onClick={this.toggleAnnotations.bind(this)} />];
     }
 
     private getAnnotationsElements(){
@@ -296,7 +296,7 @@ export class Renderable extends React.Component<{ label: string | JSX.Element, e
                 reference = <a target="_blank" href={annotation.link}>{annotation.reference} <span className="bi bi-box-arrow-up-right"/></a>;
             }
             elements.push(
-                <div className="annotation-line">
+                <div key={elements.length} className="annotation-line">
                     <span className="bullet"/> <b>{annotation.text}</b>, {reference}
                 </div>
             );
