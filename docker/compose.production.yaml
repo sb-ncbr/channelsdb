@@ -9,8 +9,11 @@ services:
   web:
     volumes:
       - ./nginx.production.conf:/etc/nginx/nginx.conf:ro
-      - /etc/letsencrypt/live/channelsdb.ncbr.muni.cz/fullchain.pem:/etc/fullchain.pem:ro
-      - /etc/letsencrypt/live/channelsdb.ncbr.muni.cz/privkey.pem:/etc/privkey.pem:ro
+      # Whole directories, so that reloading nginx picks up renewed certificates
+      # (live/ only links to the current files in archive/)
+      - /etc/letsencrypt/live:/etc/letsencrypt/live:ro
+      - /etc/letsencrypt/archive:/etc/letsencrypt/archive:ro
+      - /var/www/certbot:/var/www/certbot:ro
     ports:
       - "80:80"
       - "443:443"

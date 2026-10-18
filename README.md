@@ -33,6 +33,17 @@ $ docker compose -f docker/compose.yaml -f docker/compose.production.yaml up -d
 
 No further setup is allowed.
 
+The TLS certificate is renewed by certbot on the host using the webroot method: certbot writes the challenges to
+`/var/www/certbot`, which nginx serves under `/.well-known/acme-challenge/`, and reloads nginx afterwards. The
+certificate was set up to renew this way by:
+
+```bash
+$ sudo mkdir -p /var/www/certbot
+$ sudo certbot reconfigure --cert-name channelsdb.ncbr.muni.cz --webroot -w /var/www/certbot \
+    --deploy-hook 'docker exec web nginx -s reload'
+$ sudo certbot renew --dry-run
+```
+
 ## API development
 
 The API uses [uv](https://docs.astral.sh/uv/) to manage dependencies. To set up the environment, run in `/api`:
