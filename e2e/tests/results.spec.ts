@@ -29,7 +29,9 @@ for (const { path, group } of entries) {
         const channel = await selectFirstChannel(page, path);
         await expect(page.locator('.ui-subheader').first()).toContainText(group);
         await expect(page.locator('.ui-label input[type=checkbox]').first()).toBeChecked();
-        await expect(page.locator('.ui-selection')).toContainText(/Tunnel|Pore|Path/);
+        // Named as in the channel list
+        const [, name, id] = (await channel.textContent())!.match(/^(.*) \(Id: (.*)\)$/)!;
+        await expect(page.locator('.ui-selection')).toHaveText(`${name} ${id}`);
         await expect.poll(() => drawnPixels(page)).toBeGreaterThan(1000);
         await expect(channel).toBeVisible();
 
@@ -53,6 +55,15 @@ for (const { path, group } of entries) {
         }
     });
 }
+
+test('a channel chosen in the descriptions is selected under its name', async ({ page }) => {
+    await page.goto('/detail/pdb/3tbg');
+    await page.locator('.ui-subheader a.section-header').first().click();
+    await page.locator('[data-bs-toggle="tab"]', { hasText: 'Channels descriptions' }).click();
+    // Its type in the data is 'Channel 2a', but it is annotated (and listed) as 'Channel 2f'
+    await page.locator('#left-tabs-3 a.hand', { hasText: 'Channel 2f' }).click();
+    await expect(page.locator('.ui-selection')).toHaveText('Channel 2f 41.75');
+});
 
 test('layers of the 2D profile show their properties and residues', async ({ page }) => {
     await selectFirstChannel(page, '/detail/pdb/1ymg');

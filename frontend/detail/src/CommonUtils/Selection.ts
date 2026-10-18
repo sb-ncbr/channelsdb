@@ -57,7 +57,9 @@ export class SelectionHelper{
 
     public static channelSelected(current: (Tunnel & TunnelMetaInfo), plugin: Context, preserveSelection:boolean) {
         this.selectedChannelData = current.Layers;
-        emit('selectionChanged', current.Type + " " + current.Id);
+        // Named as in the channel list: by its annotation, otherwise by its type
+        const name = AnnotationDataProvider.getChannelAnnotation(current.Id)?.text ?? current.Type;
+        emit('selectionChanged', `${name} ${current.Id}`);
         emit('channelSelected', current.Layers);
         if (this.selectedChannelReprLoci?.loci === current.__loci) {
             if (!preserveSelection) this.removeHighlightSelectedChannel(plugin);
