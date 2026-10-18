@@ -184,7 +184,7 @@ export class Documentation extends React.Component<{}, {}> {
                             </tr>                                                                                                
                             <tr>
                                 <td><i>NonActiveParts</i></td>
-                                <td data-toggle='tooltip' data-placement='bottom' title='HetResidues().Filter(lambda m: m.IsNotConnectedTo(AminoAcids()))'>Query</td>
+                                <td title='HetResidues().Filter(lambda m: m.IsNotConnectedTo(AminoAcids()))'>Query</td>
                             </tr>                                                                                                
                         </tbody>
                     </table>
@@ -230,7 +230,7 @@ export class Documentation extends React.Component<{}, {}> {
                             </tr>                                                                                                
                             <tr>
                                 <td><i>NonActiveParts</i></td>
-                                <td data-toggle='tooltip' data-placement='bottom' title='Various queries e.g. Atoms("Fe").Inside(Residues("HEM", "HEC", "HEA"))'>Query</td>
+                                <td title='Various queries e.g. Atoms("Fe").Inside(Residues("HEM", "HEC", "HEA"))'>Query</td>
                             </tr>                                                                                                
                         </tbody>
                     </table>
@@ -276,7 +276,7 @@ export class Documentation extends React.Component<{}, {}> {
                             </tr>                                                                                                
                             <tr>
                                 <td><i>NonActiveParts</i></td>
-                                <td data-toggle='tooltip' data-placement='bottom' title='Various queries e.g. Atoms("Fe").Inside(Residues("HEM", "HEC", "HEA"))'>Query</td>
+                                <td title='Various queries e.g. Atoms("Fe").Inside(Residues("HEM", "HEC", "HEA"))'>Query</td>
                             </tr>                                                                                                
                         </tbody>
                     </table>
@@ -322,7 +322,7 @@ export class Documentation extends React.Component<{}, {}> {
                             </tr>                                                                                                
                             <tr>
                                 <td><i>NonActiveParts</i></td>
-                                <td data-toggle='tooltip' data-placement='bottom' title='Various queries e.g. Atoms("Fe").Inside(Residues("HEM", "HEC", "HEA"))'>Query</td>
+                                <td title='Various queries e.g. Atoms("Fe").Inside(Residues("HEM", "HEC", "HEA"))'>Query</td>
                             </tr>                                                                                                
                         </tbody>
                     </table>
