@@ -22,7 +22,8 @@ import { SelectionHelper } from "./CommonUtils/Selection";
 import { LayersVizualizerSettings, Vizualizer } from "./LayerVizualizer/Vizualizer";
 import { Color } from "molstar/lib/mol-util/color";
 import { Controls } from "./Controls/UI";
-import ReactDOM from 'react-dom';
+import { flushSync } from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import { Viewer } from "./MolViewer/UI";
 import { SbNcbrTunnels } from "molstar/lib/extensions/sb-ncbr";
 import { TunnelsServerConfig } from "molstar/lib/extensions/sb-ncbr/tunnels/props";
@@ -86,26 +87,22 @@ import { TunnelsServerConfig } from "molstar/lib/extensions/sb-ncbr/tunnels/prop
     const plugin = new Context(MySpec);
     SelectionHelper.attachClearSelectionToEventHandler(plugin);
 
-    ReactDOM.render(<UI plugin={plugin}/>, document.getElementById('ui') !)
+    // Synchronously, as the panels are laid out right after (see initLayout in main.ts)
+    const render = (element: JSX.Element, id: string) => {
+        const root = createRoot(document.getElementById(id)!);
+        flushSync(() => root.render(element));
+    };
 
-    ReactDOM.render(<Viewer context={plugin}/>, document.getElementById('plugin') !)
-
-    ReactDOM.render(<LayerVizualizer vizualizer={layerVizualizer} controller={plugin}/>, document.getElementById('layer-vizualizer-ui') !)
-
-    ReactDOM.render(<AglomeredParameters controller={plugin} />, document.getElementById('left-tabs-2') !)
-
-    ReactDOM.render(<ChannelsDescriptions controller={plugin} />, document.getElementById('left-tabs-3') !)
-
-    ReactDOM.render(<LayerProperties controller={plugin}/>, document.getElementById('layer-properties') !)
-
-    ReactDOM.render(<LayerResidues controller={plugin}/>, document.getElementById('layer-residues') !)
-
-    ReactDOM.render(<LiningResidues controller={plugin}/>, document.getElementById('right-tabs-2') !)
-
-    ReactDOM.render(<ResidueAnnotations controller={plugin}/>, document.getElementById('right-tabs-3') !)
-
-    ReactDOM.render(<ProteinAnnotations controller={plugin}/>, document.getElementById('right-panel-tabs-1') !)
-
-    ReactDOM.render(<Controls controller={plugin}/>, document.getElementById('controls') !)
+    render(<UI plugin={plugin}/>, 'ui');
+    render(<Viewer context={plugin}/>, 'plugin');
+    render(<LayerVizualizer vizualizer={layerVizualizer} controller={plugin}/>, 'layer-vizualizer-ui');
+    render(<AglomeredParameters controller={plugin} />, 'left-tabs-2');
+    render(<ChannelsDescriptions controller={plugin} />, 'left-tabs-3');
+    render(<LayerProperties controller={plugin}/>, 'layer-properties');
+    render(<LayerResidues controller={plugin}/>, 'layer-residues');
+    render(<LiningResidues controller={plugin}/>, 'right-tabs-2');
+    render(<ResidueAnnotations controller={plugin}/>, 'right-tabs-3');
+    render(<ProteinAnnotations controller={plugin}/>, 'right-panel-tabs-1');
+    render(<Controls controller={plugin}/>, 'controls');
 
 })();

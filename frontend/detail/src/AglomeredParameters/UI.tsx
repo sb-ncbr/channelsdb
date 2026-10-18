@@ -66,9 +66,9 @@ export class AglomeredParameters extends React.Component<{controller: Context },
             return;
         }
 
+        // Called while rendering, so only the flag is set; dataWaitHandler renders again once the data is loaded
         let state = this.state;
         state.isWaitingForData = true;
-        this.setState(state);
         AnnotationDataProvider.subscribeForData(this.dataWaitHandler.bind(this));
     }
 

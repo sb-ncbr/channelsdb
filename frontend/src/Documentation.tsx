@@ -55,7 +55,7 @@ export class Documentation extends React.Component<{}, {}> {
             <div className='row'>
                 <div className='col-md-8'>
                     <h2 className='featurette-heading'>Database content</h2>
-                    <p>
+                    <div className='mb-3'>
                         <b>The entire database is composed out of the following content:</b>
                             <ul>
                                 <li>Manually curated channel annotations from literature extracted entries</li>
@@ -64,7 +64,7 @@ export class Documentation extends React.Component<{}, {}> {
                                 <li>Pores in transmembrane proteins enabling flow of ions and small molecules across the lipid bilayer for proteins deposited in the <a target='_blank' href='https://opm.phar.umich.edu/' >OPM</a> database</li>
                             </ul>
                         All the channels have been extracted from biological assemblies as identified by the Protein Data Bank in Europe.
-                    </p>
+                    </div>
                 </div>
                 <div className='col-md-4'>
                     <img className='featurette-image img-fluid d-block mx-auto' src={'assets/img/pretty_channel.webp'} width='500' height='500' alt='Channel details' />

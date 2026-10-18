@@ -78,6 +78,8 @@ $ npm test
 
 Like the development servers, they use `CHANNELSDB_PORT` (port `80` by default) or `CHANNELSDB_URL`. A test fails on any error in the page, and the pages are compared with screenshots in `tests/*-snapshots`. After an intended visual change, update them with `npm run test:update` and review the new images. Failed tests leave a trace with screenshots, DOM and network log in `test-results`, see `npx playwright show-trace`.
 
+The tests also run against the development server (`CHANNELSDB_URL=http://localhost:5173 npm test`), where they also fail on React's warnings.
+
 To test a change of the web pages without rebuilding the image, build them with `npm run build` in `/frontend` and serve the built files:
 
 ```bash
