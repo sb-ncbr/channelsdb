@@ -479,7 +479,8 @@ export class Vizualizer{
         }
         this.__canvas = cnvs as HTMLCanvasElement;
         
-        var cntx = this.__canvas.getContext("2d");
+        // The drawn image is read back (getImageData) while drawing
+        var cntx = this.__canvas.getContext("2d", { willReadFrequently: true });
         if(cntx == null){
             throw new Error("Cannot obtain 2D canvas context");
         }
@@ -1376,7 +1377,7 @@ export class Vizualizer{
         document.body.appendChild(tmpCanvas);
 
         let oldCtx = this.getContext();
-        let tmpCtx = tmpCanvas.getContext("2d") as CanvasRenderingContext2D;
+        let tmpCtx = tmpCanvas.getContext("2d", { willReadFrequently: true }) as CanvasRenderingContext2D;
         if(tmpCtx===null){
             throw new Error("Unable initiate new 2D canvas context");
         }
