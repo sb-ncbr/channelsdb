@@ -15,7 +15,6 @@ import { emit } from "../CommonUtils/Events";
 interface State{
     data: string[] | null,
     app: LiningResidues,
-    isWaitingForData: boolean
 };
 
 export class LiningResidues extends React.Component<{controller: Context }, State> {
@@ -23,12 +22,15 @@ export class LiningResidues extends React.Component<{controller: Context }, Stat
     state:State = {
         data: null,
         app: this,
-        isWaitingForData: false
     };
 
     layerIdx = -1;
 
+    // Renders again once the annotations are loaded
+    private unsubscribeData?: () => void;
+
     componentDidMount() {
+        this.unsubscribeData = AnnotationDataProvider.subscribeForData(() => this.forceUpdate());
         SelectionHelper.attachOnChannelSelectHandler((data)=>{
             if(data===null){
                 return;
@@ -44,24 +46,8 @@ export class LiningResidues extends React.Component<{controller: Context }, Stat
         });
     }
 
-    private dataWaitHandler(){
-        let state = this.state;
-        state.isWaitingForData = false;
-        this.setState(state);
-    }
-
-    public invokeDataWait(){
-        if(this.state.isWaitingForData){
-            return;
-        }
-
-        // Called while rendering, so only the flag is set; dataWaitHandler renders again once the data is loaded
-        let state = this.state;
-        state.isWaitingForData = true;
-        AnnotationDataProvider.subscribeForData(this.dataWaitHandler.bind(this));
-    }
-
     componentWillUnmount(){
+        this.unsubscribeData?.();
     }
 
     render() {
@@ -251,7 +237,6 @@ class DGBody extends React.Component<State,{}>{
             annotation = AnnotationDataProvider.getResidueAnnotations(residueId);
             //let residueNameEl = (this.isBackbone(residue))?<i><strong>{this.shortenBackbone(residue)}</strong></i>:<span>{residue}</span>;
             if(annotation === void 0){
-                this.props.app.invokeDataWait();
                 rows.push(
                     <DGElementRow columns={[this.getSelect3DLink(residue),<span>Annotation data still loading...</span>]} title={[(this.isBackbone(residue)?residue:""),""]} trClass={(this.isBackbone(residue)?"help":"")} />
                 );

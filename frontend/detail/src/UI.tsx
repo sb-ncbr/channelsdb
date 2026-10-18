@@ -15,12 +15,13 @@ import { Subscription } from "rxjs"
 
 import { listen } from "./CommonUtils/Events";
 
-export class UI extends React.Component<{ plugin: Context }, { isLoading?: boolean, error?: string, data?: any, isWaitingForData?: boolean, apiStatus: number|undefined }> {
+export class UI extends React.Component<{ plugin: Context }, { isLoading?: boolean, error?: string, data?: any, apiStatus: number|undefined }> {
 
     state = { isLoading: false, data: void 0, error: void 0, apiStatus: undefined };
 
     private currentProteinId:string;
     private subDB:string;
+    private unsubscribeData?: () => void;
 
     componentDidMount() {
         this.load();
@@ -30,16 +31,18 @@ export class UI extends React.Component<{ plugin: Context }, { isLoading?: boole
         fetch(url).then(resp => this.setState({apiStatus: resp.status}));
     }
 
+    componentWillUnmount() {
+        this.unsubscribeData?.();
+    }
+
     private onContentResize(){
         let prevState = this.props.plugin.plugin.layout.state;
         this.props.plugin.plugin.layout.setProps({isExpanded:true});
         this.props.plugin.plugin.layout.setProps(prevState);
     }
 
-    async defaultVisualsHandler() {
-        const state = this.state;
-        if (state.data !== void 0)
-            await showDefaultVisuals(this.props.plugin, (state.data as any).Channels as ChannelsDBData, 2);
+    async defaultVisualsHandler(data: any) {
+        await showDefaultVisuals(this.props.plugin, data.Channels as ChannelsDBData, 2);
         this.setState({ isLoading: false });
     }
 
@@ -56,7 +59,9 @@ export class UI extends React.Component<{ plugin: Context }, { isLoading?: boole
                     this.setState({ isLoading: false, error: (data as any).Error.detail ? (data as any).Error.detail as string : JSON.stringify((data as any).Error), apiStatus: (data as any).apiStatus });
                 } else {
                     this.setState({ data: data });
-                    AnnotationDataProvider.subscribeForData(this.defaultVisualsHandler.bind(this));
+                    // Replaces the subscription of a previous load. Gets the data directly, as the state may not be updated yet.
+                    this.unsubscribeData?.();
+                    this.unsubscribeData = AnnotationDataProvider.subscribeForData(() => this.defaultVisualsHandler(data));
                 }
             })
             .catch(e => {
@@ -348,10 +353,14 @@ export class Channels extends React.Component<{state: State, channels: any[], he
     }
 }
 
-export class Channel extends React.Component<{state:State, channel: any }, { isVisible: boolean, isWaitingForData:boolean }> {
-    state = { isVisible: false, isWaitingForData: false };
+export class Channel extends React.Component<{state:State, channel: any }, { isVisible: boolean }> {
+    state = { isVisible: false };
+
+    // Renders again once the annotations are loaded
+    private unsubscribeData?: () => void;
 
     componentDidMount(){
+        this.unsubscribeData = AnnotationDataProvider.subscribeForData(() => this.forceUpdate());
         Events.subscribeChannelSelect(((channelId:string)=>{
             if(this.props.channel.Id === channelId){
                 this.selectChannel(true);
@@ -359,21 +368,8 @@ export class Channel extends React.Component<{state:State, channel: any }, { isV
         }).bind(this));
     }
 
-    private dataWaitHandler(){
-        let state = this.state;
-        state.isWaitingForData = false;
-        this.setState(state);
-    }
-
-    public invokeDataWait(){
-        if(this.state.isWaitingForData){
-            return;
-        }
-
-        // Called while rendering, so only the flag is set; dataWaitHandler renders again once the data is loaded
-        let state = this.state;
-        state.isWaitingForData = true;
-        AnnotationDataProvider.subscribeForData(this.dataWaitHandler.bind(this));
+    componentWillUnmount(){
+        this.unsubscribeData?.();
     }
 
     render() {
@@ -382,9 +378,6 @@ export class Channel extends React.Component<{state:State, channel: any }, { isV
 
         //TODO use just getAnnotation
         let annotations = AnnotationDataProvider.getChannelAnnotations(c.Id);
-        if(annotations === void 0 && annotations !== null){
-            this.invokeDataWait();
-        }
 
         if(annotations!==null && annotations !== void 0){
             let annotation = annotations[0];

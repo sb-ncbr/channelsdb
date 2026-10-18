@@ -11,7 +11,6 @@ import { emit } from "../CommonUtils/Events";
 interface State{
     data: string[] | null,
     app: ResidueAnnotations,
-    isWaitingForData: boolean
 };
 
 export class ResidueAnnotations extends React.Component<{controller: Context }, State> {
@@ -19,7 +18,6 @@ export class ResidueAnnotations extends React.Component<{controller: Context }, 
     state:State = {
         data: null,
         app: this,
-        isWaitingForData: false
     };
 
     layerIdx = -1;
@@ -28,7 +26,7 @@ export class ResidueAnnotations extends React.Component<{controller: Context }, 
         if(useAnnotations===void 0){
             useAnnotations = false;
         }
-        if(useAnnotations && (this.state.isWaitingForData || AnnotationDataProvider.getResidueAnnotations(residues[0])===void 0)){
+        if(useAnnotations && AnnotationDataProvider.getResidueAnnotations(residues[0])===void 0){
             useAnnotations = false;
         }
 
@@ -83,43 +81,29 @@ export class ResidueAnnotations extends React.Component<{controller: Context }, 
         return Residues.sort(residues, groupFn);
     }
 
+    private unsubscribeData?: () => void;
+
     componentDidMount() {
         let list = AnnotationDataProvider.getResidueList();
         if(list !== void 0){
             let state = this.state;
             state.data = this.sortResidues(list);
             this.setState(state);
-        }else{
-            AnnotationDataProvider.subscribeForData((()=>{
-                let list = AnnotationDataProvider.getResidueList();
-                if(list === void 0){
-                    return;
-                }
-                let s = this.state;
-                s.data = this.sortResidues(list, true);
-                this.setState(s);
-                setTimeout(function(){
-                    emit('contentResize');
-                },1);
-            }).bind(this))
         }
-    }
-
-    private dataWaitHandler(){
-        let state = this.state;
-        state.isWaitingForData = false;
-        this.setState(state);
-    }
-
-    public invokeDataWait(){
-        if(this.state.isWaitingForData){
-            return;
-        }
-
-        // Called while rendering, so only the flag is set; dataWaitHandler renders again once the data is loaded
-        let state = this.state;
-        state.isWaitingForData = true;
-        AnnotationDataProvider.subscribeForData(this.dataWaitHandler.bind(this));
+        // Renders again once the annotations are loaded, with the residues sorted by them
+        this.unsubscribeData = AnnotationDataProvider.subscribeForData(() => {
+            let list = AnnotationDataProvider.getResidueList();
+            if(list === void 0){
+                this.forceUpdate();
+                return;
+            }
+            let s = this.state;
+            s.data = this.sortResidues(list, true);
+            this.setState(s);
+            setTimeout(function(){
+                emit('contentResize');
+            },1);
+        });
     }
 
     public async selectResiude(residueId:string){
@@ -136,6 +120,7 @@ export class ResidueAnnotations extends React.Component<{controller: Context }, 
     }
 
     componentWillUnmount(){
+        this.unsubscribeData?.();
     }
 
     render() {
@@ -234,7 +219,6 @@ class DGBody extends React.Component<State,{}>{
 
             annotation = AnnotationDataProvider.getResidueAnnotations(residueId);
             if(annotation === void 0){
-                this.props.app.invokeDataWait();
                 rows.push(
                     <DGElementRow columns={[<a className="hand" onClick={()=>{this.props.app.selectResiude(residueId)}}>{residueId}</a>,<span>Annotation data still loading...</span>]} />
                 );

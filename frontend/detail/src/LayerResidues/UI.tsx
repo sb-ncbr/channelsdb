@@ -15,7 +15,6 @@ interface State{
     data: LayersInfo[] | null,
     app: LayerResidues,
     layerIdx: number,
-    isWaitingForData: boolean
 };
 
 export class LayerResidues extends React.Component<{controller: Context }, State> {
@@ -24,30 +23,16 @@ export class LayerResidues extends React.Component<{controller: Context }, State
         data: null,
         app: this,
         layerIdx: -1,
-        isWaitingForData: false
     };
 
     layerIdx = -1;
 
+    // Renders again once the annotations are loaded
+    private unsubscribeData?: () => void;
+
     componentDidMount() {
+        this.unsubscribeData = AnnotationDataProvider.subscribeForData(() => this.forceUpdate());
         listen('layerTriggered', this.layerTriggerHandler.bind(this));
-    }
-
-    private dataWaitHandler(){
-        let state = this.state;
-        state.isWaitingForData = false;
-        this.setState(state);
-    }
-
-    public invokeDataWait(){
-        if(this.state.isWaitingForData){
-            return;
-        }
-
-        // Called while rendering, so only the flag is set; dataWaitHandler renders again once the data is loaded
-        let state = this.state;
-        state.isWaitingForData = true;
-        AnnotationDataProvider.subscribeForData(this.dataWaitHandler.bind(this));
     }
 
     private layerTriggerHandler(layerIdx:number){
@@ -73,6 +58,7 @@ export class LayerResidues extends React.Component<{controller: Context }, State
     }
 
     componentWillUnmount(){
+        this.unsubscribeData?.();
     }
 
     render() {
@@ -203,7 +189,6 @@ class DGBody extends React.Component<State,{}>{
             annotation = AnnotationDataProvider.getResidueAnnotations(residueId);
             let residueNameEl = (this.isBackbone(residue))?<i><strong>{this.shortenBackbone(residue)}</strong></i>:<span>{residue}</span>;
             if(annotation === void 0){
-                this.props.app.invokeDataWait();
                 rows.push(
                     <DGElementRow columns={[residueNameEl,<span>Annotation data still loading...</span>]} title={[(this.isBackbone(residue)?residue:""),(this.isBackbone(residue)?residue:"")]} trClass={(this.isBackbone(residue)?"help":"")} />
                 );

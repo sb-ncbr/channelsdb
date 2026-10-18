@@ -19,9 +19,10 @@ for (const { path, title, heading } of pages) {
             await expect(page.locator('#app')).toContainText(/ChannelsDB last update on \d{2}\/\d{2}\/\d{4}\s+contains:\s*\d+ protein entries/);
         }
 
-        const brokenImages = await page.locator('#app img').evaluateAll((images) =>
+        // Images still loading count as broken until they are loaded
+        const brokenImages = () => page.locator('#app img').evaluateAll((images) =>
             (images as HTMLImageElement[]).filter((image) => !image.complete || image.naturalWidth === 0).map((image) => image.src));
-        expect(brokenImages).toEqual([]);
+        await expect.poll(brokenImages).toEqual([]);
 
         // The statistics depend on the data of the running application
         const mask = [page.getByText('ChannelsDB last update on')];

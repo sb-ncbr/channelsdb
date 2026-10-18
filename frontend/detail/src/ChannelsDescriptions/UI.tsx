@@ -12,7 +12,6 @@ let DGTABLE_COLS_COUNT = 2;
 interface State{
     data: Tunnel[] | null,
     app: ChannelsDescriptions,
-    isWaitingForData: boolean
 };
 
 export class ChannelsDescriptions extends React.Component<{controller: Context }, State> {
@@ -20,10 +19,13 @@ export class ChannelsDescriptions extends React.Component<{controller: Context }
     state:State = {
         data: null,
         app: this,
-        isWaitingForData: false
     };
 
+    // Renders again once the annotations are loaded
+    private unsubscribeData?: () => void;
+
     componentDidMount() {
+        this.unsubscribeData = AnnotationDataProvider.subscribeForData(() => this.forceUpdate());
         const checkDataAvailability = () => {
             return this.props.controller.data as ChannelsDBData;
         };
@@ -52,24 +54,8 @@ export class ChannelsDescriptions extends React.Component<{controller: Context }
         simpleObservable.subscribe();
     }
 
-    private dataWaitHandler(){
-        let state = this.state;
-        state.isWaitingForData = false;
-        this.setState(state);
-    }
-
-    public invokeDataWait(){
-        if(this.state.isWaitingForData){
-            return;
-        }
-
-        // Called while rendering, so only the flag is set; dataWaitHandler renders again once the data is loaded
-        let state = this.state;
-        state.isWaitingForData = true;
-        AnnotationDataProvider.subscribeForData(this.dataWaitHandler.bind(this));
-    }
-
     componentWillUnmount(){
+        this.unsubscribeData?.();
     }
 
     render() {
@@ -126,10 +112,6 @@ class DGBody extends React.Component<State,{}>{
         for(let tunnel of this.props.data){
             let mainAnnotation = AnnotationDataProvider.getChannelAnnotation(tunnel.Id);
             let annotations = AnnotationDataProvider.getChannelAnnotations(tunnel.Id);
-
-            if(annotations === void 0 || mainAnnotation === void 0){
-                this.props.app.invokeDataWait();
-            }
 
             if(annotations !== void 0 && annotations !== null && mainAnnotation !== void 0 && mainAnnotation !== null){
                 for(let annotation of annotations){

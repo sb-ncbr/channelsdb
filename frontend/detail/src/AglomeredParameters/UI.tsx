@@ -15,7 +15,6 @@ import { initTooltips } from "../CommonUtils/Bootstrap";
 interface State{
     data: Tunnel[] | null,
     app: AglomeredParameters,
-    isWaitingForData: boolean
 };
 
 export class AglomeredParameters extends React.Component<{controller: Context }, State> {
@@ -23,10 +22,13 @@ export class AglomeredParameters extends React.Component<{controller: Context },
     state:State = {
         data: null,
         app: this,
-        isWaitingForData: false
     };
 
+    // Renders again once the annotations are loaded
+    private unsubscribeData?: () => void;
+
     componentDidMount() {
+        this.unsubscribeData = AnnotationDataProvider.subscribeForData(() => this.forceUpdate());
         const checkDataAvailability = () => {
             return this.props.controller.data as ChannelsDBData;
         };
@@ -55,24 +57,8 @@ export class AglomeredParameters extends React.Component<{controller: Context },
         simpleObservable.subscribe();
     }
 
-    private dataWaitHandler(){
-        let state = this.state;
-        state.isWaitingForData = false;
-        this.setState(state);
-    }
-
-    public invokeDataWait(){
-        if(this.state.isWaitingForData){
-            return;
-        }
-
-        // Called while rendering, so only the flag is set; dataWaitHandler renders again once the data is loaded
-        let state = this.state;
-        state.isWaitingForData = true;
-        AnnotationDataProvider.subscribeForData(this.dataWaitHandler.bind(this));
-    }
-
     componentWillUnmount(){
+        this.unsubscribeData?.();
     }
 
     render() {
@@ -197,10 +183,6 @@ class DGRow extends React.Component<{tunnel: Tunnel, app: AglomeredParameters},{
         let annotation = AnnotationDataProvider.getChannelAnnotation(this.props.tunnel.Id);
         if(annotation!== void 0 && annotation !== null){
             tunnelID = annotation.text;
-        }
-
-        if(annotation === void 0){
-            this.props.app.invokeDataWait();
         }
         return (
                 <tr>

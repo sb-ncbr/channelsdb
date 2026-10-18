@@ -277,21 +277,20 @@ export class AnnotationDataProvider{
         this.subscribed = true;
     }
 
-    private static handlers: {handler:()=>void}[];
-    public static subscribeForData(handler:()=>void){
-        if(this.handlers === void 0){
-            this.handlers = [];
-        }
-        this.handlers.push({handler});
+    private static handlers: (() => void)[] = [];
+
+    /** Calls the handler whenever the annotations are loaded, until the returned function is called */
+    public static subscribeForData(handler: () => void): () => void {
+        this.handlers.push(handler);
+        return () => {
+            this.handlers = this.handlers.filter((h) => h !== handler);
+        };
     }
 
     private static invokeHandlers(){
-        if(this.handlers === void 0){
-            console.log("no handlers attached... Skiping...");
-            return;
-        }
-        for(let h of this.handlers){
-            h.handler();
+        // A copy, as handlers may unsubscribe
+        for (const handler of [...this.handlers]) {
+            handler();
         }
     }
 

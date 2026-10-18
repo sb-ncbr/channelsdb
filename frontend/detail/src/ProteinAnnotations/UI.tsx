@@ -34,9 +34,11 @@ export class ProteinAnnotations extends React.Component<{controller: Context }, 
         }
     }
 
+    private unsubscribeData?: () => void;
+
     componentDidMount() {
         if(!AnnotationDataProvider.isDataReady()){
-            AnnotationDataProvider.subscribeForData(this.handleData.bind(this));
+            this.unsubscribeData = AnnotationDataProvider.subscribeForData(this.handleData.bind(this));
         }
         else{
             this.handleData();
@@ -44,6 +46,7 @@ export class ProteinAnnotations extends React.Component<{controller: Context }, 
     }
 
     componentWillUnmount(){
+        this.unsubscribeData?.();
     }
 
     render() {
