@@ -24,6 +24,7 @@ import { Color } from "molstar/lib/mol-util/color";
 import { Controls } from "./Controls/UI";
 import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
+import type { JSX } from 'react';
 import { Viewer } from "./MolViewer/UI";
 import { SbNcbrTunnels } from "molstar/lib/extensions/sb-ncbr";
 import { TunnelsServerConfig } from "molstar/lib/extensions/sb-ncbr/tunnels/props";

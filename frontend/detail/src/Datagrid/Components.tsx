@@ -2,7 +2,7 @@
 import React from "react";
 
 /** Keys the rows by their position, as React does for children without keys. Replaces any keys the rows have. */
-export function keyedByPosition(rows: JSX.Element | JSX.Element[]) {
+export function keyedByPosition(rows: React.JSX.Element | React.JSX.Element[]) {
     return Array.isArray(rows) ? rows.map((row, i) => React.cloneElement(row, { key: i })) : rows;
 }
 
@@ -33,7 +33,7 @@ function getTitle(title:string[]|undefined, columnCount:number){
 
 export class DGRow extends React.Component<{columns: string[], columnsCount?:number, trClass?:string, tdClass?:string, forceHtml?:boolean, title?:string[]},{}>{
     
-    private addTd(tds:JSX.Element[],i:number,columns:string[],columnsCount:number,forceHtml:boolean){
+    private addTd(tds:React.JSX.Element[],i:number,columns:string[],columnsCount:number,forceHtml:boolean){
         let html = {__html:columns[i]};
         let tdClass = "";
         if(this.props.tdClass !== void 0){
@@ -56,7 +56,7 @@ export class DGRow extends React.Component<{columns: string[], columnsCount?:num
         }
     }
 
-    private addTdWithColspan(tds:JSX.Element[],i:number,columns:string[],columnsCount:number,forceHtml:boolean){
+    private addTdWithColspan(tds:React.JSX.Element[],i:number,columns:string[],columnsCount:number,forceHtml:boolean){
         let html = {__html:columns[i]};
         let tdClass = "";
         if(this.props.tdClass !== void 0){
@@ -90,7 +90,7 @@ export class DGRow extends React.Component<{columns: string[], columnsCount?:num
             forceHTML = this.props.forceHtml;
         }
 
-        let tds:JSX.Element[] = [];
+        let tds:React.JSX.Element[] = [];
         for(let i=0;i<columns.length;i++){
             if(i===columns.length-1 && columns.length !== columnsCount){
                 this.addTdWithColspan(tds,i,columns,columnsCount,forceHTML);
@@ -116,9 +116,9 @@ export class DGRow extends React.Component<{columns: string[], columnsCount?:num
     }
 }
 
-export class DGElementRow extends React.Component<{columns: JSX.Element[], columnsCount?:number, trClass?:string, tdClass?:string, title?:string[]},{}>{
+export class DGElementRow extends React.Component<{columns: React.JSX.Element[], columnsCount?:number, trClass?:string, tdClass?:string, title?:string[]},{}>{
     
-    private generateRow(columns: JSX.Element[]){
+    private generateRow(columns: React.JSX.Element[]){
         let tdClass = "";
         if(this.props.tdClass !== void 0){
             tdClass = this.props.tdClass;

@@ -64,15 +64,13 @@ class EditableRow extends React.Component<TableSpec<any> & { add: (e: Entry<any>
     }
 }
 
-class EditableTable<T> extends React.Component<TableSpec<T> & { updated: () => void }, { entries: Array<Entry<T>> }> {
-    state = { entries: [] };
-
+// Shows and edits the entries of the parent's array in place; the parent renders it again when told it was updated
+class EditableTable<T> extends React.Component<TableSpec<T> & { updated: () => void }> {
     id = 0;
 
     private add(e: any) {
         this.props.entries.push(e);
         e._id = this.id++;
-        this.setState({ entries: [...this.props.entries] });
         this.props.updated();
     }
 
@@ -84,16 +82,7 @@ class EditableTable<T> extends React.Component<TableSpec<T> & { updated: () => v
             entries[i] = entries[i + 1];
         }
         entries.pop();
-        this.setState({ entries: [...this.props.entries] });
         this.props.updated();
-    }
-
-    UNSAFE_componentWillReceiveProps(nextProps: TableSpec<T>) {
-        this.setState({ entries: nextProps.entries });
-    }
-
-    componentDidMount() {
-        this.setState({ entries: this.props.entries });
     }
 
     render() {
@@ -109,7 +98,7 @@ class EditableTable<T> extends React.Component<TableSpec<T> & { updated: () => v
             <tbody>
                 <EditableRow {...this.props} add={(e) => this.add(e)} />
                 {
-                    this.state.entries.map((e) => <tr key={(e as any)._id}>
+                    this.props.entries.map((e) => <tr key={(e as any)._id}>
                         {cols.map((c) => <td key={c} style={{ width: spec[c].width, verticalAlign: 'middle', padding: '0 15px' }}>{(e as any)[c]}</td>)}
                         <td key='actions'>
                             <button className='btn btn-danger' onClick={() => this.remove(e)}><span className='bi bi-x-lg' aria-hidden='true'></span></button>

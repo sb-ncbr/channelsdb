@@ -46,13 +46,22 @@ test('contribute form adds and removes table rows', async ({ page }) => {
     await expect(page.locator('table')).toHaveCount(2);
     for (const table of await page.locator('table').all()) {
         const inputs = table.locator('tbody tr').first().locator('input');
-        for (let i = 0; i < await inputs.count(); i++) {
-            await inputs.nth(i).fill(`value ${i}`);
+        // Two entries, added through the input row at the top
+        for (const entry of ['first', 'second']) {
+            for (let i = 0; i < await inputs.count(); i++) {
+                await inputs.nth(i).fill(`${entry} ${i}`);
+            }
+            await table.locator('tbody tr').first().locator('button').click();
         }
-        await table.locator('tbody tr').first().locator('button').click();
-        await expect(table.locator('tbody tr')).toHaveCount(2);
-        await table.locator('tbody .btn-danger').click();
-        await expect(table.locator('tbody tr')).toHaveCount(1);
+        const entries = table.locator('tbody tr:has(.btn-danger)');
+        await expect(entries).toHaveCount(2);
+        await expect(entries.nth(0)).toContainText('first 0');
+        await expect(entries.nth(1)).toContainText('second 0');
+
+        // Removing the first keeps the second
+        await entries.nth(0).locator('.btn-danger').click();
+        await expect(entries).toHaveCount(1);
+        await expect(entries.nth(0)).toContainText('second 0');
     }
 });
 

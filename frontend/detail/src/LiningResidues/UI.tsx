@@ -188,7 +188,7 @@ class DGBody extends React.Component<State,{}>{
     }
 
     private generateSpannedRows(residue:string, annotations: ResidueAnnotation[]){
-        let trs:JSX.Element[] = [];
+        let trs:React.JSX.Element[] = [];
 
         let residueNameEl = this.getSelect3DLink(residue);//(this.isBackbone(residue))?<i><strong>{this.shortenBackbone(residue)}</strong></i>:<span>{residue}</span>;
 
@@ -225,7 +225,7 @@ class DGBody extends React.Component<State,{}>{
             return <DGNoDataInfoRow columnsCount={DGTABLE_COLS_COUNT} infoText={NO_DATA_MESSAGE}/>;
         }
 
-        let rows:JSX.Element[] = [];
+        let rows:React.JSX.Element[] = [];
         
         for(let residue of this.props.data){
             let residueId = residue.split(" ").slice(1,3).join(" ");
@@ -262,7 +262,7 @@ class DGBody extends React.Component<State,{}>{
             return <DGNoDataInfoRow columnsCount={DGTABLE_COLS_COUNT} infoText={NO_DATA_MESSAGE}/>;
         }
 
-        let rows:JSX.Element[] = [];
+        let rows:React.JSX.Element[] = [];
         
         for(let residue of this.props.data){
             let residueId = residue.split(" ").slice(1,3).join(" ");

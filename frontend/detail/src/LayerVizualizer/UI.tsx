@@ -267,7 +267,7 @@ class ColorBoundsMenuItem extends React.Component<State & {mode:string},{}>{
     }
 }
 
-class BootstrapDropUpMenuButton extends React.Component<{label: string, items: JSX.Element[]},{}>{
+class BootstrapDropUpMenuButton extends React.Component<{label: string, items: React.JSX.Element[]},{}>{
     render(){
         return <div className="btn-group dropup">
                 <button type="button" className="btn btn-sm btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -436,7 +436,7 @@ class ExportTypeButton extends React.Component<{instanceId:number,exportType:str
 
 class ExportButton extends React.Component<{instanceId:number},{}>{
     private generateItems(){
-        let rv = [] as JSX.Element[];
+        let rv = [] as React.JSX.Element[];
         let supportedExportTypes = ["PNG","SVG"];
         for(let type of supportedExportTypes){
             rv.push(
@@ -454,7 +454,7 @@ class ExportButton extends React.Component<{instanceId:number},{}>{
     }
 }
 
-class ColorBoundsSwitchButton extends React.Component<{items:JSX.Element},{}>{
+class ColorBoundsSwitchButton extends React.Component<{items:React.JSX.Element},{}>{
     render(){
         return (
             <span className="color-bounds-button-container">

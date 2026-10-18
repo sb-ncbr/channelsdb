@@ -139,7 +139,7 @@ class DGBody extends React.Component<State,{}>{
     }
 
     private generateSpannedRows(residue:string, annotations: ResidueAnnotation[]){
-        let trs:JSX.Element[] = [];
+        let trs:React.JSX.Element[] = [];
 
         let residueNameEl = (this.isBackbone(residue))?<i><strong>{this.shortenBackbone(residue)}</strong></i>:<span>{residue}</span>;
 
@@ -177,7 +177,7 @@ class DGBody extends React.Component<State,{}>{
         }
 
         let layerData = this.props.data[this.props.layerIdx].Residues;
-        let rows:JSX.Element[] = [];
+        let rows:React.JSX.Element[] = [];
         
         for(let residue of layerData){
             let residueId = residue.split(" ").slice(1,3).join(" ");

@@ -172,7 +172,7 @@ class DGBody extends React.Component<State,{}>{
     }   
 
     private generateSpannedRows(residue:string, annotations: ResidueAnnotation[]){
-        let trs:JSX.Element[] = [];
+        let trs:React.JSX.Element[] = [];
 
         let first = true;
         for(let annotation of annotations){ 
@@ -211,7 +211,7 @@ class DGBody extends React.Component<State,{}>{
         }
 
         let residues = this.props.data;
-        let rows:JSX.Element[] = [];
+        let rows:React.JSX.Element[] = [];
         
         for(let residueId of residues){
             let annotation;

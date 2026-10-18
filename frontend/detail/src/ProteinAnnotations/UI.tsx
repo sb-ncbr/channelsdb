@@ -88,7 +88,7 @@ class DGBody extends React.Component<State,{}>{
         return <a target="_blank" href={annotation.link}>{annotation.reference}</a>
     }    
     private generateSpannedRows(residue:string, annotations: ResidueAnnotation[]){
-        let trs:JSX.Element[] = [];
+        let trs:React.JSX.Element[] = [];
 
         let first = true;
         for(let annotation of annotations){
@@ -133,7 +133,7 @@ class DGBody extends React.Component<State,{}>{
         }
 
         let annotations = this.props.data;
-        let rows:JSX.Element[] = [];
+        let rows:React.JSX.Element[] = [];
         
         for(let annotation of annotations){
             let noDataText = "No data provided";
@@ -162,7 +162,7 @@ class DGBody extends React.Component<State,{}>{
                     );
             }
             /*
-            let catalytics:JSX.Element[] = [];
+            let catalytics:React.JSX.Element[] = [];
             for(let entry of annotation.catalytics){
                 catalytics.push(<li key={catalytics.length}><span dangerouslySetInnerHTML={{__html:entry}}></span></li>);
             }

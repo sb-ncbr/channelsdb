@@ -189,7 +189,7 @@ export class Data extends React.Component<State, { hideAll: boolean}> {
     }
 }
 
-export class Selection extends React.Component<State, { label?: string|JSX.Element }> {
+export class Selection extends React.Component<State, { label?: string|React.JSX.Element }> {
     state = { label: void 0}
 
     private unsubscribe?: () => void;
@@ -242,7 +242,7 @@ export class Section extends React.Component<{ header: string, count: number, ch
     }
 }
 
-export class Renderable extends React.Component<{ label: string | JSX.Element, element: any, annotations?: ChannelAnnotation[], toggle: (plugin: Context, elements: any[], visible: boolean) => Promise<any> } & State, { isAnnotationsVisible:boolean }> {
+export class Renderable extends React.Component<{ label: string | React.JSX.Element, element: any, annotations?: ChannelAnnotation[], toggle: (plugin: Context, elements: any[], visible: boolean) => Promise<any> } & State, { isAnnotationsVisible:boolean }> {
     
     state = {isAnnotationsVisible: false};
 
@@ -270,7 +270,7 @@ export class Renderable extends React.Component<{ label: string | JSX.Element, e
         if(!this.state.isAnnotationsVisible){
             return [];
         }
-        let elements:JSX.Element[] = [];
+        let elements:React.JSX.Element[] = [];
         for(let annotation of this.props.annotations){
             let reference = <i>(No reference provided)</i>;
             if(annotation.reference!==""){
@@ -418,7 +418,7 @@ export class Cavity extends React.Component<{state: State, cavity: any }, { isVi
     }
 }
 
-    export class Origins extends React.Component<{ label: string | JSX.Element, origins: any } & State, { }> {
+    export class Origins extends React.Component<{ label: string | React.JSX.Element, origins: any } & State, { }> {
     private toggle() {
         this.props.origins.__isBusy = true;
     }

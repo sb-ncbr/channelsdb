@@ -32,7 +32,7 @@ class BootstrapDropDownMenuItem extends React.Component<{link: string, linkText:
     }
 }
 
-class BootstrapDropDownMenuElementItem extends React.Component<{link: string, linkElement:JSX.Element, targetBlank: boolean},{}>{
+class BootstrapDropDownMenuElementItem extends React.Component<{link: string, linkElement:React.JSX.Element, targetBlank: boolean},{}>{
     render(){
         return(
             <li><a className="dropdown-item" target={(this.props.targetBlank)?"_blank":""} href={this.props.link}>{this.props.linkElement}</a></li>
@@ -40,7 +40,7 @@ class BootstrapDropDownMenuElementItem extends React.Component<{link: string, li
     }
 }
 
-class BootstrapDropDownMenuButton extends React.Component<{label: string, items: JSX.Element[], disabled: boolean},{}>{
+class BootstrapDropDownMenuButton extends React.Component<{label: string, items: React.JSX.Element[], disabled: boolean},{}>{
     render(){
         return <div className="btn-group dropdown">
                 <button type="button" className={this.props.disabled ? "download disabled" : "download"} data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -59,7 +59,7 @@ class DownloadResultsMenu extends React.Component<{disabled: boolean},{}>{
         let subDB = GlobalRouter.getCurrentDB();
         let url = GlobalRouter.getChannelsURL();
         let linkBase = `${url}/download/${subDB}/${protein_id}`;
-        let items:JSX.Element[] = [];
+        let items:React.JSX.Element[] = [];
     
         items.push(
             <BootstrapDropDownMenuItem key={items.length} linkText=".zip" link={`${linkBase}/zip`} targetBlank={true} />
