@@ -55,3 +55,14 @@ test('contribute form adds and removes table rows', async ({ page }) => {
         await expect(table.locator('tbody tr')).toHaveCount(1);
     }
 });
+
+test('the menu opens with its button on narrow screens', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 700 });
+    await page.goto('/index.html');
+    const methods = page.locator('nav').getByRole('link', { name: 'Methods' });
+    await expect(methods).toBeHidden();
+    await page.getByRole('button', { name: 'Toggle navigation' }).click();
+    await expect(methods).toBeVisible();
+    await methods.click();
+    await expect(page).toHaveTitle('ChannelsDB 2.0 | Methods');
+});

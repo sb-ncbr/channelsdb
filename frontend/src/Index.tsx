@@ -6,6 +6,8 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.min.css';
 import '../assets/css/base.css';
 import '../assets/css/channelsdb.css';
+// The navbar's toggle button on narrow screens
+import 'bootstrap/js/dist/collapse';
 
 import * as React from 'react';
 import { createRoot } from 'react-dom/client';
