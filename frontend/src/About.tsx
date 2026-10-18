@@ -40,10 +40,10 @@ export class About extends React.Component<{}, {}> {
                         <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3475669/" target="_blank">CAVER 3.0: a tool for the analysis of transport pathways in dynamic protein structures</a>
                         . PLoS Comput Biol. 2012;8(10):e1002708. doi: 10.1371/journal.pcbi.1002708.</p>
                     </dd>
-                    <dt>LiteMol suite</dt>
+                    <dt>Mol*</dt>
                     <dd>
-                        <p>Sehnal,D., Deshpande,M., Vařeková,R.S., Mir,S., Berka,K., Midlik,A., Pravda,L., Velankar,S. and Koča,J. (2017) &nbsp;
-                             <a href='https://dx.doi.org/10.1038/nmeth.4499'>LiteMol suite: interactive web-based visualization of large-scale macromolecular structure data</a>. Nat. Methods, 14, 1121–1122.</p>
+                        <p>Sehnal,D., Bittrich,S., Deshpande,M., Svobodová,R., Berka,K., Bazgier,V., Velankar,S., Burley,S.K., Koča,J. and Rose,A.S. (2021) &nbsp;
+                             <a href='https://doi.org/10.1093/nar/gkab314'>Mol* Viewer: modern web app for 3D visualization and analysis of large biomolecular structures</a>. Nucleic Acids Res., 49, W431–W437.</p>
                     </dd>
                     <dt>UniProt API</dt>
                     <dd>
