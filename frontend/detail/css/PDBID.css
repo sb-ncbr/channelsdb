@@ -16,6 +16,10 @@
 
 .current-pdbid-sign .href-ico{
     font-size: 11pt; 
+    /* Where and as bold as the Glyphicon it replaced */
+    position: relative;
+    top: -1px;
+    -webkit-text-stroke: 0.8px;
 }
 
 .current-pdbid-sign a{

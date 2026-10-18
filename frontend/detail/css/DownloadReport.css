@@ -1,6 +1,16 @@
-.download-button .bi-download{
+/* Laid out like the Glyphicons it replaced, so it does not make the line taller and push the text down */
+.download-button .bi{
+    display: inline-block;
+    position: relative;
+    top: 2px;
+    line-height: 1;
     vertical-align: text-bottom;
-    font-size: 13pt;
+    font-size: 16.5px;
+    /* As bold as the Glyphicon */
+    -webkit-text-stroke: 0.8px;
+}
+.download-button .bi::before{
+    vertical-align: top;
 }
 .download-menu .download{
     width: 100%;
@@ -32,6 +42,8 @@
     border-bottom-left-radius: 30px;
   }
 button.download {
+    /* Bootstrap 5 does not make buttons inherit the colour like Bootstrap 3 did */
+    color: inherit;
     background-color: transparent;
     border: 0;
     box-shadow: none !important;
@@ -45,4 +57,6 @@ button.download {
     border-top-left-radius: 0px;
     border-top-right-radius: 0px;
     margin-top: 1px;
+    /* Not the 30px of the bar */
+    line-height: var(--bs-body-line-height);
 }

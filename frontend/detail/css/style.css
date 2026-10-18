@@ -167,6 +167,11 @@ body {
     transform: scaleX(-1);
 }
 
+.home-button .bi{
+    /* As large as the Glyphicon it replaced */
+    font-size: 21px;
+}
+
 .home-button a{
     display: inline-block;
     width: 100%;

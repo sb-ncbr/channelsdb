@@ -44,7 +44,7 @@ class BootstrapDropDownMenuButton extends React.Component<{label: string, items:
     render(){
         return <div className="btn-group dropdown">
                 <button type="button" className={this.props.disabled ? "download disabled" : "download"} data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    {this.props.label} <span className="bi bi-download"></span>
+                    {this.props.label} <span className="bi bi-arrow-down-circle"></span>
                 </button>
                 <ul className="dropdown-menu">
                     {this.props.items}

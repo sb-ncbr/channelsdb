@@ -56,6 +56,16 @@ for (const { path, group } of entries) {
     });
 }
 
+test('the bar above the 3D view keeps its look', async ({ page }) => {
+    await page.goto('/detail/alphafill/P10635');
+    await expect(page.locator('.current-pdbid-sign')).toContainText('P10635');
+    // The full page screenshots mask the 3D view and this bar with it; its height leaves out the 3D view below
+    const download = (await page.locator('#download-report').boundingBox())!;
+    const home = (await page.locator('.home-button').boundingBox())!;
+    const clip = { x: download.x, y: 0, width: home.x + home.width - download.x, height: download.height };
+    await expect(page).toHaveScreenshot('top-bar.png', { clip });
+});
+
 test('a channel chosen in the descriptions is selected under its name', async ({ page }) => {
     await page.goto('/detail/pdb/3tbg');
     await page.locator('.ui-subheader a.section-header').first().click();
