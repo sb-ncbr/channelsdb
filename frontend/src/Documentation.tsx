@@ -442,13 +442,9 @@ export class Documentation extends React.Component<{}, {}> {
                     <p style={justify}>The results page is separated into 5 different sections. All of them are interactive, so play around!</p>
                       <ol>
                           <li>
-                            The main part contains molecule visualization using LiteMol. The documentation how to change visual representation of the results
-                            is available in the <a href='https://webchem.ncbr.muni.cz/Wiki/LiteMol:UserManual' target='_blank'>LiteMol documentation</a>.<br/>
-                            Note that MacOS trackpad controls are slightly different, i.e.:
-                              <ul>
-                                  <li>Zoom (using default settings on MacBook) works with two-finger click + move up/down</li>
-                                  <li>Translation works by holding down Shift + single-finger click + move</li>
-                              </ul>
+                            The main part contains molecule visualization using Mol*. The documentation how to change visual representation of the results
+                            is available in the <a href='https://molstar.org/viewer-docs/' target='_blank'>Mol* documentation</a>, including
+                            the <a href='https://molstar.org/viewer-docs/#mouse-controls' target='_blank'>mouse controls</a>.
                           </li>
                           <li>
                              Right next to the visualization panel is a list of all channels identified for the particular PDB entry displayed. All channels are grouped to respective categories.
