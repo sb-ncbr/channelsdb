@@ -1,6 +1,6 @@
 # Serves the frontend built locally (npm run build in /frontend) instead of the one in the image,
 # so changes can be tested without rebuilding the image:
-#   docker compose -f docker/docker-compose.yaml -f docker/docker-compose.local-dist.yaml up
+#   docker compose -f docker/compose.yaml -f docker/compose.local-dist.yaml up
 name: channelsdb
 
 services:

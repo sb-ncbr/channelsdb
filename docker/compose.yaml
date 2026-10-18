@@ -16,7 +16,7 @@ services:
     container_name: web
     build:
       context: ..
-      dockerfile: ./docker/Dockerfile
+      dockerfile: ./docker/web.Dockerfile
     volumes:
       - ./nginx.devel.conf:/etc/nginx/nginx.conf:ro
     depends_on:
