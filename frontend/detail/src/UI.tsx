@@ -6,12 +6,10 @@ import { GlobalRouter } from "./SimpleRouter";
 import { showCavityVisuals, showChannelVisuals } from "./State";
 import { AnnotationDataProvider, ChannelAnnotation } from "./AnnotationDataProvider";
 import { showDefaultVisuals } from "./State";
-import { Events } from "./Bridge";
 import { SelectionHelper } from "./CommonUtils/Selection";
 import { Tunnels } from "./CommonUtils/Tunnels";
 import { ChannelsDBData, Tunnel, TunnelMetaInfo } from "./DataInterface";
 import { Context } from "./Context";
-import { Subscription } from "rxjs"
 
 import { listen } from "./CommonUtils/Events";
 
@@ -22,10 +20,11 @@ export class UI extends React.Component<{ plugin: Context }, { isLoading?: boole
     private currentProteinId:string;
     private subDB:string;
     private unsubscribeData?: () => void;
+    private unsubscribeResize?: () => void;
 
     componentDidMount() {
         this.load();
-        listen("contentResize", this.onContentResize.bind(this));
+        this.unsubscribeResize = listen("contentResize", this.onContentResize.bind(this));
         let globalRouter = GlobalRouter;
         const url = `${globalRouter.getChannelsURL()}/statistics`;
         fetch(url).then(resp => this.setState({apiStatus: resp.status}));
@@ -33,6 +32,7 @@ export class UI extends React.Component<{ plugin: Context }, { isLoading?: boole
 
     componentWillUnmount() {
         this.unsubscribeData?.();
+        this.unsubscribeResize?.();
     }
 
     private onContentResize(){
@@ -191,11 +191,11 @@ export class Data extends React.Component<State, { hideAll: boolean}> {
 
 export class Selection extends React.Component<State, { label?: string|JSX.Element }> {
     state = { label: void 0}
-    
-    private observer: Subscription;
-    private observerChannels: Subscription;
+
+    private unsubscribe?: () => void;
+
     componentDidMount() {
-        SelectionHelper.attachOnSelect((label: string|string[]) => {
+        this.unsubscribe = listen('selectionChanged', (label) => {
             if (Array.isArray(label)) {
                 this.setState({
                     label: <div className="columns">
@@ -205,36 +205,12 @@ export class Selection extends React.Component<State, { label?: string|JSX.Eleme
             } else {
                 this.setState({ label: label ? <span dangerouslySetInnerHTML={{ __html: label }}/> : '' })
             }
-        })
-
-        // this.observer = this.props.plugin.plugin.behaviors.interaction.click.subscribe(({current, button, modifiers}) => {
-        //     console.log(current)
-        // })
-
-        // this.observerChannels =  this.props.plugin.plugin.behaviors.interaction.click.subscribe(({current, button, modifiers}) => {
-        //     if (current.loci.kind == "group-loci") {
-        //         const loci = current.loci as ShapeGroup.Loci;
-        //         const data = loci.shape.sourceData as ChannelSourceData;
-        //         // if(annotation === void 0 || annotation === null){
-        //         //     this.setState({ label: <span><b>{c.Type}</b>, {`Length: ${len} Å`}</span> });
-        //         // }
-        //         // else{
-        //         //     this.setState({ label: <span><b>{annotation.text}</b>, Length: {len} Å</span> });
-        //         // }
-        //     }
-        // })
+        });
     }
 
-    // componentWillUnmount() {
-    //     if (this.observer) {
-    //         this.observer.unsubscribe();
-    //         // this.observer = void 0;
-    //     }
-    //     if (this.observerChannels) {
-    //         this.observerChannels.unsubscribe();
-    //         // this.observerChannels = void 0;
-    //     }
-    // }
+    componentWillUnmount() {
+        this.unsubscribe?.();
+    }
 
     render() {
         return <div>
@@ -356,20 +332,23 @@ export class Channels extends React.Component<{state: State, channels: any[], he
 export class Channel extends React.Component<{state:State, channel: any }, { isVisible: boolean }> {
     state = { isVisible: false };
 
-    // Renders again once the annotations are loaded
-    private unsubscribeData?: () => void;
+    // Removed when unmounted
+    private subscriptions: (() => void)[] = [];
 
     componentDidMount(){
-        this.unsubscribeData = AnnotationDataProvider.subscribeForData(() => this.forceUpdate());
-        Events.subscribeChannelSelect(((channelId:string)=>{
-            if(this.props.channel.Id === channelId){
-                this.selectChannel(true);
-            }
-        }).bind(this));
+        this.subscriptions.push(
+            // Renders again once the annotations are loaded
+            AnnotationDataProvider.subscribeForData(() => this.forceUpdate()),
+            listen('channelChosen', (channelId) => {
+                if(this.props.channel.Id === channelId){
+                    this.selectChannel(true);
+                }
+            }),
+        );
     }
 
     componentWillUnmount(){
-        this.unsubscribeData?.();
+        this.subscriptions.forEach((unsubscribe) => unsubscribe());
     }
 
     render() {

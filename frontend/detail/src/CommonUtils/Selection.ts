@@ -4,6 +4,7 @@ import { Representation } from "molstar/lib/mol-repr/representation";
 import { Loci } from "molstar/lib/mol-model/loci";
 import { ShapeGroup } from "molstar/lib/mol-model/shape";
 import { Tunnels } from "./Tunnels";
+import { emit } from "./Events";
 import { AnnotationDataProvider } from "../AnnotationDataProvider";
 import { PluginCommands } from "molstar/lib/mol-plugin/commands";
 import { MarkerAction } from "molstar/lib/mol-util/marker-action";
@@ -30,44 +31,6 @@ export class SelectionHelper{
     private static selectedChannelLoci: ShapeGroup.Loci|undefined;
     private static selectedChannelReprLoci: Representation.Loci<Loci>|undefined;
 
-    private static onSelectionHandlers:{handler:(label:string|string[])=>void}[];
-    private static onChannelSelectHandlers:{handler:(data:Layers)=>void}[];
-
-    public static attachOnSelect(handler:(label: string|string[])=>void) {
-        if(this.onSelectionHandlers===void 0){
-            this.onSelectionHandlers = [];
-        }
-
-        this.onSelectionHandlers.push({handler});
-    }
-
-    private static invokeOnSelectionHandlers(label:string|string[]){
-        if(this.onSelectionHandlers === void 0){
-            return;
-        }
-
-        for(let h of this.onSelectionHandlers){
-            h.handler(label);
-        }
-    }
-
-    public static attachOnChannelSelectHandler(handler:(data:Layers)=>void){
-        if(this.onChannelSelectHandlers===void 0){
-            this.onChannelSelectHandlers = [];
-        }
-
-        this.onChannelSelectHandlers.push({handler});
-    }
-    private static invokeOnChannelSelectHandlers(data: Layers){
-        if(this.onChannelSelectHandlers === void 0){
-            return;
-        }
-
-        for(let h of this.onChannelSelectHandlers){
-            h.handler(data);
-        }
-    }
-
     public static getSelectedChannelData(){
         return (this.selectedChannelData===void 0)?null:this.selectedChannelData;
     }
@@ -84,7 +47,7 @@ export class SelectionHelper{
             }
         })
         plugin.plugin.managers.structure.focus.behaviors.current.subscribe((selected) => {
-            if (selected?.label) this.invokeOnSelectionHandlers(selected.label);
+            if (selected?.label) emit('selectionChanged', selected.label);
         })
     }
 
@@ -94,8 +57,8 @@ export class SelectionHelper{
 
     public static channelSelected(current: (Tunnel & TunnelMetaInfo), plugin: Context, preserveSelection:boolean) {
         this.selectedChannelData = current.Layers;
-        this.invokeOnSelectionHandlers(current.Type + " " + current.Id);
-        this.invokeOnChannelSelectHandlers(current.Layers);
+        emit('selectionChanged', current.Type + " " + current.Id);
+        emit('channelSelected', current.Layers);
         if (this.selectedChannelReprLoci?.loci === current.__loci) {
             if (!preserveSelection) this.removeHighlightSelectedChannel(plugin);
         } else {
@@ -107,7 +70,7 @@ export class SelectionHelper{
     }
 
     public static updateSelectionLabel(labels: string|string[]) {
-        this.invokeOnSelectionHandlers(labels);
+        emit('selectionChanged', labels);
     }
 
     public static highlightSelectedChannel(plugin: Context) {
@@ -144,8 +107,8 @@ export class SelectionHelper{
                             this.removeHighlightSelectedChannel(plugin);
                             this.selectedChannelReprLoci = current;
                             this.highlightSelectedChannel(plugin);
-                            this.invokeOnSelectionHandlers(selectLabel);
-                            this.invokeOnChannelSelectHandlers(this.selectedChannelData);
+                            emit('selectionChanged', selectLabel);
+                            emit('channelSelected', this.selectedChannelData);
                             return;
                         }
                     }
@@ -174,7 +137,7 @@ export class SelectionHelper{
                 plugin.selectedLoci = null;
             }
         } else {
-            this.invokeOnSelectionHandlers("");
+            emit('selectionChanged', "");
             this.selectedChannelLoci = undefined;
             this.selectedChannelReprLoci = undefined;
         }

@@ -1,6 +1,6 @@
 import React from "react";
 import { DGRowEmpty, keyedByPosition } from "../Datagrid/Components";
-import { Events } from "../Bridge";
+import { emit } from "../CommonUtils/Events";
 import { AnnotationDataProvider } from "../AnnotationDataProvider";
 import { Tunnel, ChannelsDBData } from "../DataInterface";
 import { Context } from "../Context";
@@ -21,11 +21,11 @@ export class ChannelsDescriptions extends React.Component<{controller: Context }
         app: this,
     };
 
-    // Renders again once the annotations are loaded
-    private unsubscribeData?: () => void;
+    // Removed when unmounted
+    private subscriptions: (() => void)[] = [];
 
     componentDidMount() {
-        this.unsubscribeData = AnnotationDataProvider.subscribeForData(() => this.forceUpdate());
+        this.subscriptions.push(AnnotationDataProvider.subscribeForData(() => this.forceUpdate()));
         const checkDataAvailability = () => {
             return this.props.controller.data as ChannelsDBData;
         };
@@ -55,7 +55,7 @@ export class ChannelsDescriptions extends React.Component<{controller: Context }
     }
 
     componentWillUnmount(){
-        this.unsubscribeData?.();
+        this.subscriptions.forEach((unsubscribe) => unsubscribe());
     }
 
     render() {
@@ -148,7 +148,7 @@ class DGBody extends React.Component<State,{}>{
     
 class DGRow extends React.Component<{tunnelName: string, description:string, channelId:string, app: ChannelsDescriptions},{}>{
     private selectChannel(channelId:string){
-        Events.invokeChannelSelect(channelId);
+        emit('channelChosen', channelId);
     }
 
     render(){

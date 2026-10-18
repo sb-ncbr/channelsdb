@@ -81,7 +81,8 @@ export class ResidueAnnotations extends React.Component<{controller: Context }, 
         return Residues.sort(residues, groupFn);
     }
 
-    private unsubscribeData?: () => void;
+    // Removed when unmounted
+    private subscriptions: (() => void)[] = [];
 
     componentDidMount() {
         let list = AnnotationDataProvider.getResidueList();
@@ -91,7 +92,7 @@ export class ResidueAnnotations extends React.Component<{controller: Context }, 
             this.setState(state);
         }
         // Renders again once the annotations are loaded, with the residues sorted by them
-        this.unsubscribeData = AnnotationDataProvider.subscribeForData(() => {
+        this.subscriptions.push(AnnotationDataProvider.subscribeForData(() => {
             let list = AnnotationDataProvider.getResidueList();
             if(list === void 0){
                 this.forceUpdate();
@@ -103,7 +104,7 @@ export class ResidueAnnotations extends React.Component<{controller: Context }, 
             setTimeout(function(){
                 emit('contentResize');
             },1);
-        });
+        }));
     }
 
     public async selectResiude(residueId:string){
@@ -120,7 +121,7 @@ export class ResidueAnnotations extends React.Component<{controller: Context }, 
     }
 
     componentWillUnmount(){
-        this.unsubscribeData?.();
+        this.subscriptions.forEach((unsubscribe) => unsubscribe());
     }
 
     render() {

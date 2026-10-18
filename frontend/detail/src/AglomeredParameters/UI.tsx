@@ -24,11 +24,11 @@ export class AglomeredParameters extends React.Component<{controller: Context },
         app: this,
     };
 
-    // Renders again once the annotations are loaded
-    private unsubscribeData?: () => void;
+    // Removed when unmounted
+    private subscriptions: (() => void)[] = [];
 
     componentDidMount() {
-        this.unsubscribeData = AnnotationDataProvider.subscribeForData(() => this.forceUpdate());
+        this.subscriptions.push(AnnotationDataProvider.subscribeForData(() => this.forceUpdate()));
         const checkDataAvailability = () => {
             return this.props.controller.data as ChannelsDBData;
         };
@@ -58,7 +58,7 @@ export class AglomeredParameters extends React.Component<{controller: Context },
     }
 
     componentWillUnmount(){
-        this.unsubscribeData?.();
+        this.subscriptions.forEach((unsubscribe) => unsubscribe());
     }
 
     render() {

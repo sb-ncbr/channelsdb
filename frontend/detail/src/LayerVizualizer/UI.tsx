@@ -34,6 +34,9 @@ export class LayerVizualizer extends React.Component<{ vizualizer: Vizualizer, c
 
     vizualizer: Vizualizer
 
+    // Removed when unmounted
+    private subscriptions: (() => void)[] = [];
+
     componentDidMount() {
         var vizualizer = this.props.vizualizer;
 
@@ -49,7 +52,7 @@ export class LayerVizualizer extends React.Component<{ vizualizer: Vizualizer, c
         this.setState(state);
         this.vizualizer = vizualizer;
 
-        SelectionHelper.attachOnChannelSelectHandler((data)=>{
+        this.subscriptions.push(listen('channelSelected', (data)=>{
             window.setTimeout(()=>{
                 let s1 = this.state;
                 s1.currentTunnelRef= SelectionHelper.getSelectedChannelRef();
@@ -76,18 +79,18 @@ export class LayerVizualizer extends React.Component<{ vizualizer: Vizualizer, c
                     });
                 });
             },50);
-        });
+        }));
 
-        listen("lvContentResize",(()=>{
-            this.forceUpdate();
-        }).bind(this));
-        window.addEventListener("resize",(()=>{
-            this.forceUpdate();
-        }).bind(this));
+        const onResize = () => this.forceUpdate();
+        window.addEventListener("resize", onResize);
+        this.subscriptions.push(
+            listen("lvContentResize", onResize),
+            () => window.removeEventListener("resize", onResize),
+        );
     }
-    
-    componentWillUnmount(){
 
+    componentWillUnmount(){
+        this.subscriptions.forEach((unsubscribe) => unsubscribe());
     }
 
     render() {

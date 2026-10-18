@@ -26,8 +26,11 @@ export class LayerProperties extends React.Component<{controller: Context }, Sta
 
     layerIdx = -1;
 
+    // Removed when unmounted
+    private subscriptions: (() => void)[] = [];
+
     componentDidMount() {
-        listen('layerTriggered', this.layerTriggerHandler.bind(this));
+        this.subscriptions.push(listen('layerTriggered', this.layerTriggerHandler.bind(this)));
     }
 
     private layerTriggerHandler(layerIdx:number){
@@ -53,6 +56,7 @@ export class LayerProperties extends React.Component<{controller: Context }, Sta
     }
 
     componentWillUnmount(){
+        this.subscriptions.forEach((unsubscribe) => unsubscribe());
     }
 
     render() {

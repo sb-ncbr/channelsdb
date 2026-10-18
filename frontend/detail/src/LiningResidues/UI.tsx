@@ -10,7 +10,7 @@ import { PluginCommands } from "molstar/lib/mol-plugin/commands";
 let DGTABLE_COLS_COUNT = 2;
 let NO_DATA_MESSAGE = "Select channel in 3D view for details...";
 
-import { emit } from "../CommonUtils/Events";
+import { emit, listen } from "../CommonUtils/Events";
 
 interface State{
     data: string[] | null,
@@ -26,12 +26,12 @@ export class LiningResidues extends React.Component<{controller: Context }, Stat
 
     layerIdx = -1;
 
-    // Renders again once the annotations are loaded
-    private unsubscribeData?: () => void;
+    // Removed when unmounted
+    private subscriptions: (() => void)[] = [];
 
     componentDidMount() {
-        this.unsubscribeData = AnnotationDataProvider.subscribeForData(() => this.forceUpdate());
-        SelectionHelper.attachOnChannelSelectHandler((data)=>{
+        this.subscriptions.push(AnnotationDataProvider.subscribeForData(() => this.forceUpdate()));
+        this.subscriptions.push(listen('channelSelected', (data)=>{
             if(data===null){
                 return;
             }
@@ -43,11 +43,11 @@ export class LiningResidues extends React.Component<{controller: Context }, Stat
             setTimeout(function(){
                 emit('contentResize');
             },1);
-        });
+        }));
     }
 
     componentWillUnmount(){
-        this.unsubscribeData?.();
+        this.subscriptions.forEach((unsubscribe) => unsubscribe());
     }
 
     render() {

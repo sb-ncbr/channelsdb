@@ -27,12 +27,12 @@ export class LayerResidues extends React.Component<{controller: Context }, State
 
     layerIdx = -1;
 
-    // Renders again once the annotations are loaded
-    private unsubscribeData?: () => void;
+    // Removed when unmounted
+    private subscriptions: (() => void)[] = [];
 
     componentDidMount() {
-        this.unsubscribeData = AnnotationDataProvider.subscribeForData(() => this.forceUpdate());
-        listen('layerTriggered', this.layerTriggerHandler.bind(this));
+        this.subscriptions.push(AnnotationDataProvider.subscribeForData(() => this.forceUpdate()));
+        this.subscriptions.push(listen('layerTriggered', this.layerTriggerHandler.bind(this)));
     }
 
     private layerTriggerHandler(layerIdx:number){
@@ -58,7 +58,7 @@ export class LayerResidues extends React.Component<{controller: Context }, State
     }
 
     componentWillUnmount(){
-        this.unsubscribeData?.();
+        this.subscriptions.forEach((unsubscribe) => unsubscribe());
     }
 
     render() {
