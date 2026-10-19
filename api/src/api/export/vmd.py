@@ -39,7 +39,8 @@ def get_VMD_file(channels: dict) -> str:
             profile = channel['Profile']
             lines.append(CHANNEL_START.format(name=name, num_atoms=len(profile), color_id=channel_count % 33))
             for current_atom_id, atom in enumerate(profile):
-                line = f'add_atom {current_atom_id} {{{{ {atom["X"]:.3f}, {atom["Y"]:.3f}, {atom["Z"]:.3f} }}}} {atom["Radius"]:.3f}'
+                # A Tcl list of the atom's coordinates (separated by spaces only)
+                line = f'add_atom {current_atom_id} {{{{ {atom["X"]:.3f} {atom["Y"]:.3f} {atom["Z"]:.3f} }}}} {atom["Radius"]:.3f}'
                 lines.append(line)
 
             lines.append(CHANNEL_END.format(name=name))
