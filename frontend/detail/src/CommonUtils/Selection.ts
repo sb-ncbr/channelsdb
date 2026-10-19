@@ -28,7 +28,8 @@ export class SelectionHelper{
     private static selectedChannelRef: string|undefined;
 
     private static selectedChannelData: Layers|undefined;
-    private static selectedChannelLoci: ShapeGroup.Loci|undefined;
+    // Where the camera returns to the selected channel, also when it was chosen from the channel list
+    private static selectedChannelLoci: Loci|undefined;
     private static selectedChannelReprLoci: Representation.Loci<Loci>|undefined;
 
     public static getSelectedChannelData(){
@@ -51,7 +52,7 @@ export class SelectionHelper{
         })
     }
 
-    public static getSelectedChannelLoci(): ShapeGroup.Loci | undefined {
+    public static getSelectedChannelLoci(): Loci | undefined {
         return this.selectedChannelLoci;
     }
 
@@ -66,6 +67,7 @@ export class SelectionHelper{
         } else {
             this.removeHighlightSelectedChannel(plugin);
             plugin.plugin.managers.camera.focusLoci(current.__loci);
+            this.selectedChannelLoci = current.__loci;
             this.selectedChannelReprLoci = {loci: current.__loci} as Representation.Loci<Loci>;
             this.highlightSelectedChannel(plugin);
         }
