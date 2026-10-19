@@ -1,43 +1,6 @@
-import { Context } from "../Context";
-
 interface RType{chain: {authAsymId: string}, authSeqNumber:number, name?:string, backbone?:boolean};
 
 export class Residues{
-    private static cache:Map<number,string>;
-
-    private static initCache(){
-        if(this.cache!==void 0){
-            return;
-        }
-
-        this.cache = new Map<number,string>();
-    }
-
-    private static getDirect(residueSeqNumber:number, context: Context){
-        const residue_mon_ids = context.cif.blocks.at(0)?.getField("entity_poly_seq.mon_id")?.toStringArray()
-        if (residue_mon_ids && residue_mon_ids.at(residueSeqNumber)) {
-            return residue_mon_ids[residueSeqNumber];
-        }
-
-        return "";
-    }
-
-    public static getName(residueSeqNumber:number, context: Context):string{ // Right now this is not used to get name of residue, but may be reused in the future
-        this.initCache();
-        if(this.cache.has(residueSeqNumber)){
-            let name =  this.cache.get(residueSeqNumber);
-            if(name===void 0){
-                return "";
-            }
-            return name;
-        }
-
-        let name = this.getDirect(residueSeqNumber, context);
-        this.cache = this.cache.set(residueSeqNumber, name);
-
-        return name;
-    }
-
     public static sort(residues:string[], groupFunction?:(residues:RType[])=>RType[][], hasName?:boolean, includeBackbone?:boolean){
 
         if(includeBackbone===void 0){

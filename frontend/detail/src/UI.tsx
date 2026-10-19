@@ -17,8 +17,6 @@ export class UI extends React.Component<{ plugin: Context }, { isLoading?: boole
 
     state = { isLoading: false, data: void 0, error: void 0, apiStatus: undefined };
 
-    private currentProteinId:string;
-    private subDB:string;
     private unsubscribeData?: () => void;
     private unsubscribeResize?: () => void;
 
@@ -47,13 +45,13 @@ export class UI extends React.Component<{ plugin: Context }, { isLoading?: boole
     }
 
     load() {
-        this.currentProteinId = GlobalRouter.getCurrentPid();
-        this.subDB = GlobalRouter.getCurrentDB();
+        const currentProteinId = GlobalRouter.getCurrentPid();
+        const subDB = GlobalRouter.getCurrentDB();
         const channelsURL = GlobalRouter.getChannelsURL();
 
         this.setState({ isLoading: true, error: void 0 });
-        const channels = this.props.plugin.loadChannelData(channelsURL, this.currentProteinId, this.subDB);
-        const annotations = this.props.plugin.loadAnnotations(channelsURL, this.currentProteinId, this.subDB);
+        const channels = this.props.plugin.loadChannelData(channelsURL, currentProteinId, subDB);
+        const annotations = this.props.plugin.loadAnnotations(channelsURL, currentProteinId, subDB);
         AnnotationDataProvider.load(channels, annotations);
         channels
             .then(data => {

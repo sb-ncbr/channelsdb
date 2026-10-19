@@ -6,7 +6,7 @@
 import { StateTransforms } from "molstar/lib/mol-plugin-state/transforms";
 import { PluginUIContext } from "molstar/lib/mol-plugin-ui/context";
 import { PluginUISpec } from "molstar/lib/mol-plugin-ui/spec";
-import { ChannelsDBData, Annotations } from "./DataInterface";
+import { ChannelsDBData } from "./DataInterface";
 import { PluginCommands } from "molstar/lib/mol-plugin/commands";
 import { Color } from "molstar/lib/mol-util/color";
 import { Canvas3DProps } from "molstar/lib/mol-canvas3d/canvas3d";
@@ -16,8 +16,7 @@ import { PluginStateObject } from "molstar/lib/mol-plugin-state/objects";
 import { StructureComponentManager } from "molstar/lib/mol-plugin-state/manager/structure/component";
 import { ParamDefinition } from "molstar/lib/mol-util/param-definition";
 import { clearStructureOverpaint } from 'molstar/lib/mol-plugin-state/helpers/structure-overpaint';
-import { ColorParams, InitParams } from "./VizualizerMol/spec";
-import { CifFile } from "molstar/lib/mol-io/reader/cif";
+import { ColorParams } from "./VizualizerMol/spec";
 import { Download, ParseCif } from "molstar/lib/mol-plugin-state/transforms/data";
 import { TrajectoryFromMmCif, ModelFromTrajectory, StructureFromModel, StructureComponent } from "molstar/lib/mol-plugin-state/transforms/model";
 import { StructureRepresentation3D } from "molstar/lib/mol-plugin-state/transforms/representation";
@@ -26,11 +25,8 @@ import { Tunnel } from "molstar/lib/extensions/sb-ncbr/tunnels/data-model"
 
 export class Context {
   plugin: PluginUIContext;
-  data: ChannelsDBData;
-  annotations: Annotations.ChannelsDBData;
-  cif: CifFile;
-  
-  initParams: InitParams;
+  // Loaded by loadChannelData, before any channel is shown
+  data!: ChannelsDBData;
   assemblyRef = '';
   selectedParams: any;
   selectedLoci: Loci | null = null;
@@ -150,9 +146,7 @@ export class Context {
         this.apiError = true;
         return { Error: await errorDetail(response), apiStatus: response.status };
     }
-    const data = await response.json();
-    this.annotations = data;
-    return data;
+    return await response.json();
   }
 
   // Following code is based on 'PDBe Molstar' (https://github.com/molstar/pdbe-molstar)
@@ -348,7 +342,7 @@ export class Context {
         if (params.camera) await PluginCommands.Camera.Reset(this.plugin, { durationMs: 250 });
 
         if (params.theme) {
-            const defaultTheme: any = { color: this.initParams.alphafoldView ? 'plddt-confidence' : 'default' };
+            const defaultTheme: any = { color: 'default' };
             const componentGroups = this.plugin.managers.structure.hierarchy.currentComponentGroups;
             for (const compGrp of componentGroups) {
                 await this.plugin.managers.structure.component.updateRepresentationsTheme(compGrp, defaultTheme);

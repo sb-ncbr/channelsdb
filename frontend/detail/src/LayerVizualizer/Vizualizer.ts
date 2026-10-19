@@ -64,8 +64,9 @@ export type RadiusProperty = "MinRadius" | "MinFreeRadius";
 export type ColorBoundsMode = "Min/max" | "Absolute";
 
 export class Vizualizer{      
-    private __canvas: HTMLCanvasElement;
-    private __context: CanvasRenderingContext2D;
+    // Set by rebindDOMRefs
+    private __canvas!: HTMLCanvasElement;
+    private __context!: CanvasRenderingContext2D;
 
     private __tunnels:{
         default: TunnelInfo | null,
@@ -74,29 +75,32 @@ export class Vizualizer{
 
     private verticalAxisChunkCount:number=4;
 
-    private coloringPropertyKey: string;
-    private customColoringPropertyKey: string;
-    private useColorMinMax: boolean;
-    private absColorValueMax: Map<string,number>;
-    private absColorValueMin: Map<string,number>;
-    private minColoringValue: Map<string,number>;
-    private maxColoringValue: Map<string,number>;
-    private absCenterPositions: Map<PropertyKey,number>;
-    private skipMiddle: boolean;
-    private topMarginPercent: number;
-    private topAirBorderHeight: number;
-    private maxX: number;
-    private maxY: number;
-    private customMaxY: number;
-    private radiusPropertyKey: RadiusProperty;
-    private customRadiusPropertyKey: RadiusProperty;
+    // Set by configBySettings and configureColors in the constructor, the coloring values and maxima by prepareData,
+    // the top border by rebindDOMRefs
+    private coloringPropertyKey!: string;
+    private customColoringPropertyKey!: string;
+    private useColorMinMax!: boolean;
+    private absColorValueMax!: Map<string,number>;
+    private absColorValueMin!: Map<string,number>;
+    private minColoringValue!: Map<string,number>;
+    private maxColoringValue!: Map<string,number>;
+    private absCenterPositions!: Map<PropertyKey,number>;
+    private skipMiddle!: boolean;
+    private topMarginPercent!: number;
+    private topAirBorderHeight!: number;
+    private maxX!: number;
+    private maxY!: number;
+    private customMaxY!: number;
+    private radiusPropertyKey!: RadiusProperty;
+    private customRadiusPropertyKey!: RadiusProperty;
 
-    private minColor: PropertiesColorCell;
-    private minColorMiddle: PropertiesColorCell;
-    private maxColor: PropertiesColorCell;
-    private maxColorMiddle: PropertiesColorCell;
+    private minColor!: PropertiesColorCell;
+    private minColorMiddle!: PropertiesColorCell;
+    private maxColor!: PropertiesColorCell;
+    private maxColorMiddle!: PropertiesColorCell;
 
-    private data: LayerData[];
+    // Set by setData
+    private data!: LayerData[];
     private dataDirty: boolean;
     private isDOMBound: boolean;
 
@@ -107,7 +111,6 @@ export class Vizualizer{
     private canvasId: string;
     private tmpCanvasId: string;
 
-    private currentVisual: ImageData;
 
     private resizePercentPrecision: number;
 

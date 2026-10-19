@@ -32,8 +32,6 @@ export class LayerVizualizer extends React.Component<{ vizualizer: Vizualizer, c
         isLayerSelected: false
     };
 
-    vizualizer: Vizualizer
-
     // Removed when unmounted
     private subscriptions: (() => void)[] = [];
 
@@ -50,7 +48,6 @@ export class LayerVizualizer extends React.Component<{ vizualizer: Vizualizer, c
         state.radiusPropertyKey=vizualizer.getRadiusPropertyKey();
         state.colorBoundsMode=this.state.colorBoundsMode;
         this.setState(state);
-        this.vizualizer = vizualizer;
 
         this.subscriptions.push(listen('channelSelected', (data)=>{
             window.setTimeout(()=>{
@@ -151,7 +148,7 @@ class Hint extends React.Component<State,{}>{
 }
 
 class ColorMenuItem extends React.Component<State & {propertyName:string, isCustom:boolean},{}>{
-    private changeColoringProperty(e: React.MouseEvent<HTMLAreaElement>){
+    private changeColoringProperty(e: React.MouseEvent<HTMLElement>){
         let targetElement = (e.target as HTMLElement);
         let instanceIdx = Number(targetElement.getAttribute("data-instanceidx")).valueOf();
         let instance = Vizualizer.ACTIVE_INSTANCES[instanceIdx];
@@ -197,7 +194,7 @@ class ColorMenuItem extends React.Component<State & {propertyName:string, isCust
 }
 
 class RadiusMenuItem extends React.Component<State & {propertyName:string, isCustom:boolean},{}>{
-    private changeRadiusProperty(e: React.MouseEvent<HTMLAreaElement>){
+    private changeRadiusProperty(e: React.MouseEvent<HTMLElement>){
         let targetElement = (e.target as HTMLElement);
         let instanceIdx = Number(targetElement.getAttribute("data-instanceidx")).valueOf();
         let instance = Vizualizer.ACTIVE_INSTANCES[instanceIdx];
@@ -242,7 +239,7 @@ class RadiusMenuItem extends React.Component<State & {propertyName:string, isCus
 }
 
 class ColorBoundsMenuItem extends React.Component<State & {mode:string},{}>{
-    private changeColorBoundsMode(e: React.MouseEvent<HTMLAreaElement>){
+    private changeColorBoundsMode(e: React.MouseEvent<HTMLElement>){
         let targetElement = (e.target as HTMLElement);
         let instanceIdx = Number(targetElement.getAttribute("data-instanceidx")).valueOf();
         let instance = Vizualizer.ACTIVE_INSTANCES[instanceIdx];
@@ -403,7 +400,7 @@ class ExportTypeButton extends React.Component<{instanceId:number,exportType:str
         window.URL.revokeObjectURL(url);
     }
 
-    private export(e: React.MouseEvent<HTMLAreaElement>){
+    private export(e: React.MouseEvent<HTMLElement>){
         let targetElement = (e.target as HTMLElement);
         let instanceIdx = Number(targetElement.getAttribute("data-instanceidx")).valueOf();
         let instance = Vizualizer.ACTIVE_INSTANCES[instanceIdx];
@@ -548,7 +545,7 @@ class InteractionMap extends React.Component<State & {controller: Context},{}>{
         await this.props.app.props.controller.visual.select({data: residues});
     }
 
-    private displayDetailsEventHandler(e: React.MouseEvent<HTMLAreaElement>){
+    private displayDetailsEventHandler(e: React.MouseEvent<HTMLElement>){
         let targetElement = (e.target as HTMLElement);
         let layerIdx = Number(targetElement.getAttribute("data-layeridx")).valueOf();
         let instanceIdx = Number(targetElement.getAttribute("data-instanceidx")).valueOf();
@@ -563,7 +560,7 @@ class InteractionMap extends React.Component<State & {controller: Context},{}>{
         }      
     }
 
-    private async displayLayerResidues3DEventHandler(e: React.MouseEvent<HTMLAreaElement>){
+    private async displayLayerResidues3DEventHandler(e: React.MouseEvent<HTMLElement>){
         let targetElement = (e.target as HTMLElement);
         let layerIdx = Number(targetElement.getAttribute("data-layeridx")).valueOf();
         let instanceIdx = Number(targetElement.getAttribute("data-instanceidx")).valueOf();
