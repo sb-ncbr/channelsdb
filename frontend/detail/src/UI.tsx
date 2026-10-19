@@ -143,8 +143,18 @@ export interface State {
     data: any
 }
 
-export class Data extends React.Component<State, { hideAll: boolean}> {
-    state = { hideAll: false }
+export class Data extends React.Component<State, { hideAll: boolean, isRendering: boolean }> {
+    state = { hideAll: false, isRendering: false }
+
+    private unsubscribe?: () => void;
+
+    componentDidMount() {
+        this.unsubscribe = listen('channelsRendering', (isRendering) => this.setState({ isRendering }));
+    }
+
+    componentWillUnmount() {
+        this.unsubscribe?.();
+    }
 
     private toggle(e: React.MouseEvent<HTMLElement>) {
         e.preventDefault();
@@ -157,7 +167,12 @@ export class Data extends React.Component<State, { hideAll: boolean}> {
 
             <div className="ui-header">
                 <div className="channels-header">
-                    <span>Channels</span>
+                    <span>
+                        Channels
+                        {this.state.isRendering
+                            ? <span className="channels-rendering"><span className="spinner-border spinner-border-sm" role="status" /> Rendering…</span>
+                            : null}
+                    </span>
                     <button className="btn btn-primary btn-sm bt-none" style={{ marginTop: '0.5em', marginBottom:'0.5em' }} onClick={e => this.toggle(e)}>Hide all</button>
                 </div>
             </div>

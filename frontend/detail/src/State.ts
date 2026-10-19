@@ -12,6 +12,7 @@ import { AnnotationDataProvider } from "./AnnotationDataProvider";
 import { Tunnels } from "./CommonUtils/Tunnels";
 import { Color } from "molstar/lib/mol-util/color";
 import { Shape } from "molstar/lib/mol-model/shape";
+import { emit } from "./CommonUtils/Events";
 
 export interface SurfaceTag { type: string, element?: any }
 
@@ -149,8 +150,32 @@ function isBrightEnough(c: Color): boolean {
     return isBrightEnough;
 }
 
-//Modified
-export async function showChannelVisuals(plugin: Context, channels: Tunnel[]&TunnelMetaInfo[], visible: boolean): Promise<any> {
+/** Resolves after the browser painted the next frame */
+function nextPaint(): Promise<void> {
+    return new Promise(res => requestAnimationFrame(() => setTimeout(res)));
+}
+
+// The last queued change of the channel visuals, and the number of queued changes showing channels
+let lastChange: Promise<void> = Promise.resolve();
+let pendingShows = 0;
+
+/**
+ * Rendering a channel blocks the page until its mesh is computed, so the rendering is announced
+ * and the browser paints before each channel, letting the page show what is going on.
+ *
+ * The page stays responsive in between, so the changes are queued: a channel hidden while
+ * it waits for rendering is hidden only after it was rendered.
+ */
+export function showChannelVisuals(plugin: Context, channels: Tunnel[]&TunnelMetaInfo[], visible: boolean): Promise<void> {
+    if (visible && pendingShows++ === 0) emit('channelsRendering', true);
+    const change = lastChange.then(() => updateChannelVisuals(plugin, channels, visible)).finally(() => {
+        if (visible && --pendingShows === 0) emit('channelsRendering', false);
+    });
+    lastChange = change.catch(() => {});
+    return change;
+}
+
+async function updateChannelVisuals(plugin: Context, channels: Tunnel[]&TunnelMetaInfo[], visible: boolean): Promise<any> {
     for (let channel of channels) {
 
         if (!channel.__id) channel.__id = UUID.create22();
@@ -184,6 +209,7 @@ export async function showChannelVisuals(plugin: Context, channels: Tunnel[]&Tun
                 props.label = `${channel.Type} ${channel.Id}`;
                 props.description = `Length: ${len} Å`;
             }
+            await nextPaint();
             const ref = await plugin.renderTunnel({data: channel.Profile, props }, channel.__color);
             channel.__ref = ref[1];
             channel.__loci = ref[0] as Shape.Loci;

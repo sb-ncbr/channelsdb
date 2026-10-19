@@ -17,6 +17,8 @@ interface PageEvents {
     channelSelected: Layers;
     // A channel was chosen in the channel descriptions, with its id
     channelChosen: string;
+    // Rendering of the channels started (true) or all of it finished (false)
+    channelsRendering: boolean;
 }
 
 type Detail<K extends keyof PageEvents> = PageEvents[K] extends undefined ? [] : [PageEvents[K]];

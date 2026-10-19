@@ -753,6 +753,18 @@ only screen and (max-height: 900px) {
     justify-content: space-between;
 }
 
+.channels-rendering {
+    margin-left: 0.75em;
+    font-size: 12pt;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.channels-rendering .spinner-border {
+    margin-right: 0.3em;
+    vertical-align: -0.15em;
+}
+
 @media only screen and (max-width: 980px) {
     .channels-header {
         flex-direction: column;
