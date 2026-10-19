@@ -38,12 +38,7 @@ export class ProteinAnnotations extends React.Component<{controller: Context }, 
     private subscriptions: (() => void)[] = [];
 
     componentDidMount() {
-        if(!AnnotationDataProvider.isDataReady()){
-            this.subscriptions.push(AnnotationDataProvider.subscribeForData(this.handleData.bind(this)));
-        }
-        else{
-            this.handleData();
-        }
+        this.subscriptions.push(AnnotationDataProvider.subscribeForData(this.handleData.bind(this)));
     }
 
     componentWillUnmount(){

@@ -52,26 +52,28 @@ export class UI extends React.Component<{ plugin: Context }, { isLoading?: boole
         const channelsURL = GlobalRouter.getChannelsURL();
 
         this.setState({ isLoading: true, error: void 0 });
-        AnnotationDataProvider.subscribeToPluginContext(this.props.plugin);
-        this.props.plugin.loadChannelData(channelsURL, this.currentProteinId, this.subDB)
+        const channels = this.props.plugin.loadChannelData(channelsURL, this.currentProteinId, this.subDB);
+        const annotations = this.props.plugin.loadAnnotations(channelsURL, this.currentProteinId, this.subDB);
+        AnnotationDataProvider.load(channels, annotations);
+        channels
             .then(data => {
                 if ((data as any).Error !== void 0){
                     this.setState({ isLoading: false, error: (data as any).Error.detail ? (data as any).Error.detail as string : JSON.stringify((data as any).Error), apiStatus: (data as any).apiStatus });
                 } else {
                     this.setState({ data: data });
                     // Replaces the subscription of a previous load. Gets the data directly, as the state may not be updated yet.
+                    // Once, when the channels are processed; the annotations update the panels later.
                     this.unsubscribeData?.();
-                    this.unsubscribeData = AnnotationDataProvider.subscribeForData(() => this.defaultVisualsHandler(data));
+                    const unsubscribe = AnnotationDataProvider.subscribeForData(() => {
+                        unsubscribe();
+                        this.defaultVisualsHandler(data);
+                    });
+                    this.unsubscribeData = unsubscribe;
                 }
             })
             .catch(e => {
                 console.log(`ERR on loading: ${e}`);
                 this.setState({ isLoading: false, error: e.message }); //'Application was unable to load data. Please try again later.'
-            })
-
-        this.props.plugin.loadAnnotations(channelsURL, this.currentProteinId, this.subDB)
-            .catch(e => {
-                console.log(`ERR on loading: ${e}`);
             })
     }
 

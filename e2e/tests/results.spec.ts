@@ -75,6 +75,65 @@ test('a channel chosen in the descriptions is selected under its name', async ({
     await expect(page.locator('.ui-selection')).toHaveText('Channel 2f 41.75');
 });
 
+test('slow API responses are still shown', async ({ page }) => {
+    // Longer than the results page used to wait for the data
+    for (const url of ['**/api/channels/**', '**/api/annotations/**']) {
+        await page.route(url, async (route) => {
+            await new Promise((resolve) => setTimeout(resolve, 3000));
+            await route.continue();
+        });
+    }
+    await page.goto('/detail/pdb/3tbg');
+    await expect(page.locator('.ui-subheader').first()).toContainText('Channels', { timeout: 15000 });
+    // The channel annotations and the protein annotations
+    await page.locator('[data-bs-toggle="tab"]', { hasText: 'Channels descriptions' }).click();
+    await expect(page.locator('#left-tabs-3 a.hand', { hasText: 'Channel 2f' })).toBeVisible();
+    await expect(page.locator('#right-panel-tabs-1')).toContainText('P10635');
+});
+
+test('channels are usable while the annotations are pending', async ({ page }) => {
+    let release!: () => void;
+    const released = new Promise<void>((resolve) => release = resolve);
+    await page.route('**/api/annotations/**', async (route) => {
+        await released;
+        await route.continue();
+    });
+    const channel = await selectFirstChannel(page, '/detail/pdb/3tbg');
+    const [, name, id] = (await channel.textContent())!.match(/^(.*) \(Id: (.*)\)$/)!;
+    await expect(page.locator('.ui-selection')).toHaveText(`${name} ${id}`);
+    await page.locator('[data-bs-toggle="tab"]', { hasText: 'Channels descriptions' }).click();
+    await expect(page.locator('#left-tabs-3 a.hand', { hasText: 'Channel 2f' })).toBeVisible();
+    await expect(page.locator('#right-panel-tabs-1')).not.toContainText('P10635');
+
+    // The annotations are shown once they arrive
+    release();
+    await expect(page.locator('#right-panel-tabs-1')).toContainText('P10635');
+});
+
+// The browser reports failed requests itself, which is expected when testing them
+function ignoreFailedRequests(pageErrors: string[]) {
+    const others = pageErrors.filter((error) => !error.startsWith('console.error: Failed to load resource'));
+    pageErrors.splice(0, pageErrors.length, ...others);
+}
+
+test('failed annotations leave the channels shown', async ({ page, pageErrors }) => {
+    await page.route('**/api/annotations/**', (route) => route.fulfill({ status: 502, json: { detail: 'EBI Proteins API returned an error' } }));
+    await page.goto('/detail/pdb/3tbg');
+    await expect(page.locator('.ui-subheader').first()).toContainText('Channels');
+    await page.locator('[data-bs-toggle="tab"]', { hasText: 'Channels descriptions' }).click();
+    await expect(page.locator('#left-tabs-3 a.hand', { hasText: 'Channel 2f' })).toBeVisible();
+    ignoreFailedRequests(pageErrors);
+});
+
+test('a failed channels request is reported', async ({ page, pageErrors }) => {
+    // A gateway error page rather than the API's JSON
+    await page.route('**/api/channels/**', (route) => route.fulfill({ status: 504, contentType: 'text/html', body: '<html>Gateway Timeout</html>' }));
+    await page.goto('/detail/pdb/3tbg');
+    await expect(page.locator('.error-message')).toContainText('Reason: 504');
+    await expect(page.getByRole('button', { name: 'Reload Data' })).toBeVisible();
+    ignoreFailedRequests(pageErrors);
+});
+
 test('layers of the 2D profile show their properties and residues', async ({ page }) => {
     await selectFirstChannel(page, '/detail/pdb/1ymg');
     const layers = page.locator('area[data-layeridx]');

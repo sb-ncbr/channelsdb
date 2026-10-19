@@ -1,5 +1,3 @@
-import { SimpleObservable } from "./CommonUtils/Observable";
-import { Context } from "./Context";
 import { AnnotationObject, Annotations, ChannelsDBData, Tunnel } from "./DataInterface";
 import { Map } from "immutable";
 
@@ -25,21 +23,20 @@ export interface ProteinAnnotation{
 
 export class AnnotationDataProvider{
 
-    private static residueAnnotations: Map<string,ResidueAnnotation[]>;
-    private static channelAnnotations: Map<string,ChannelAnnotation[]>;
-    private static proteinAnnotations: ProteinAnnotation[];
+    private static residueAnnotations: Map<string,ResidueAnnotation[]> | undefined;
+    private static channelAnnotations: Map<string,ChannelAnnotation[]> | undefined;
+    private static proteinAnnotations: ProteinAnnotation[] | undefined;
 
-    private static liningResidues: string[];
+    private static liningResidues: string[] = [];
 
     private static subscribed: boolean = false;
 
-    private static dataReady:boolean = false;
+    // The channels are processed, the annotations may follow later
+    private static channelsReady:boolean = false;
 
-    private static moleDataPromise: Promise<any>;
-    private static channelsDBPromise: Promise<any>;
+    // Identifies the latest load, so that the results of a previous one are ignored
+    private static loadId = 0;
 
-    private static retries:number = 0;
-    
 
     private static isLining(residue:string):boolean{
         return this.liningResidues.indexOf(residue)>=0;
@@ -201,87 +198,77 @@ export class AnnotationDataProvider{
         return liningResidues;
     }
 
-    public static isDataReady():boolean{
-        return this.dataReady;
-    }
-
     private static handleChannelsAPIData(data:any){
-        if (Object.keys(data).length !== 0 ) {
-            let liningResidues = this.parseLiningResidues(data);
-            let channelsData = this.parseChannelsData(data.Annotations);
-            return {liningResidues,channelsData};
-        }
-        return {};
+        let liningResidues = this.parseLiningResidues(data);
+        let channelsData = this.parseChannelsData(data.Annotations);
+        return {liningResidues,channelsData};
     }
 
     private static handleAnnotationsAPIData(data:any){
-        if (Object.keys(data).length !== 0 ) {
-            let proteinData = this.parseProteinData(data.EntryAnnotations);
-            let residueData = this.parseResidueData(data.ResidueAnnotations);
-            return {proteinData,residueData};
-        }
-        return {}
+        let proteinData = this.parseProteinData(data.EntryAnnotations);
+        let residueData = this.parseResidueData(data.ResidueAnnotations);
+        return {proteinData,residueData};
     }
 
-    public static subscribeToPluginContext(context: Context) {
-        interface ChannelsAPIDataHandledPromiseResult {
-          liningResidues: any,
-          channelsData: any
-        }
-        interface AnnotationAPIDataHandledPromiseResult {
-          proteinData: any,
-          residueData: any
-        }
-      
-        let channelsAPIobserver: SimpleObservable;
-        let annotationsAPIobserver: SimpleObservable;
-      
-        new Promise<Object>((res, rej) => {
-          channelsAPIobserver = new SimpleObservable(
-            () => context.data,
-            (moleData) => res(this.handleChannelsAPIData(moleData)),
-            {} as ChannelsDBData
-          );
-          channelsAPIobserver.subscribe();
-        }).then((val: ChannelsAPIDataHandledPromiseResult) => {
-            if (Object.keys(val).length !== 0 ) {
-                this.liningResidues = val.liningResidues;
-                this.channelAnnotations = val.channelsData;
-            }
-        
-            return new Promise<Object>((res, rej) => {
-            annotationsAPIobserver = new SimpleObservable(
-                () => context.annotations,
-                (annotationData) => res(this.handleAnnotationsAPIData(annotationData)),
-                {} as Annotations.ChannelsDBData
-            );
-            annotationsAPIobserver.subscribe();
-            });
-        }).then((val: AnnotationAPIDataHandledPromiseResult) => {
-            if (Object.keys(val).length !== 0 ) {
-                this.proteinAnnotations = val.proteinData;
-                this.residueAnnotations = val.residueData;
-            }
-          
-          this.dataReady = true;
-          this.invokeHandlers();
-        }).catch((err) => {
-          console.log("API Parse Error:", err);
-          if (this.retries > 5) {
-            return;
-          }
-          this.retries++;
-          setTimeout(() => this.subscribeToPluginContext(context), 100);
-        });
-      
+    /** Processes the responses of the API requests as each finishes, successfully or not, and then calls the data handlers.
+     * The channels do not wait for the annotations, which can take long. */
+    public static async load(channelsRequest: Promise<any>, annotationsRequest: Promise<any>) {
+        const loadId = ++this.loadId;
+        this.channelsReady = false;
         this.subscribed = true;
+        this.liningResidues = [];
+        this.channelAnnotations = void 0;
+        this.proteinAnnotations = void 0;
+        this.residueAnnotations = void 0;
+
+        // Both handled from the start, so that neither is reported as an unhandled rejection
+        const channelsLoaded = loaded(channelsRequest);
+        const annotationsLoaded = loaded(annotationsRequest);
+
+        // Only the failed part is missing, the rest is still shown
+        const channels = await channelsLoaded;
+        if (loadId !== this.loadId) {
+            return;
+        }
+        if (channels !== void 0) {
+            try {
+                const { liningResidues, channelsData } = this.handleChannelsAPIData(channels);
+                this.liningResidues = liningResidues;
+                this.channelAnnotations = channelsData;
+            } catch (e) {
+                console.error('Cannot process the channels:', e);
+            }
+        }
+        this.channelsReady = true;
+        this.invokeHandlers();
+
+        const annotations = await annotationsLoaded;
+        if (loadId !== this.loadId) {
+            return;
+        }
+        if (annotations !== void 0) {
+            try {
+                const { proteinData, residueData } = this.handleAnnotationsAPIData(annotations);
+                this.proteinAnnotations = proteinData;
+                this.residueAnnotations = residueData;
+            } catch (e) {
+                console.error('Cannot process the annotations:', e);
+            }
+        }
+        this.invokeHandlers();
     }
 
     private static handlers: (() => void)[] = [];
 
-    /** Calls the handler whenever the annotations are loaded, until the returned function is called */
+    /** Calls the handler whenever data is loaded (the channels, then the annotations), until the returned function is called.
+     * Also calls it when the channels are already loaded, after returning, so that the handler can unsubscribe itself. */
     public static subscribeForData(handler: () => void): () => void {
         this.handlers.push(handler);
+        if (this.channelsReady) {
+            queueMicrotask(() => {
+                if (this.handlers.includes(handler)) handler();
+            });
+        }
         return () => {
             this.handlers = this.handlers.filter((h) => h !== handler);
         };
@@ -370,5 +357,17 @@ export class AnnotationDataProvider{
             }
 
             return void 0;
+    }
+}
+
+/** The data of a finished API request, undefined when the request failed */
+async function loaded(request: Promise<any>): Promise<any> {
+    try {
+        const data = await request;
+        // A failed request (see Context.loadChannelData) is reported by the UI
+        return data.Error === void 0 ? data : void 0;
+    } catch (e) {
+        console.log(`ERR on loading: ${e}`);
+        return void 0;
     }
 }

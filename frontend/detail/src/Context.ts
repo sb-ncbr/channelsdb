@@ -137,7 +137,7 @@ export class Context {
     if (!response.ok) { 
         this.apiError = true;
         Context.invokeHandlers()
-        return { Error: await response.json(), apiStatus: response.status };
+        return { Error: await errorDetail(response), apiStatus: response.status };
     }
     const data = await response.json();
     this.data = data;
@@ -148,7 +148,7 @@ export class Context {
     const response = await fetch(`${url}/annotations/${subDB}/${pid}`)
     if (!response.ok) {
         this.apiError = true;
-        return { Error: await response.json(), apiStatus: response.status };
+        return { Error: await errorDetail(response), apiStatus: response.status };
     }
     const data = await response.json();
     this.annotations = data;
@@ -405,4 +405,13 @@ canvas = {
 
 };
 
+}
+
+/** The error reported by the API, or the status when the response is not the API's (e.g. a gateway error page) */
+async function errorDetail(response: Response): Promise<any> {
+  try {
+    return await response.json();
+  } catch {
+    return { detail: `${response.status} ${response.statusText}`.trim() };
+  }
 }

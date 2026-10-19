@@ -4,7 +4,6 @@ import { emit } from "../CommonUtils/Events";
 import { AnnotationDataProvider } from "../AnnotationDataProvider";
 import { Tunnel, ChannelsDBData } from "../DataInterface";
 import { Context } from "../Context";
-import { SimpleObservable } from "../CommonUtils/Observable";
 
 let DGTABLE_COLS_COUNT = 2;
 
@@ -25,33 +24,30 @@ export class ChannelsDescriptions extends React.Component<{controller: Context }
     private subscriptions: (() => void)[] = [];
 
     componentDidMount() {
-        this.subscriptions.push(AnnotationDataProvider.subscribeForData(() => this.forceUpdate()));
-        const checkDataAvailability = () => {
-            return this.props.controller.data as ChannelsDBData;
-        };
-    
-        const onDataLoaded = (data: ChannelsDBData) => {
-            if (data) {
-                let toShow: Tunnel[] = [];
-                toShow = toShow.concat(data.Channels.CSATunnels_MOLE);
-                toShow = toShow.concat(data.Channels.CSATunnels_Caver);
-                toShow = toShow.concat(data.Channels.ReviewedChannels_MOLE);
-                toShow = toShow.concat(data.Channels.ReviewedChannels_Caver);
-                toShow = toShow.concat(data.Channels.CofactorTunnels_MOLE);
-                toShow = toShow.concat(data.Channels.CofactorTunnels_Caver);
-                toShow = toShow.concat(data.Channels.TransmembranePores_MOLE);
-                toShow = toShow.concat(data.Channels.TransmembranePores_Caver);
-                toShow = toShow.concat(data.Channels.ProcognateTunnels_MOLE);
-                toShow = toShow.concat(data.Channels.ProcognateTunnels_Caver);
-                toShow = toShow.concat(data.Channels.AlphaFillTunnels_MOLE);
-                toShow = toShow.concat(data.Channels.AlphaFillTunnels_Caver);
-    
-                this.setState({ data: toShow });
-            }
-        };
-    
-        const simpleObservable = new SimpleObservable(checkDataAvailability, onDataLoaded);
-        simpleObservable.subscribe();
+        // The channels are loaded by then, unless their request failed
+        this.subscriptions.push(AnnotationDataProvider.subscribeForData(() => this.onDataLoaded(this.props.controller.data)));
+    }
+
+    private onDataLoaded(data: ChannelsDBData | undefined) {
+        if (data) {
+            let toShow: Tunnel[] = [];
+            toShow = toShow.concat(data.Channels.CSATunnels_MOLE);
+            toShow = toShow.concat(data.Channels.CSATunnels_Caver);
+            toShow = toShow.concat(data.Channels.ReviewedChannels_MOLE);
+            toShow = toShow.concat(data.Channels.ReviewedChannels_Caver);
+            toShow = toShow.concat(data.Channels.CofactorTunnels_MOLE);
+            toShow = toShow.concat(data.Channels.CofactorTunnels_Caver);
+            toShow = toShow.concat(data.Channels.TransmembranePores_MOLE);
+            toShow = toShow.concat(data.Channels.TransmembranePores_Caver);
+            toShow = toShow.concat(data.Channels.ProcognateTunnels_MOLE);
+            toShow = toShow.concat(data.Channels.ProcognateTunnels_Caver);
+            toShow = toShow.concat(data.Channels.AlphaFillTunnels_MOLE);
+            toShow = toShow.concat(data.Channels.AlphaFillTunnels_Caver);
+
+            this.setState({ data: toShow });
+        } else {
+            this.forceUpdate();
+        }
     }
 
     componentWillUnmount(){
