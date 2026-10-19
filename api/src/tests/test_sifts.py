@@ -54,3 +54,24 @@ def test_channelsdb_annotations_of_all_chains(tmp_path, monkeypatch):
     annotations = get_channelsdb_residue_annotations('P11111', mapping)
     assert {(a['Chain'], a['Id'], a['Text']) for a in annotations} == {('A', '10', 'First'), ('B', '20', 'First'), ('A', '11', 'Second')}
     assert [(a['Chain'], a['Id']) for a in get_channelsdb_residue_annotations('P11111', None)] == [('A', '1'), ('A', '2'), ('A', '3')]
+
+
+EVIDENCE = ('<uniprot xmlns="https://uniprot.org/uniprot"><entry>'
+            '<feature type="active site" description="Nucleophile" evidence="{evidence}">'
+            '<location><position position="1"/></location></feature>'
+            '<evidence key="1" type="ECO:0000305"/>'
+            '<evidence key="2" type="ECO:0000269"><source><dbReference type="PubMed" id="123"/></source></evidence>'
+            '</entry></uniprot>')
+
+
+def test_evidence_references():
+    def reference(evidence: str) -> list[tuple[str, str]]:
+        tree = ET.fromstring(EVIDENCE.format(evidence=evidence))
+        return [(a.Reference, a.ReferenceType) for a in get_uniprot_residue_annotations(None, tree)]
+
+    assert reference('2') == [('123', 'PubMed')]
+    # The first evidence with a reference
+    assert reference('1 2') == [('123', 'PubMed')]
+    # Kept without a reference
+    assert reference('1') == [('', '')]
+    assert reference('3') == [('', '')]

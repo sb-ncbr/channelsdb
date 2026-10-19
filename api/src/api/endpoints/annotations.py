@@ -123,10 +123,10 @@ def get_uniprot_residue_annotations(mapping: SiftsMapping | None, tree: ET.Eleme
             try:
                 position = item.find('location/position', ns).attrib['position']
 
-                ref_id, ref_type = '', ''
-                if (evidence_keys := item.attrib.get('evidence', None)) is not None:
-                    # Picking only a first reference if multiple ones are provided
-                    ref_id, ref_type = references[evidence_keys.split()[0]]
+                # Only the first reference is shown; evidence without one (e.g. curator inference) is skipped,
+                # and a feature without any is still shown
+                evidence_keys = item.attrib.get('evidence', '').split()
+                ref_id, ref_type = next((references[key] for key in evidence_keys if key in references), ('', ''))
 
                 if feature_type in ('sequence variant', 'mutagenesis site'):
                     text = f'{item.find("original", ns).text} &rarr; {item.find("variation", ns).text}: {item.attrib["description"]}'
