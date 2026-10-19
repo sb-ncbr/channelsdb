@@ -520,7 +520,7 @@ class InteractionMap extends React.Component<State & {controller: Context},{}>{
         for(let residue of this.props.data[layerIdx].Residues){
             let parts = (residue as string).split(" ");
             res.push({
-                struct_asym_id: parts[2],
+                auth_asym_id: parts[2],
                 start_auth_residue_number: Number(parts[1]),
                 end_auth_residue_number: Number(parts[1]),
                 color:{r:255,g:0,b:255},

@@ -68,7 +68,7 @@ export class LiningResidues extends React.Component<{controller: Context }, Stat
 function residueStringToResidueLight(residue:string, focus: boolean):QueryParam{
     let residueParts = residue.split(" ");
     let rv = {
-        struct_asym_id: residueParts[2],
+        auth_asym_id: residueParts[2],
         start_auth_residue_number: Number(residueParts[1]),
         end_auth_residue_number: Number(residueParts[1]),
         color:{r:255,g:0,b:255},

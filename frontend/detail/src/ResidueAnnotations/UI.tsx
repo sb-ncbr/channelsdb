@@ -111,7 +111,7 @@ export class ResidueAnnotations extends React.Component<{controller: Context }, 
         let residueParts = residueId.split(" ").slice(0,2);
         let residue = {chain: {authAsymId: residueParts[1]}, authSeqNumber: Number(residueParts[0])};
         await this.props.controller.visual.select({ data: [{
-            struct_asym_id: residue.chain.authAsymId, 
+            auth_asym_id: residue.chain.authAsymId,
             start_auth_residue_number: residue.authSeqNumber, 
             end_auth_residue_number: residue.authSeqNumber, 
             color:{r:255,g:0,b:255},

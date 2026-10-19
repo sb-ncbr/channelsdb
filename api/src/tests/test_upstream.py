@@ -20,10 +20,12 @@ def corrupt(data: bytes) -> bytes:
 
 SIFTS = ('<entry xmlns="http://www.ebi.ac.uk/pdbe/docs/sifts/eFamily.xsd">'
          '<entity entityId="A"><segment><listResidue><residue>'
-         '<crossRefDb dbCoordSys="UniProt" dbAccessionId="P11111" dbResNum="1"/><crossRefDb dbCoordSys="PDBresnum" dbResNum="1"/>'
+         '<crossRefDb dbCoordSys="UniProt" dbAccessionId="P11111" dbResNum="1"/>'
+         '<crossRefDb dbCoordSys="PDBresnum" dbResNum="1" dbChainId="A"/>'
          '</residue></listResidue></segment></entity>'
          '<entity entityId="B"><segment><listResidue><residue>'
-         '<crossRefDb dbCoordSys="UniProt" dbAccessionId="P22222" dbResNum="1"/><crossRefDb dbCoordSys="PDBresnum" dbResNum="1"/>'
+         '<crossRefDb dbCoordSys="UniProt" dbAccessionId="P22222" dbResNum="1"/>'
+         '<crossRefDb dbCoordSys="PDBresnum" dbResNum="1" dbChainId="B"/>'
          '</residue></listResidue></segment></entity></entry>')
 
 SUMMARY = '{"1abc": [{"assemblies": [{"assembly_id": "1", "preferred": true}]}]}'

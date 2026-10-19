@@ -25,8 +25,9 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# Chain ID and mapping of UniProt residue numbers to PDB residue numbers
-type SiftsMapping = tuple[str, dict[str, str]]
+# Mappings of UniProt residue numbers to PDB residue numbers by author chain ID (as in the channel data),
+# a protein can be present in several chains
+type SiftsMapping = dict[str, dict[str, str]]
 
 
 class EntryAnnotation(BaseModel):
@@ -61,21 +62,25 @@ def parse_sifts_data(xml_data: str) -> dict[str, SiftsMapping]:
     ns = {'': 'http://www.ebi.ac.uk/pdbe/docs/sifts/eFamily.xsd'}
     if tree.tag != f'{{{ns[""]}}}entry':
         raise ValueError(f'Unexpected root element of SIFTS data: {tree.tag}')
-    for entity in tree.iterfind('entity', ns):
-        chain = entity.attrib['entityId']
-        for segment in entity.iterfind('segment', ns):
-            for residue in segment.iterfind('listResidue/residue', ns):
-                if (uniprot_node := residue.find('./crossRefDb[@dbCoordSys="UniProt"]', ns)) is not None:
-                    uniprot_id = uniprot_node.attrib['dbAccessionId']
-                    uniprot_res_num = uniprot_node.attrib['dbResNum']
-                    if (pdb_node := residue.find('./crossRefDb[@dbCoordSys="PDBresnum"]', ns)) is not None:
-                        if (pdb_res_num := pdb_node.attrib['dbResNum']) == "null":
-                            continue
-                        if uniprot_id in data:
-                            data[uniprot_id][1].update({uniprot_res_num: pdb_res_num})
-                        else:
-                            data[uniprot_id] = (chain, {uniprot_res_num: pdb_res_num})
+    # The entity IDs are label chain IDs, the author chain IDs are in the references to the PDB entry
+    for residue in tree.iterfind('entity/segment/listResidue/residue', ns):
+        if (uniprot_node := residue.find('./crossRefDb[@dbCoordSys="UniProt"]', ns)) is not None:
+            uniprot_id = uniprot_node.attrib['dbAccessionId']
+            uniprot_res_num = uniprot_node.attrib['dbResNum']
+            if (pdb_node := residue.find('./crossRefDb[@dbCoordSys="PDBresnum"]', ns)) is not None:
+                if (pdb_res_num := pdb_node.attrib['dbResNum']) == "null":
+                    continue
+                chain = pdb_node.attrib['dbChainId']
+                data.setdefault(uniprot_id, {}).setdefault(chain, {})[uniprot_res_num] = pdb_res_num
     return data
+
+
+def residue_locations(mapping: SiftsMapping | None, uniprot_res_num: str) -> list[tuple[str, str]]:
+    """Chains and PDB residue numbers of a UniProt residue. Without a mapping (AlphaFill models),
+    the protein is chain A numbered as in UniProt."""
+    if mapping is None:
+        return [('A', uniprot_res_num)]
+    return [(chain, residues[uniprot_res_num]) for chain, residues in mapping.items() if uniprot_res_num in residues]
 
 
 def get_entry_annotations(uniprot_id: str, tree: ET.Element) -> EntryAnnotation:
@@ -117,7 +122,6 @@ def get_uniprot_residue_annotations(mapping: SiftsMapping | None, tree: ET.Eleme
         for item in items:
             try:
                 position = item.find('location/position', ns).attrib['position']
-                chain, residue_id = ('A', position) if mapping is None else (mapping[0], mapping[1][position])
 
                 ref_id, ref_type = '', ''
                 if (evidence_keys := item.attrib.get('evidence', None)) is not None:
@@ -132,8 +136,9 @@ def get_uniprot_residue_annotations(mapping: SiftsMapping | None, tree: ET.Eleme
             except (AttributeError, KeyError):
                 continue
 
-            residue_annotations.append(ResidueAnnotation(Id=residue_id, Chain=chain, Reference=ref_id,
-                                                         ReferenceType=ref_type, Text=text))
+            for chain, residue_id in residue_locations(mapping, position):
+                residue_annotations.append(ResidueAnnotation(Id=residue_id, Chain=chain, Reference=ref_id,
+                                                             ReferenceType=ref_type, Text=text))
 
     return residue_annotations
 
@@ -146,15 +151,9 @@ def get_channelsdb_residue_annotations(uniprot_id: str, mapping: SiftsMapping | 
     with open(path) as f:
         data = json.load(f)
 
-    if mapping is None:
-        for annotation in data:
-            annotation['Chain'] = 'A'
-    else:
-        for annotation in data:
-            annotation['Chain'] = mapping[0]
-            annotation['Id'] = mapping[1].get(annotation['Id'], None)
-
-    return data
+    # Residues not in the structure are left out
+    return [annotation | {'Chain': chain, 'Id': residue_id}
+            for annotation in data for chain, residue_id in residue_locations(mapping, annotation['Id'])]
 
 
 def fill_annotations(annotations: Annotations, mapping: SiftsMapping | None, uniprot_id: str) -> None:
