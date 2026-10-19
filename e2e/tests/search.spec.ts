@@ -44,6 +44,25 @@ test.describe('PDB search', () => {
         await expect(entry.locator('a').first()).toHaveAttribute('href', '/detail/pdb/1ymg');
     });
 
+    test('shows the entries of the last full search', async ({ page }) => {
+        // Each search finds 1ymg, titled by the searched text
+        await page.route('https://www.ebi.ac.uk/pdbe/search/pdb/select?*', (route) => {
+            const text = new URL(route.request().url()).searchParams.get('fq')!.replace(/^text:"(.*)"$/, '$1');
+            const docs = [{ pdb_id: '1ymg', title: `Found by ${text}` }];
+            route.fulfill({ json: { grouped: { pdb_id: { ngroups: 1, groups: [{ groupValue: '1ymg', doclist: { numFound: 1, docs } }] } } } });
+        });
+        await page.goto('/index.html');
+        const box = page.getByPlaceholder(/experimental structures/);
+        // The second search before the first one's autocomplete replaces its entries
+        await box.fill('first');
+        await box.press('Enter');
+        await box.fill('second');
+        await box.press('Enter');
+        await expect(page.locator('h4')).toContainText('Search: second');
+        await expect(page.locator('.pdb-entry')).toHaveCount(1);
+        await expect(page.locator('.pdb-entry')).toContainText('Found by second');
+    });
+
     test('sends one request while typing', async ({ page }) => {
         await page.goto('/index.html');
         const searched: string[] = [];

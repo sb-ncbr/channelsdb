@@ -133,7 +133,8 @@ class StateView extends React.Component<GlobalProps, {}> {
                 case 'Info': return <Info state={this.props.state} />;
                 case 'Loading': return <div>{state.message}</div>;
                 case 'Searched': return <SearchResults {...this.props} />;
-                case 'Entries': return <Entries {...this.props} mode='Full' value={state.term} />;
+                // Keyed by the term, so that another search fetches its entries instead of reusing the shown ones
+                case 'Entries': return <Entries key={state.term} {...this.props} mode='Full' value={state.term} />;
                 case 'Error': return <div>Error: {state.message}</div>;
                 default: return <div>Should not happen ;)</div>;
             }
@@ -293,7 +294,7 @@ class SearchGroup extends React.Component<GlobalProps & { group: any }, { isExpa
             { this.state.entries && this.state.isExpanded
             ? <div className='entry-list-wrap'>
                 <button className='btn w-100 btn-primary' onClick={() => this.setState({ entries: void 0 })}><span className='bi bi-chevron-left' aria-hidden='true'></span></button>
-                <Entries state={this.props.state} {...this.state.entries!} mode='Embed' />
+                <Entries key={`${this.state.entries!.var_name}:${this.state.entries!.value}`} state={this.props.state} {...this.state.entries!} mode='Embed' />
               </div>
             : void 0 }
         </div>;
