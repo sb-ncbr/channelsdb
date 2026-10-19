@@ -2,7 +2,7 @@ import { resolve } from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
 
 // The main pages and the results page (detail/index.html, served at /detail/)
-const pages = ['index', 'about', 'methods', 'documentation', 'contribute', 'gdpr', 'detail/index'];
+const pages = ['index', 'about', 'methods', 'documentation', 'gdpr', 'detail/index'];
 
 // Running ChannelsDB, used by the dev server for the API. By default the docker compose setup on this machine,
 // which uses CHANNELSDB_PORT (port 80 if not set)

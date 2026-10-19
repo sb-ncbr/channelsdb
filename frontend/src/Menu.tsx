@@ -21,7 +21,6 @@ export class Menu extends React.Component<{}, {}> {
                         <li className='nav-item' style={{marginTop: '12px', fontSize: '120%', fontWeight: 'bold'}}><a className='nav-link' href='documentation.html'>Documentation</a></li>
                         <li className='nav-item' style={{marginTop: '12px', fontSize: '120%', fontWeight: 'bold'}}><a className='nav-link' href='https://moleonline.cz' target='_blank'>MOLE</a></li>
                         <li className='nav-item' style={{marginTop: '12px', fontSize: '120%', fontWeight: 'bold'}}><a className='nav-link' href='https://loschmidt.chemi.muni.cz/caverweb/' target='_blank'>CAVER</a></li>
-                        <li className='nav-item' style={{marginTop: '12px', fontSize: '120%', fontWeight: 'bold'}}><a className='nav-link' href='contribute.html'>Contribute</a></li>
                         <li className='nav-item' style={{marginTop: '12px', fontSize: '120%', fontWeight: 'bold'}}><a className='nav-link' href='about.html'>About</a></li>
                     </ul>
                 </div>

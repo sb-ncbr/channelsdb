@@ -95,7 +95,7 @@ export class Intro extends React.Component<{ state: State }, { statistics: any, 
                             the <a href='https://www.uniprot.org' target='_blank'>UniProt database</a> a comprehensive high-quality resource of protein function information. Last but not least, all the results are displayed in
                             a clear interactive manner further facilitating data interpretation. </p>
 
-                    <p>If you would like to provide your own research results to be displayed soon as a part of Protein Data Bank in Europe. <a href='mailto:webchemistryhelp@gmail.com'>Get in touch with us</a>, or use the <a href='contribute.html'>annotation form</a>.</p>
+                    <p>If you would like to provide your own research results to be displayed soon as a part of Protein Data Bank in Europe. <a href='mailto:webchemistryhelp@gmail.com'>Get in touch with us</a>.</p>
 
                     <hr className='featurette-divider' style={{ margin: '10px 0' }} />
 

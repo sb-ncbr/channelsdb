@@ -12,7 +12,6 @@ import 'bootstrap/js/dist/collapse';
 import * as React from 'react';
 import { createRoot } from 'react-dom/client';
 import { About } from './About';
-import { Contribute } from './Contribute';
 import { Documentation } from './Documentation';
 import { GDPR } from './GDPR';
 import { Info } from './Info';
@@ -20,7 +19,7 @@ import { Menu } from './Menu';
 import { Methods } from './Methods';
 import { State, ViewState, fetchPdbEntries, fetchPdbText, initState, searchPdbCategory, toLower, updateViewState } from './State';
 
-export function renderUI(target: HTMLElement, kind: 'Search' | 'Methods' | 'Documentation' | 'Contribute' | 'About' | 'GDPR') {
+export function renderUI(target: HTMLElement, kind: 'Search' | 'Methods' | 'Documentation' | 'About' | 'GDPR') {
     const root = createRoot(target);
     switch (kind) {
         case 'Search':
@@ -31,9 +30,6 @@ export function renderUI(target: HTMLElement, kind: 'Search' | 'Methods' | 'Docu
             break;
         case 'Documentation':
             root.render(<DocumentationMain />);
-            break;
-        case 'Contribute':
-            root.render(<ContributeMain />);
             break;
         case 'About':
             root.render(<AboutMain />);
@@ -74,16 +70,6 @@ class DocumentationMain extends React.Component<{}, {}> {
         return <div className='container'>
             <Menu />
             <Documentation />
-            <Footer />
-        </div>;
-    }
-}
-
-class ContributeMain extends React.Component<{}, {}> {
-    render() {
-        return <div className='container'>
-            <Menu />
-            <Contribute />
             <Footer />
         </div>;
     }
