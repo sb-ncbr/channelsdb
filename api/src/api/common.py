@@ -2,12 +2,15 @@ import http.cookiejar
 import time
 from enum import StrEnum
 from functools import lru_cache
+from pathlib import Path
 from typing import Annotated
 
 import requests
 from fastapi import Depends, HTTPException
 from fastapi import Path as AnnotationPath
 from pydantic import BaseModel
+
+from api.config import config
 
 
 # Shared session to reuse connections to the external APIs. Each thread uses at most one connection at a time,
@@ -85,8 +88,14 @@ pdb_id_404_response = {404: {'description': 'PDB ID not found', 'model': IDError
 uniprot_id_404_response = {404: {'description': 'Uniprot ID not found', 'model': IDError}}
 
 
+def pdb_id_format(pdb_id: Annotated[str, AnnotationPath(description='PDB ID', pattern=PDB_ID_REGEX)]) -> str:
+    return pdb_id.lower()
+
+
 PDB_ID_Type = Annotated[str, Depends(validate_pdb_id)]
-Uniprot_ID_Type = Annotated[str, Depends(validate_uniprot_id)]
+# Only the format is checked, for the endpoints whose own external request reports unknown IDs
+PDB_ID_Format_Type = Annotated[str, Depends(pdb_id_format)]
+Uniprot_ID_Format_Type = Annotated[str, AnnotationPath(description='Uniprot ID', pattern=UNIPROT_ID_REGEX)]
 
 
 class SourceDatabase(StrEnum):
@@ -117,3 +126,32 @@ CHANNEL_TYPES_ALPHAFILL = {
 }
 
 CHANNEL_TYPES = CHANNEL_TYPES_PDB | CHANNEL_TYPES_ALPHAFILL
+
+
+def protein_dir(source_db: SourceDatabase, protein_id: str) -> Path:
+    """The directory with the stored data of a protein, named by its lowercased ID"""
+    protein_id = protein_id.lower()
+    return Path(config['dirs'][source_db.lower()]) / protein_id[1:3] / protein_id
+
+
+def is_stored(source_db: SourceDatabase, protein_id: str) -> bool:
+    return (protein_dir(source_db, protein_id) / 'data.zip').exists()
+
+
+# The stored data are served without asking the external APIs, so that they stay available when those are down.
+# Only the IDs not stored are validated, so that an ID unknown to PDBe or UniProt is reported as such.
+def stored_pdb_id(pdb_id: Annotated[str, AnnotationPath(description='PDB ID', pattern=PDB_ID_REGEX)]) -> str:
+    pdb_id = pdb_id.lower()
+    if not is_stored(SourceDatabase.PDB, pdb_id):
+        validate_pdb_id(pdb_id)
+    return pdb_id
+
+
+def stored_uniprot_id(uniprot_id: Annotated[str, AnnotationPath(description='Uniprot ID', pattern=UNIPROT_ID_REGEX)]) -> str:
+    if not is_stored(SourceDatabase.AlphaFill, uniprot_id):
+        validate_uniprot_id(uniprot_id)
+    return uniprot_id
+
+
+Stored_PDB_ID_Type = Annotated[str, Depends(stored_pdb_id)]
+Stored_Uniprot_ID_Type = Annotated[str, Depends(stored_uniprot_id)]

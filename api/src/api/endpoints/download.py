@@ -3,13 +3,19 @@ import io
 import json
 import zipfile
 from enum import StrEnum
-from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse, PlainTextResponse, RedirectResponse, Response
 
-from api.common import PDB_ID_Type, SourceDatabase, Uniprot_ID_Type, pdb_id_404_response, uniprot_id_404_response
-from api.config import BASE_DIR, config
+from api.common import (
+    SourceDatabase,
+    Stored_PDB_ID_Type,
+    Stored_Uniprot_ID_Type,
+    pdb_id_404_response,
+    protein_dir,
+    uniprot_id_404_response,
+)
+from api.config import BASE_DIR
 from api.endpoints.assembly import get_assembly_id
 from api.endpoints.channels import get_channels
 from api.export import get_Chimera_file, get_PDB_file, get_Pymol_file, get_VMD_file
@@ -41,20 +47,20 @@ EXTENSIONS: dict[DownloadType, str] = {
 
 @router.get('/download/alphafill/{uniprot_id}/{file_format}', name='Download data', tags=['AlphaFill'],
             description='Download various data about the protein', responses=uniprot_id_404_response)
-def download_alphafill(file_format: DownloadType, uniprot_id: Uniprot_ID_Type):
+def download_alphafill(file_format: DownloadType, uniprot_id: Stored_Uniprot_ID_Type):
     return download(SourceDatabase.AlphaFill, file_format, uniprot_id)
 
 
 @router.get('/download/pdb/{pdb_id}/{file_format}', name='Download data', tags=['PDB'],
             description='Download various data about the protein', responses=pdb_id_404_response)
-def download_pdb(file_format: DownloadType, pdb_id: PDB_ID_Type):
+def download_pdb(file_format: DownloadType, pdb_id: Stored_PDB_ID_Type):
     return download(SourceDatabase.PDB, file_format, pdb_id)
 
 
 def download(source_db: SourceDatabase, file_format: DownloadType, protein_id: str):
     match (source_db, file_format):
         case SourceDatabase.PDB, DownloadType.png:
-            image_file = Path(config['dirs']['pdb']) / protein_id[1:3] / protein_id / f'{protein_id}.png'
+            image_file = protein_dir(source_db, protein_id) / f'{protein_id}.png'
 
             if image_file.exists():
                 return FileResponse(image_file)

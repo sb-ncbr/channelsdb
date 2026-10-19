@@ -10,8 +10,8 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from api.common import (
-    PDB_ID_Type,
-    Uniprot_ID_Type,
+    PDB_ID_Format_Type,
+    Uniprot_ID_Format_Type,
     check_response,
     pdb_id_404_response,
     session,
@@ -176,7 +176,7 @@ def fill_annotations(annotations: Annotations, mapping: SiftsMapping | None, uni
 
 @router.get('/annotations/alphafill/{uniprot_id}', name='Annotation data', tags=['AlphaFill'],
             description='Returns annotations of individual protein and its residues', responses=uniprot_id_404_response)
-def get_annotations_alphafill(uniprot_id: Uniprot_ID_Type) -> Annotations:
+def get_annotations_alphafill(uniprot_id: Uniprot_ID_Format_Type) -> Annotations:
     annotations = Annotations()
     fill_annotations(annotations, None, uniprot_id)
     return annotations
@@ -184,7 +184,7 @@ def get_annotations_alphafill(uniprot_id: Uniprot_ID_Type) -> Annotations:
 
 @router.get('/annotations/pdb/{pdb_id}', name='Annotation data', tags=['PDB'],
             description='Returns annotations of individual protein and its residues', responses=pdb_id_404_response)
-def get_annotations_pdb(pdb_id: PDB_ID_Type) -> Annotations:
+def get_annotations_pdb(pdb_id: PDB_ID_Format_Type) -> Annotations:
     annotations = Annotations()
     req = session.get(f'https://ftp.ebi.ac.uk/pub/databases/msd/sifts/xml/{pdb_id}.xml.gz', timeout=10)
     check_response(req, 'PDBe server', f'Cannot find annotations for PDB ID \'{pdb_id}\'')

@@ -10,13 +10,13 @@ from api.common import (
     CHANNEL_TYPES,
     CHANNEL_TYPES_ALPHAFILL,
     CHANNEL_TYPES_PDB,
-    PDB_ID_Type,
     SourceDatabase,
-    Uniprot_ID_Type,
+    Stored_PDB_ID_Type,
+    Stored_Uniprot_ID_Type,
     pdb_id_404_response,
+    protein_dir,
     uniprot_id_404_response,
 )
-from api.config import config
 
 
 logger = logging.getLogger(__name__)
@@ -34,13 +34,13 @@ class Channels(BaseModel):
 
 @router.get('/channels/pdb/{pdb_id}', response_model=Channels, name='Channel data', tags=['PDB'],
             description='Returns information about channels for a given protein', responses=pdb_id_404_response)
-def get_channels_pdb(pdb_id: PDB_ID_Type):
+def get_channels_pdb(pdb_id: Stored_PDB_ID_Type):
     return get_channels(SourceDatabase.PDB, pdb_id)
 
 
 @router.get('/channels/alphafill/{uniprot_id}', response_model=Channels, name='Channel data', tags=['AlphaFill'],
             description='Returns information about channels for a given protein', responses=uniprot_id_404_response)
-def get_channels_alphafill(uniprot_id: Uniprot_ID_Type):
+def get_channels_alphafill(uniprot_id: Stored_Uniprot_ID_Type):
     return get_channels(SourceDatabase.AlphaFill, uniprot_id)
 
 
@@ -48,14 +48,13 @@ def get_channels(source_db: SourceDatabase, protein_id: str):
 
     data = Channels().model_dump()
 
-    protein_dir = Path(config['dirs'][source_db.lower()]) / protein_id[1:3].lower() / protein_id.lower()
-
     channel_types = CHANNEL_TYPES_PDB if source_db == SourceDatabase.PDB else CHANNEL_TYPES_ALPHAFILL
 
-    if not (protein_dir / 'data.zip').exists():
+    data_file = protein_dir(source_db, protein_id) / 'data.zip'
+    if not data_file.exists():
         raise HTTPException(status_code=404, detail=f'Protein with ID \'{protein_id}\' not found in ChannelsDB ({source_db})')
 
-    with ZipFile(protein_dir / 'data.zip') as z:
+    with ZipFile(data_file) as z:
         for json_file in z.namelist():
             if (name := Path(json_file).stem) in channel_types:
                 with z.open(json_file) as f:

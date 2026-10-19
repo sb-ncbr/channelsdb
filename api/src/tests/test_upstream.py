@@ -1,4 +1,6 @@
 import gzip
+import json
+import zipfile
 
 import pytest
 import requests
@@ -6,7 +8,8 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from api import common
-from api.common import _get_pdbe_summary, get_pdbe_summary, session
+from api.common import SourceDatabase, _get_pdbe_summary, get_pdbe_summary, protein_dir, session
+from api.config import config
 from api.endpoints.assembly import get_assembly_id
 from api.main import app
 
@@ -118,6 +121,58 @@ def test_upstream_status(upstream, service, path, status_code, expected):
     upstream[service] = status_code
     response = client.get(path)
     assert response.status_code == expected
+
+
+@pytest.fixture
+def stored(monkeypatch, tmp_path):
+    """Store a PDB entry 1xyz and an AlphaFill entry P33333, each with one channel"""
+    stored = {SourceDatabase.PDB: ('1xyz', 'authors'), SourceDatabase.AlphaFill: ('P33333', 'alphafill')}
+    for source_db, (protein_id, channel_type) in stored.items():
+        monkeypatch.setitem(config['dirs'], source_db.lower(), str(tmp_path / source_db))
+        directory = protein_dir(source_db, protein_id)
+        directory.mkdir(parents=True)
+        channels = {'Channels': {'Paths': [], 'Tunnels': [{'Id': '1'}], 'Pores': [], 'MergedPores': []}}
+        with zipfile.ZipFile(directory / 'data.zip', 'w') as z:
+            z.writestr(f'{channel_type}.json', json.dumps(channels))
+
+
+def unreachable(url, **kwargs):
+    raise requests.ConnectionError(f'Unreachable: {url}')
+
+
+STORED_PATHS = ['/channels/pdb/1xyz', '/channels/pdb/1XYZ', '/channels/alphafill/P33333',
+                '/download/pdb/1xyz/json', '/download/alphafill/P33333/json']
+
+
+@pytest.mark.parametrize('path', STORED_PATHS)
+@pytest.mark.parametrize('status_code', [404, 429, 503])
+def test_stored_without_upstream(upstream, stored, path, status_code):
+    upstream.update({'pdbe': status_code, 'uniprot': status_code})
+    response = client.get(path)
+    assert response.status_code == 200
+    assert '"Id":"1"' in response.text.replace(' ', '')
+
+
+@pytest.mark.parametrize('path', STORED_PATHS)
+def test_stored_with_upstream_unreachable(stored, monkeypatch, path):
+    monkeypatch.setattr(session, 'get', unreachable)
+    monkeypatch.setattr(session, 'head', unreachable)
+    assert client.get(path).status_code == 200
+
+
+@pytest.mark.parametrize('path', ['/channels/pdb/1abc', '/channels/alphafill/P11111'])
+def test_valid_but_not_stored(upstream, stored, path):
+    response = client.get(path)
+    assert response.status_code == 404
+    assert 'not found in ChannelsDB' in response.json()['detail']
+
+
+@pytest.mark.parametrize('service, path', [('pdbe', '/annotations/pdb/1abc'), ('pdbe', '/annotations/pdb/1ABC'),
+                                           ('uniprot', '/annotations/alphafill/P11111')])
+def test_annotations_without_id_validation(upstream, service, path):
+    # The IDs are not validated by PDBe or UniProt, the annotations come from SIFTS and the EBI Proteins API
+    upstream[service] = 503
+    assert client.get(path).status_code == 200
 
 
 @pytest.mark.parametrize('status_code, expected', UPSTREAM_STATUSES)
