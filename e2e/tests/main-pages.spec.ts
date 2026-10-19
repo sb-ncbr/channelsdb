@@ -49,3 +49,11 @@ test('the menu opens with its button on narrow screens', async ({ page }) => {
     await methods.click();
     await expect(page).toHaveTitle('ChannelsDB 2.0 | Methods');
 });
+
+test('API redirects stay under /api', async ({ request }) => {
+    // The API redirects URLs with a trailing slash, nginx must not add its prefix again
+    const response = await request.get('/api/statistics/', { maxRedirects: 0 });
+    expect(response.status()).toBe(307);
+    expect(response.headers()['location']).toBe('/api/statistics');
+    expect((await request.get('/api/statistics/')).status()).toBe(200);
+});

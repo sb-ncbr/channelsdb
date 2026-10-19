@@ -7,8 +7,8 @@ services:
     restart: always
 
   web:
+    command: ["nginx", "-c", "/etc/nginx/channelsdb/production.conf", "-g", "daemon off;"]
     volumes:
-      - ./nginx.production.conf:/etc/nginx/nginx.conf:ro
       # Whole directories, so that reloading nginx picks up renewed certificates
       # (live/ only links to the current files in archive/)
       - /etc/letsencrypt/live:/etc/letsencrypt/live:ro

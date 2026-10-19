@@ -17,8 +17,10 @@ services:
     build:
       context: ..
       dockerfile: ./docker/web.Dockerfile
+    command: ["nginx", "-c", "/etc/nginx/channelsdb/devel.conf", "-g", "daemon off;"]
     volumes:
-      - ./nginx.devel.conf:/etc/nginx/nginx.conf:ro
+      # The directory, so that changed files are seen (a mounted file stays the one replaced by git)
+      - ./nginx:/etc/nginx/channelsdb:ro,z
     depends_on:
       - api
     ports:
