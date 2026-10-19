@@ -31,6 +31,11 @@ def check_response(req: requests.Response, service: str, not_found_detail: str) 
         raise HTTPException(status_code=502, detail=f'{service} returned an error ({req.status_code}) when accessing: {req.url}')
 
 
+def unexpected_response(service: str, url: str) -> HTTPException:
+    """Report a successful response from an external API that cannot be parsed as 502"""
+    return HTTPException(status_code=502, detail=f'{service} returned an unexpected response when accessing: {url}')
+
+
 PDB_ID_LOWER_REGEX = '^[1-9][a-z0-9]{3}$'
 PDB_ID_REGEX = '^[1-9]([a-z0-9]{3}|[A-Z0-9]{3})$'
 UNIPROT_ID_REGEX = '^([OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2})$'
@@ -45,6 +50,7 @@ def validate_uniprot_id(uniprot_id: Annotated[str, AnnotationPath(description='U
 
 
 PDBE_SUMMARY_TTL = 3600  # seconds
+PDBE_SUMMARY_URL = 'https://www.ebi.ac.uk/pdbe/api/pdb/entry/summary/{pdb_id}'
 
 
 # Used both to validate PDB IDs and to look up assemblies, which the results page requests together.
@@ -57,9 +63,16 @@ def get_pdbe_summary(pdb_id: str) -> dict:
 @lru_cache(maxsize=1024)
 def _get_pdbe_summary(pdb_id: str, _time_window: int) -> dict:
     # A new time window makes the cached summaries from the previous one unused
-    req = session.get(f'https://www.ebi.ac.uk/pdbe/api/pdb/entry/summary/{pdb_id}', timeout=10)
+    req = session.get(PDBE_SUMMARY_URL.format(pdb_id=pdb_id), timeout=10)
     check_response(req, 'PDBe API', f'Cannot find PDB ID \'{pdb_id}\'')
-    return req.json()[pdb_id][0]
+    try:
+        summary = req.json()[pdb_id][0]
+    except (ValueError, LookupError, TypeError):
+        # ValueError covers invalid JSON
+        raise unexpected_response('PDBe API', req.url) from None
+    if not isinstance(summary, dict):
+        raise unexpected_response('PDBe API', req.url)
+    return summary
 
 
 def validate_pdb_id(pdb_id: Annotated[str, AnnotationPath(description='PDB ID', pattern=PDB_ID_REGEX)]) -> str:

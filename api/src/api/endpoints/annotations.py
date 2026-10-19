@@ -2,13 +2,22 @@ import gzip
 import json
 import logging
 import xml.etree.ElementTree as ET
+import zlib
 from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from api.common import PDB_ID_Type, Uniprot_ID_Type, check_response, pdb_id_404_response, session, uniprot_id_404_response
+from api.common import (
+    PDB_ID_Type,
+    Uniprot_ID_Type,
+    check_response,
+    pdb_id_404_response,
+    session,
+    unexpected_response,
+    uniprot_id_404_response,
+)
 from api.config import config
 
 
@@ -50,6 +59,8 @@ def parse_sifts_data(xml_data: str) -> dict[str, SiftsMapping]:
     tree = ET.fromstring(xml_data)
     data: dict[str, SiftsMapping] = {}
     ns = {'': 'http://www.ebi.ac.uk/pdbe/docs/sifts/eFamily.xsd'}
+    if tree.tag != f'{{{ns[""]}}}entry':
+        raise ValueError(f'Unexpected root element of SIFTS data: {tree.tag}')
     for entity in tree.iterfind('entity', ns):
         chain = entity.attrib['entityId']
         for segment in entity.iterfind('segment', ns):
@@ -149,10 +160,18 @@ def get_channelsdb_residue_annotations(uniprot_id: str, mapping: SiftsMapping | 
 def fill_annotations(annotations: Annotations, mapping: SiftsMapping | None, uniprot_id: str) -> None:
     req = session.get(f'https://www.ebi.ac.uk/proteins/api/proteins/{uniprot_id}', headers={'accept': 'application/xml'}, timeout=10)
     check_response(req, 'EBI Proteins API', f'Cannot load annotations for Uniprot ID \'{uniprot_id}\'')
-    xml_data = req.content.decode('utf-8')
-    tree = ET.fromstring(xml_data)
-    annotations.EntryAnnotations.append(get_entry_annotations(uniprot_id, tree))
-    annotations.ResidueAnnotations.UniProt.extend(get_uniprot_residue_annotations(mapping, tree))
+    try:
+        tree = ET.fromstring(req.content.decode('utf-8'))
+        # A well-formed document of another kind (e.g. an error page) would otherwise yield no annotations
+        if tree.tag != '{https://uniprot.org/uniprot}uniprot' or tree.find('{https://uniprot.org/uniprot}entry') is None:
+            raise ValueError(f'Unexpected root element of UniProt data: {tree.tag}')
+        entry_annotations = get_entry_annotations(uniprot_id, tree)
+        residue_annotations = get_uniprot_residue_annotations(mapping, tree)
+    except (ET.ParseError, ValueError, KeyError):
+        # ValueError covers invalid UTF-8 and unexpected documents
+        raise unexpected_response('EBI Proteins API', req.url) from None
+    annotations.EntryAnnotations.append(entry_annotations)
+    annotations.ResidueAnnotations.UniProt.extend(residue_annotations)
     annotations.ResidueAnnotations.ChannelsDB.extend(get_channelsdb_residue_annotations(uniprot_id, mapping))
 
 
@@ -171,8 +190,12 @@ def get_annotations_pdb(pdb_id: PDB_ID_Type) -> Annotations:
     req = session.get(f'https://ftp.ebi.ac.uk/pub/databases/msd/sifts/xml/{pdb_id}.xml.gz', timeout=10)
     check_response(req, 'PDBe server', f'Cannot find annotations for PDB ID \'{pdb_id}\'')
 
-    xml_data = gzip.decompress(req.content).decode('utf-8')
-    sifts = parse_sifts_data(xml_data)
+    try:
+        sifts = parse_sifts_data(gzip.decompress(req.content).decode('utf-8'))
+    except (OSError, EOFError, zlib.error, ET.ParseError, ValueError, KeyError):
+        # OSError, EOFError and zlib.error cover invalid, truncated or corrupted gzip data,
+        # ValueError invalid UTF-8 and unexpected documents
+        raise unexpected_response('PDBe server', req.url) from None
     for uniprot_id, mapping in sifts.items():
         try:
             fill_annotations(annotations, mapping, uniprot_id)

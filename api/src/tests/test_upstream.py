@@ -13,6 +13,11 @@ from api.main import app
 
 client = TestClient(app)
 
+def corrupt(data: bytes) -> bytes:
+    """Keep a valid gzip header, but make the compressed stream invalid"""
+    return data[:10] + b'\xff' + data[11:]
+
+
 SIFTS = ('<entry xmlns="http://www.ebi.ac.uk/pdbe/docs/sifts/eFamily.xsd">'
          '<entity entityId="A"><segment><listResidue><residue>'
          '<crossRefDb dbCoordSys="UniProt" dbAccessionId="P11111" dbResNum="1"/><crossRefDb dbCoordSys="PDBresnum" dbResNum="1"/>'
@@ -165,3 +170,43 @@ def test_summary_expires(summary_requests, monkeypatch):
     now += 1
     get_pdbe_summary('1abc')
     assert summary_requests['n'] == 2
+
+
+@pytest.mark.parametrize('content', [b'<html></html>', b'{}', b'[]', b'{"1abc": []}', b'{"1abc": [[]]}'])
+def test_malformed_summary(upstream, monkeypatch, content):
+    monkeypatch.setattr(session, 'get', lambda url, **kwargs: response(200, content))
+    assert client.get('/assembly/1abc').status_code == 502
+
+
+@pytest.mark.parametrize('summary', ['{"1abc": [{}]}', '{"1abc": [{"assemblies": [{}]}]}', '{"1abc": [{"assemblies": null}]}'])
+def test_malformed_assemblies(upstream, monkeypatch, summary):
+    monkeypatch.setattr(session, 'get', lambda url, **kwargs: response(200, summary.encode()))
+    with pytest.raises(HTTPException) as e:
+        get_assembly_id('1abc')
+    assert e.value.status_code == 502
+
+
+@pytest.mark.parametrize('content', [b'not gzip', gzip.compress(SIFTS.encode())[:-10], gzip.compress(b'\xff\xfe'),
+                                     gzip.compress(b'<html>'), corrupt(gzip.compress(SIFTS.encode())), gzip.compress(b'<html></html>')])
+def test_malformed_sifts(upstream, monkeypatch, content):
+    get = session.get
+    monkeypatch.setattr(session, 'get', lambda url, **kwargs: response(200, content) if 'sifts' in url else get(url, **kwargs))
+    assert client.get('/annotations/pdb/1abc').status_code == 502
+
+
+@pytest.mark.parametrize('content', [b'<html>', b'\xff\xfe', b'<html></html>', b'<uniprot xmlns="https://uniprot.org/uniprot"/>',
+                                     b'<uniprot xmlns="https://uniprot.org/uniprot"><entry><evidence/></entry></uniprot>'])
+def test_malformed_uniprot(upstream, monkeypatch, content):
+    get = session.get
+    monkeypatch.setattr(session, 'get', lambda url, **kwargs: response(200, content) if 'proteins/api' in url else get(url, **kwargs))
+    assert client.get('/annotations/alphafill/P11111').status_code == 502
+    assert client.get('/annotations/pdb/1abc').status_code == 502
+
+
+def test_empty_annotations(upstream, monkeypatch):
+    get = session.get
+    content = b'<uniprot xmlns="https://uniprot.org/uniprot"><entry/></uniprot>'
+    monkeypatch.setattr(session, 'get', lambda url, **kwargs: response(200, content) if 'proteins/api' in url else get(url, **kwargs))
+    result = client.get('/annotations/alphafill/P11111')
+    assert result.status_code == 200
+    assert uniprot_ids(result) == ['P11111']
