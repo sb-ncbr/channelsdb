@@ -1585,11 +1585,15 @@ export class Vizualizer{
 
         var rgb: RGBColor;
 
-        if(value<(minVal+maxVal)/2){
-            rgb = interpolateRGB(minVal,minColor,middle,maxColorMiddle,value);
+        // Values outside the range (possible with the absolute range) get the colours of its ends
+        value = Math.min(Math.max(value, minVal), maxVal);
+
+        // Each half goes from its end colour to its own middle colour at the center
+        if(value<middle){
+            rgb = interpolateRGB(minVal,minColor,middle,minColorMiddle,value);
         }
         else{
-            rgb = interpolateRGB(middle,minColorMiddle,maxVal,maxColor,value);
+            rgb = interpolateRGB(middle,maxColorMiddle,maxVal,maxColor,value);
         }
 
         if(skipMiddle&&settings.centerAbsolute){
