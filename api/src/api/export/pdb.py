@@ -1,4 +1,5 @@
-from string import ascii_uppercase
+from collections import Counter
+from string import ascii_lowercase, ascii_uppercase, digits
 
 
 HEADER = '''\
@@ -18,20 +19,38 @@ REMARK 920
 REMARK ATOM  NAM RES   TUNID     X      Y       Z       Distnm RadiusA
 '''
 
+# Each channel is a chain. Further channels continue the least used chain's residue numbers,
+# so that each atom is still identified by its chain and residue.
+CHAIN_IDS = ascii_uppercase + ascii_lowercase + digits
+
+# Limits of the fixed-width columns, wider numbers would shift the following ones
+MAX_RESIDUE_ID = 9999
+MAX_ATOM_ID = 99999
+
 
 def get_PDB_file(channels: dict) -> str:
     total_atom_id = 0
     channel_count = 0
+    # Residues already used in each chain
+    chain_residues: Counter[str] = Counter()
     lines = []
     for channel_type in channels['Channels']:
         for channel in channels['Channels'][channel_type]:
             channel_count += 1
             profile = channel['Profile']
+            if channel_count <= len(CHAIN_IDS):
+                chain = CHAIN_IDS[channel_count - 1]
+            else:
+                chain = min(CHAIN_IDS, key=lambda c: chain_residues[c])
+            if chain_residues[chain] + len(profile) > MAX_RESIDUE_ID or total_atom_id + len(profile) > MAX_ATOM_ID:
+                raise ValueError('The channels do not fit in the PDB format')
             for current_atom_id, atom in enumerate(profile, start=1):
                 total_atom_id += 1
-                line = (f'HETATM{total_atom_id:>5d}  X   TUN {ascii_uppercase[(channel_count - 1) % 26]}{current_atom_id:>4}    '
+                residue_id = chain_residues[chain] + current_atom_id
+                line = (f'HETATM{total_atom_id:>5d}  X   TUN {chain}{residue_id:>4}    '
                         f'{atom["X"]:>8.3f}{atom["Y"]:>8.3f}{atom["Z"]:>8.3f}'
                         f'{atom["Distance"]:>6.2f}{atom["Radius"]:>6.3f}')
                 lines.append(line)
+            chain_residues[chain] += len(profile)
 
     return HEADER + '\n'.join(lines) + '\n'

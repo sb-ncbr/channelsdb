@@ -1,10 +1,11 @@
+import contextlib
 import io
 import json
 import zipfile
 from enum import StrEnum
 from pathlib import Path
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse, PlainTextResponse, RedirectResponse, Response
 
 from api.common import PDB_ID_Type, SourceDatabase, Uniprot_ID_Type, pdb_id_404_response, uniprot_id_404_response
@@ -71,7 +72,10 @@ def download(source_db: SourceDatabase, file_format: DownloadType, protein_id: s
         case DownloadType.json:
             return Response(content=json.dumps(channels), media_type='application/json', headers=headers)
         case DownloadType.pdb:
-            return PlainTextResponse(get_PDB_file(channels), headers=headers)
+            try:
+                return PlainTextResponse(get_PDB_file(channels), headers=headers)
+            except ValueError as e:
+                raise HTTPException(status_code=422, detail=f'Cannot export \'{protein_id}\' as PDB: {e}') from None
         case DownloadType.pymol:
             return PlainTextResponse(get_Pymol_file(channels), headers=headers)
         case DownloadType.chimera:
@@ -85,7 +89,9 @@ def download(source_db: SourceDatabase, file_format: DownloadType, protein_id: s
             zf.writestr(f'{protein_id}_pymol.py', get_Pymol_file(channels))
             zf.writestr(f'{protein_id}_vmd.tk', get_VMD_file(channels))
             zf.writestr(f'{protein_id}_report.json', json.dumps(channels))
-            zf.writestr(f'{protein_id}_channels.pdb', get_PDB_file(channels))
+            # Left out when the channels do not fit in the PDB format
+            with contextlib.suppress(ValueError):
+                zf.writestr(f'{protein_id}_channels.pdb', get_PDB_file(channels))
             zf.close()
 
             return Response(content=content.getvalue(), media_type='application/zip', headers=headers)
