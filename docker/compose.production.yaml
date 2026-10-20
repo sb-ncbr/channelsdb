@@ -2,6 +2,9 @@ name: channelsdb
 
 services:
   api:
+    environment:
+      # The data are released by switching this link, see api/src/utils/update_data.sh
+      CHANNELSDB_BASE: /data/current
     volumes:
       - /data:/data:ro
     restart: always

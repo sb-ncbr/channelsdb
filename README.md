@@ -44,6 +44,44 @@ $ sudo certbot reconfigure --cert-name channelsdb.ncbr.muni.cz --webroot -w /var
 $ sudo certbot renew --dry-run
 ```
 
+### Data updates
+
+In production, the API reads `/data/current`, a link to one of the releases of the data in `/data/releases`.
+A new release is made from a directory with the new data (containing `PDB`, `AlphaFill` and `Annotations`) by
+running in `/api`:
+
+```bash
+$ src/utils/update_data.sh /path/to/new/data
+```
+
+The data are copied to a new release, which is validated and its statistics calculated. Then the changes against
+the current release are shown: the added, removed and changed entries with their numbers of channels, and the
+changes of the statistics (all of them are listed in `changes.txt` of the release). Only when all of this succeeds
+and the changes are approved, `/data/current` is switched to it, the API uses it from the next request on. Files
+unchanged since the
+current release are hardlinked, so a release takes the space of the changed files only. The files in the releases
+must therefore never be modified in place, the change would show in all of them.
+
+The entries missing in the directory are removed. When it contains only some new or changed entries, add them to
+the current data instead, nothing is removed then:
+
+```bash
+$ src/utils/update_data.sh --add /path/to/some/data
+```
+
+An entry is updated as a whole file, so a changed `data.zip` has to contain all the channels of the entry.
+
+To roll back, point the link to the previous release:
+
+```bash
+$ ln -sfn releases/<previous> /data/current.new && mv -T /data/current.new /data/current
+```
+
+After switching, only the current release and the one it replaced are kept, to roll back to. The older releases
+and the ones that failed (named `*.incomplete`, left for inspection until then) are removed. Set `KEEP` to keep
+more of the newest releases. The current release is never removed, and removing the others does not touch its
+files, as a hardlinked file remains as long as any release links it.
+
 ## API development
 
 The API uses [uv](https://docs.astral.sh/uv/) to manage dependencies. To set up the environment, run in `/api`:
