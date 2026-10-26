@@ -1,141 +1,69 @@
-# ChannelsDB 2
+# ChannelsDB
 
-The project consists of two parts: Python API (`/api`) and the web pages (`/frontend`), which include the results page (`/frontend/detail`).
+[![ChannelsDB 2.0 paper](https://img.shields.io/badge/Nucleic%20Acids%20Res-2024-blue)](https://doi.org/10.1093/nar/gkad1012)
+[![API licence: MIT](https://img.shields.io/badge/API%20licence-MIT-green)](api/LICENSE)
+[![Web licence: Apache 2.0](https://img.shields.io/badge/web%20licence-Apache%202.0-green)](frontend/LICENSE)
 
-## Running
+ChannelsDB is a database of channels, tunnels and pores in proteins. For entries of the Protein Data Bank and
+AlphaFill models of UniProt proteins, it has the channels computed by [MOLE](https://doi.org/10.1186/1758-2946-5-39)
+and [CAVER](https://doi.org/10.1371/journal.pcbi.1002708): leading to catalytic sites, cofactors and cognate ligands,
+pores through the membrane, and channels described in the literature. You can view them in 3D with the lining residues
+and their annotations, see how their properties change along them, and download them for PyMOL, Chimera or VMD.
 
-Two setups are available, a local development version and a production version meant to be run in Openstack cloud. 
+The public instance runs at [channelsdb2.biodata.ceitec.cz](https://channelsdb2.biodata.ceitec.cz), its API with
+documentation at [channelsdb2.biodata.ceitec.cz/api/](https://channelsdb2.biodata.ceitec.cz/api/).
 
-### Development
+## Repository
 
-To run the development version of ChannelsDB 2, use the following commands:
+- [`api/`](api): the API serving the channels and their annotations (Python)
+- [`frontend/`](frontend): the website (TypeScript, React, Mol*)
+- [`docker/`](docker): running it all with Compose, locally and in production
+- [`e2e/`](e2e): browser tests of the website
 
-```bash
-$ docker compose -f docker/compose.yaml build
-$ docker compose -f docker/compose.yaml up
-```
+Each of `api/`, `frontend/` and `docker/` has its own README with more detail.
 
-By default, the application runs on port `80` and uses `/data` as the data directory. To change this behaviour,
-set the following environment variables before running `docker compose up`. For example:
+## Running locally
 
-```bash
-export CHANNELSDB_PORT=8080
-export CHANNELSDB_DATA=/home/channelsdb/data
-```
-
-### Production
-
-The production version has to use `docker/compose.production.yaml` together with the main `docker/compose.yaml` file.
-
-```bash
-$ docker compose -f docker/compose.yaml -f docker/compose.production.yaml up -d
-```
-
-No further setup is allowed.
-
-The TLS certificate is renewed by certbot on the host using the webroot method: certbot writes the challenges to
-`/var/www/certbot`, which nginx serves under `/.well-known/acme-challenge/`, and reloads nginx afterwards. The
-certificate was set up to renew this way by:
+You need Docker or Podman with Compose, and the ChannelsDB data, which are not part of the repository (see
+[`api/README.md`](api/README.md#data) for what they look like). Then:
 
 ```bash
-$ sudo mkdir -p /var/www/certbot
-$ sudo certbot reconfigure --cert-name channelsdb.ncbr.muni.cz --webroot -w /var/www/certbot \
-    --deploy-hook 'docker exec web nginx -s reload'
-$ sudo certbot renew --dry-run
+git clone https://github.com/sb-ncbr/channelsdb
+cd channelsdb
+docker compose -f docker/compose.yaml up -d --build
 ```
 
-### Data updates
+The site is at http://localhost. Compose starts the website and the API.
 
-In production, the API reads `/data/current`, a link to one of the releases of the data in `/data/releases`.
-A new release is made from a directory with the new data (containing `PDB`, `AlphaFill` and `Annotations`) by
-running in `/api`:
+You can change these settings in the environment:
 
-```bash
-$ src/utils/update_data.sh /path/to/new/data
-```
+| Setting | Default | Meaning |
+|---|---|---|
+| `CHANNELSDB_PORT` | `80` | Port of the site on your machine |
+| `CHANNELSDB_DATA` | `/data` | Directory with the data |
 
-The data are copied to a new release, which is validated and its statistics calculated. Then the changes against
-the current release are shown: the added, removed and changed entries with their numbers of channels, and the
-changes of the statistics (all of them are listed in `changes.txt` of the release). Only when all of this succeeds
-and the changes are approved, `/data/current` is switched to it, the API uses it from the next request on. Files
-unchanged since the
-current release are hardlinked, so a release takes the space of the changed files only. The files in the releases
-must therefore never be modified in place, the change would show in all of them.
+The production setup is described in [`docker/README.md`](docker/README.md).
 
-The entries missing in the directory are removed. When it contains only some new or changed entries, add them to
-the current data instead, nothing is removed then:
+## Citing
 
-```bash
-$ src/utils/update_data.sh --add /path/to/some/data
-```
+If ChannelsDB helps your research, please cite:
 
-An entry is updated as a whole file, so a changed `data.zip` has to contain all the channels of the entry.
+> Špačková A., Vávra O., Raček T., Bazgier V., Sehnal D., Damborský J., Svobodová R., Bednář D., Berka K.
+> ChannelsDB 2.0: a comprehensive database of protein tunnels and pores in AlphaFold era. *Nucleic Acids Research*
+> 52(D1), D413–D418 (2024). https://doi.org/10.1093/nar/gkad1012
 
-To roll back, point the link to the previous release:
+The channels are computed by MOLE and CAVER, please cite them too:
 
-```bash
-$ ln -sfn releases/<previous> /data/current.new && mv -T /data/current.new /data/current
-```
+- Sehnal D. et al. MOLE 2.0: advanced approach for analysis of biomacromolecular channels. *Journal of
+  Cheminformatics* 5, 39 (2013). https://doi.org/10.1186/1758-2946-5-39
+- Chovancová E. et al. CAVER 3.0: a tool for the analysis of transport pathways in dynamic protein structures.
+  *PLoS Computational Biology* 8(10), e1002708 (2012). https://doi.org/10.1371/journal.pcbi.1002708
 
-After switching, only the current release and the one it replaced are kept, to roll back to. The older releases
-and the ones that failed (named `*.incomplete`, left for inspection until then) are removed. Set `KEEP` to keep
-more of the newest releases. The current release is never removed, and removing the others does not touch its
-files, as a hardlinked file remains as long as any release links it.
+A step-by-step guide to ChannelsDB and MOLEonline is in Špačková A. et al., Analysis and Visualization of Protein
+Channels, Tunnels, and Pores with MOLEonline and ChannelsDB 2.0, *Methods in Molecular Biology*, 219–233 (2024).
+https://doi.org/10.1007/978-1-0716-4007-4_12
 
-## API development
+## Licence
 
-The API uses [uv](https://docs.astral.sh/uv/) to manage dependencies. To set up the environment, run in `/api`:
-
-```bash
-$ uv sync
-```
-
-The API reads its configuration from `api/config.ini`. Create it from `api/config_docker.ini` and point `base` to your data directory.
-
-### Tests
-
-The tests use the stored data and query the external APIs (PDBe, UniProt), so they need network access. Run them in `/api`:
-
-```bash
-$ uv run pytest
-```
-
-By default, all stored entries are tested. To test only a subset, use `--subset random` or `--subset first` together with `--count N` (default 10).
-
-### Linting
-
-The code is checked with [ruff](https://docs.astral.sh/ruff/). Run it in `/api`:
-
-```bash
-$ uv run ruff check src
-```
-
-## Frontend development
-
-The web pages (`/frontend`) are built with [Vite](https://vite.dev/). With the application running (see above), start a development server with live reload there:
-
-```bash
-$ npm install
-$ npm run dev
-```
-
-It serves the pages at http://localhost:5173 (a results page at http://localhost:5173/detail/pdb/1ymg) and forwards the API to the running application, using the same `CHANNELSDB_PORT` as docker compose (port `80` by default). To use another instance, set `CHANNELSDB_URL` to its address.
-
-### End-to-end tests
-
-`/e2e` contains browser tests of the web pages, using [Playwright](https://playwright.dev/) with the installed Google Chrome. They test the running application, so start it first (see above). The main page examples and the detail pages they use (`1ymg`, `P10635`) must be in its data. Run them in `/e2e`:
-
-```bash
-$ npm install
-$ npm test
-```
-
-Like the development servers, they use `CHANNELSDB_PORT` (port `80` by default) or `CHANNELSDB_URL`. A test fails on any error in the page, and the pages are compared with screenshots in `tests/*-snapshots`. After an intended visual change, update them with `npm run test:update` and review the new images. Failed tests leave a trace with screenshots, DOM and network log in `test-results`, see `npx playwright show-trace`.
-
-The tests also run against the development server (`CHANNELSDB_URL=http://localhost:5173 npm test`), where they also fail on React's warnings.
-
-To test a change of the web pages without rebuilding the image, build them with `npm run build` in `/frontend` and serve the built files:
-
-```bash
-$ docker compose -f docker/compose.yaml -f docker/compose.local-dist.yaml up -d
-```
+The API is under the MIT licence, see [`api/LICENSE`](api/LICENSE). The website is under the Apache License 2.0, see
+[`frontend/LICENSE`](frontend/LICENSE).
