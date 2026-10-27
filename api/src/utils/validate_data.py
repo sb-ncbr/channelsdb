@@ -37,6 +37,9 @@ def has_type(value, types: Types) -> bool:
     return isinstance(value, types) and (bool in types or not isinstance(value, bool))
 
 
+# Parts of MOLE's files that nothing reads, the API serves only the channels (DATA_FIXES.md, fix 7)
+UNUSED_KEYS = ('Cavities',)
+
 # Keys of the layers' geometry that CAVER's files named differently from MOLE's (DATA_FIXES.md, fix 2)
 RENAMED_GEOMETRY_KEYS = {'bottleneck': 'Bottleneck'}
 
@@ -140,6 +143,7 @@ def channel_errors(name: str, data: dict) -> list[str]:
                 profiles.setdefault(error, []).append(path)
     for error, paths in profiles.items():
         errors.append(f'{name} has {len(paths)} channels whose profile is wrong: {error}, e.g. {paths[0]}')
+    errors += [f'{name} has {key}, which nothing reads' for key in UNUSED_KEYS if key in data]
     return errors + type_errors(name, data)
 
 

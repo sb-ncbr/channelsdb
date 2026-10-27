@@ -7,6 +7,7 @@
 - fix 5: the channels of a single point are removed (CAVER stored them where it found no tunnel), and so are the files
   of channels and the entries left without any
 - fix 6: the IDs of CAVER's channels are text, as in MOLE's files and as the annotations refer to them, not numbers
+- fix 7: the cavities MOLE computed, which nothing reads, are removed from its files
 
 Usage: fix_data.py SOURCE OUTPUT
 
@@ -20,6 +21,7 @@ be released.
 """
 import json
 import os
+import re
 import sys
 from collections import Counter
 from collections.abc import Callable
@@ -35,6 +37,7 @@ from utils.validate_data import (
     NUMBER,
     RENAMED_GEOMETRY_KEYS,
     TEXT,
+    UNUSED_KEYS,
     Types,
     along_path,
     geometries,
@@ -177,6 +180,51 @@ def fix_file(original: str) -> tuple[str | None, Counter]:
     return fixed, counts
 
 
+WHITESPACE = re.compile(r'[ \t\n\r]*')
+
+
+def without_member(text: str, key: str) -> str:
+    """The text of a JSON object without its top-level member key, every other character kept as it is (MOLE's files
+    are not written back the same by json.dumps)"""
+    decoder = json.JSONDecoder()
+    position = WHITESPACE.match(text).end()
+    if text[position] != '{':
+        raise FixError('not a JSON object')
+    position = WHITESPACE.match(text, position + 1).end()
+    members = []  # (key, where it starts, where its value ends)
+    while text[position] != '}':
+        start = position
+        name, position = decoder.raw_decode(text, position)
+        position = WHITESPACE.match(text, position).end()
+        if text[position] != ':':
+            raise FixError('not a JSON object')
+        _, position = decoder.raw_decode(text, WHITESPACE.match(text, position + 1).end())
+        members.append((name, start, position))
+        position = WHITESPACE.match(text, position).end()
+        if text[position] == ',':
+            position = WHITESPACE.match(text, position + 1).end()
+        elif text[position] != '}':
+            raise FixError('not a JSON object')
+
+    i = [name for name, _, _ in members].index(key)
+    if i + 1 < len(members):
+        # The member up to the next one, with its comma
+        cut = members[i][1], members[i + 1][1]
+    elif i > 0:
+        # The last member, with the comma after the previous one
+        cut = members[i - 1][2], members[i][2]
+    else:
+        cut = members[i][1], members[i][2]
+    fixed = text[:cut[0]] + text[cut[1]:]
+
+    # Read back: the same object without the member
+    original = json.loads(text)
+    del original[key]
+    if json.loads(fixed) != original:
+        raise FixError(f'more than {key} removed')
+    return fixed
+
+
 def fixed_members(datafile: Path) -> tuple[list[tuple[ZipInfo, bytes]], Counter, list[str]]:
     """The members of the entry's data.zip as they are to be (the files of channels left without any are removed), the
     numbers of what was fixed (and of the files changed and removed), and the errors"""
@@ -192,11 +240,19 @@ def fixed_members(datafile: Path) -> tuple[list[tuple[ZipInfo, bytes]], Counter,
                     if name.endswith('caver.json'):
                         fixed, fixed_counts = fix_file(content.decode('utf-8'))
                     else:
-                        # MOLE's files are not rewritten, their formatting would not be kept
-                        channels = [channel for group in json.loads(content)['Channels'].values() for channel in group]
+                        # MOLE's files are not rewritten, their formatting would not be kept: what nothing reads is cut
+                        # out of their text
+                        text = content.decode('utf-8')
+                        data = json.loads(text)
+                        channels = [channel for group in data['Channels'].values() for channel in group]
                         if not all(is_channel(channel) for channel in channels):
                             raise FixError('MOLE channels of a single point are not expected')
-                        fixed, fixed_counts = (content.decode('utf-8') if channels else None), Counter()
+                        fixed, fixed_counts = (text if channels else None), Counter()
+                        if fixed is not None:
+                            for key in UNUSED_KEYS:
+                                if key in data:
+                                    fixed = without_member(fixed, key)
+                                    fixed_counts[f'{key} removed'] += 1
                 except (FixError, ValueError, KeyError) as e:
                     # ValueError covers invalid UTF-8 and JSON
                     errors.append(f'{datafile}/{name}: {e}')
