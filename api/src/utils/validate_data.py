@@ -29,6 +29,7 @@ WORKERS = 16
 type Types = tuple[type, ...]
 FLAG: Types = (bool,)
 NUMBER: Types = (int, float)
+TEXT: Types = (str,)
 
 
 def has_type(value, types: Types) -> bool:
@@ -50,9 +51,10 @@ def geometries(data: dict) -> Iterator[tuple[dict, str]]:
 
 
 def typed_fields(data: dict) -> Iterator[tuple[dict, str, str, Types]]:
-    """The flags and numbers of a file of channels whose types are checked: the object holding each, its key, its path
-    in the file and its types. CAVER's files had them stored as text (DATA_FIXES.md, fix 1), the website and MOLEonline
-    read the text "false" as a set flag."""
+    """The flags, numbers and IDs of a file of channels whose types are checked: the object holding each, its key, its
+    path in the file and its types. CAVER's files had the flags and numbers stored as text (DATA_FIXES.md, fix 1), the
+    website and MOLEonline read the text "false" as a set flag; and the IDs of the channels as numbers (fix 6), while the
+    annotations refer to them as text, so the website did not find the annotations of CAVER's channels."""
     def field(container, key: str, path: str, types: Types) -> Iterator[tuple[dict, str, str, Types]]:
         if isinstance(container, dict) and key in container:
             yield container, key, f'{path}.{key}' if path else key, types
@@ -62,6 +64,7 @@ def typed_fields(data: dict) -> Iterator[tuple[dict, str, str, Types]]:
         yield from field(data.get('config'), key, 'config', FLAG)
     for group, channels in data.get('Channels', {}).items():
         for i, channel in enumerate(channels):
+            yield from field(channel, 'Id', f'Channels.{group}[{i}]', TEXT)
             yield from field(channel, 'Auto', f'Channels.{group}[{i}]', FLAG)
     for geometry, path in geometries(data):
         for key in ('LocalMinimum', 'Bottleneck'):

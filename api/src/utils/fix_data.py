@@ -6,6 +6,7 @@
   previous point, and T goes from 0 to 1 along the profile, as in MOLE's files
 - fix 5: the channels of a single point are removed (CAVER stored them where it found no tunnel), and so are the files
   of channels and the entries left without any
+- fix 6: the IDs of CAVER's channels are text, as in MOLE's files and as the annotations refer to them, not numbers
 
 Usage: fix_data.py SOURCE OUTPUT
 
@@ -31,7 +32,9 @@ from zipfile import ZipFile, ZipInfo
 from api.common import CHANNEL_TYPES
 from utils.validate_data import (
     FLAG,
+    NUMBER,
     RENAMED_GEOMETRY_KEYS,
+    TEXT,
     Types,
     along_path,
     geometries,
@@ -58,8 +61,11 @@ class FixError(Exception):
 
 
 def converted(value, types: Types):
-    """The JSON value of a flag or number stored as text"""
-    if isinstance(value, str):
+    """The JSON value of a flag or number stored as text, or the text of an ID stored as a number (as it is written)"""
+    if types == TEXT:
+        if has_type(value, NUMBER):
+            return json.dumps(value)
+    elif isinstance(value, str):
         if types == FLAG and value in ('true', 'false'):
             return value == 'true'
         if types != FLAG:
