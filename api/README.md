@@ -69,7 +69,9 @@ src/utils/update_data.sh --add /path/to/some/data
 An entry is updated as a whole file, so a changed `data.zip` must contain all the channels of the entry.
 
 Files unchanged since the current release are hardlinked, so a release takes only the space of the changed files.
-Never modify the files of a release in place, the change would show in all of them.
+Never modify the files of a release in place, the change would show in all of them. Only the new and changed files are
+read to validate them and calculate the statistics, and all of them after the rules of the validation change; the
+progress of reading them is shown every 30 seconds.
 
 To roll back, point the link to the previous release:
 

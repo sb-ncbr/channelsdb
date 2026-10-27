@@ -1,12 +1,29 @@
+import hashlib
 import json
+import math
+import os
 import re
 import sys
 from collections.abc import Iterator
+from concurrent.futures import ProcessPoolExecutor
+from itertools import pairwise, repeat
 from pathlib import Path
 from zipfile import ZipFile
 
+import api.common
 from api.common import CHANNEL_TYPES_ALPHAFILL, CHANNEL_TYPES_PDB, PDB_ID_LOWER_REGEX, UNIPROT_ID_REGEX, SourceDatabase
 from api.config import config
+from utils.progress import Progress
+
+
+BASE = Path(config['dirs']['base'])
+# The data.zip files that passed the validation, so that only the new and changed ones are read again, as reading all of
+# them takes long on the network storage. Keyed by paths relative to the data directory, so that the cache can be carried
+# over to a new release of the data; valid for the rules they were validated by (this file and the channel types).
+CACHE_FILE = BASE / '.validation_cache.json'
+RULES = hashlib.sha256(Path(__file__).read_bytes() + Path(api.common.__file__).read_bytes()).hexdigest()[:16]
+# Reading is bound by the latency of the storage, more parallel reads keep it busy
+WORKERS = 16
 
 
 type Types = tuple[type, ...]
@@ -53,15 +70,16 @@ def typed_fields(data: dict) -> Iterator[tuple[dict, str, str, Types]]:
             yield from field(geometry, key, path, NUMBER)
 
 
-def validate_types(name: str, data: dict) -> bool:
+def type_errors(name: str, data: dict) -> list[str]:
+    errors = []
     wrong = [(path, container[key]) for container, key, path, types in typed_fields(data) if not has_type(container[key], types)]
     if wrong:
         path, value = wrong[0]
-        print(f'{name} has {len(wrong)} values of a wrong type, e.g. {path} = {value!r}', file=sys.stderr)
+        errors.append(f'{name} has {len(wrong)} values of a wrong type, e.g. {path} = {value!r}')
     renamed = [f'{path}.{key}' for geometry, path in geometries(data) for key in RENAMED_GEOMETRY_KEYS if key in geometry]
     if renamed:
-        print(f'{name} has {len(renamed)} keys named differently than in MOLE, e.g. {renamed[0]}', file=sys.stderr)
-    return not wrong and not renamed
+        errors.append(f'{name} has {len(renamed)} keys named differently than in MOLE, e.g. {renamed[0]}')
+    return errors
 
 
 def is_channel(channel: dict) -> bool:
@@ -69,15 +87,57 @@ def is_channel(channel: dict) -> bool:
     return len(channel.get('Profile', [])) >= 2
 
 
-def validate_channels(name: str, data: dict) -> bool:
+def along_path(profile: list[dict]) -> list[float]:
+    """The distance of each point of a profile from the first one, along the path through the points"""
+    distances = [0.0]
+    for a, b in pairwise(profile):
+        distances.append(distances[-1] + math.dist((a['X'], a['Y'], a['Z']), (b['X'], b['Y'], b['Z'])))
+    return distances
+
+
+# The profile's Distance is the distance from the start along the points and T goes from 0 to 1, as in MOLE's files
+# (DATA_FIXES.md, fix 3). The last Distance of MOLE's profiles is the length of the path through the points within
+# 0.2 %, their values are rounded.
+PROFILE_TOLERANCE = 1e-3  # Å, and of T
+PATH_LENGTH_TOLERANCE = 0.005  # relative
+
+
+def profile_errors(profile: list[dict]) -> list[str]:
+    """The rules of fix 3 the channel's profile (of at least 2 points) breaks"""
+    distances = [point['Distance'] for point in profile]
+    ts = [point['T'] for point in profile]
+    length = along_path(profile)[-1]
+    errors = []
+    if abs(distances[0]) > PROFILE_TOLERANCE:
+        errors.append('Distance does not start at 0')
+    if any(b < a - PROFILE_TOLERANCE for a, b in pairwise(distances)):
+        errors.append('Distance decreases')
+    if abs(distances[-1] - length) > max(PROFILE_TOLERANCE, PATH_LENGTH_TOLERANCE * length):
+        errors.append('the last Distance is not the length of the path through the points')
+    if abs(ts[0]) > PROFILE_TOLERANCE or abs(ts[-1] - 1) > PROFILE_TOLERANCE:
+        errors.append('T does not go from 0 to 1')
+    if any(b < a - PROFILE_TOLERANCE for a, b in pairwise(ts)):
+        errors.append('T decreases')
+    return errors
+
+
+def channel_errors(name: str, data: dict) -> list[str]:
+    errors = []
     channels = [(f'Channels.{group}[{i}]', channel) for group, group_channels in data.get('Channels', {}).items()
                 for i, channel in enumerate(group_channels)]
     if not channels:
-        print(f'{name} has no channels', file=sys.stderr)
+        errors.append(f'{name} has no channels')
     single = [path for path, channel in channels if not is_channel(channel)]
     if single:
-        print(f'{name} has {len(single)} channels with fewer than 2 points, e.g. {single[0]}', file=sys.stderr)
-    return bool(channels) and not single and validate_types(name, data)
+        errors.append(f'{name} has {len(single)} channels with fewer than 2 points, e.g. {single[0]}')
+    profiles: dict[str, list[str]] = {}
+    for path, channel in channels:
+        if is_channel(channel):
+            for error in profile_errors(channel['Profile']):
+                profiles.setdefault(error, []).append(path)
+    for error, paths in profiles.items():
+        errors.append(f'{name} has {len(paths)} channels whose profile is wrong: {error}, e.g. {paths[0]}')
+    return errors + type_errors(name, data)
 
 
 def validate_annotations() -> bool:
@@ -103,10 +163,61 @@ def is_valid_id_dir(name: str, database: SourceDatabase) -> bool:
     return re.search(UNIPROT_ID_REGEX, name.upper()) is not None
 
 
-def validate_data(database: SourceDatabase) -> bool:
+def datafile_errors(datafile: Path, channel_types: set[str]) -> list[str]:
+    """The errors of an entry's data.zip, read in a worker process"""
+    errors = []
+    with ZipFile(datafile) as z:
+        if not any(Path(file).stem in channel_types for file in z.namelist()):
+            errors.append(f'{datafile} has no channels')
+        for file in z.namelist():
+            if Path(file).suffix != '.json' or Path(file).stem not in channel_types | {'annotations'}:
+                errors.append(f'{datafile} contains invalid file {file}')
+                continue
+            with z.open(file) as f:
+                try:
+                    data = json.load(f)
+                except json.decoder.JSONDecodeError as e:
+                    errors.append(f'{datafile}/{file} is not a valid JSON\n{e}')
+                    continue
+            if Path(file).stem in channel_types:
+                errors += channel_errors(f'{datafile}/{file}', data)
+    return errors
+
+
+def validate_datafiles(database: SourceDatabase, datafiles: list[Path], cache: dict[str, list], new_cache: dict[str, list]) -> bool:
+    """Validates the data.zip files not validated by these rules before, unchanged since then, in parallel"""
     channel_types = set(CHANNEL_TYPES_PDB) if database == SourceDatabase.PDB else set(CHANNEL_TYPES_ALPHAFILL)
+    to_read = []
+    for datafile in datafiles:
+        stat = datafile.stat()
+        key = str(datafile.relative_to(BASE))
+        if cache.get(key) == [stat.st_size, stat.st_mtime_ns, RULES]:
+            new_cache[key] = cache[key]
+        else:
+            to_read.append((datafile, key, stat))
+
+    print(f'{database}: {len(datafiles)} entries, validating {len(to_read)} new, changed or not validated by these rules',
+          file=sys.stderr, flush=True)
+    is_ok = True
+    progress = Progress(database, len(to_read))
+    with ProcessPoolExecutor(WORKERS) as executor:
+        results = executor.map(datafile_errors, [datafile for datafile, _, _ in to_read], repeat(channel_types), chunksize=16)
+        for (_, key, stat), errors in zip(to_read, results, strict=True):
+            for error in errors:
+                print(error, file=sys.stderr)
+            if errors:
+                # Files with errors are not cached, so that they are reported again
+                is_ok = False
+            else:
+                new_cache[key] = [stat.st_size, stat.st_mtime_ns, RULES]
+            progress.update(stat.st_size)
+    return is_ok
+
+
+def validate_data(database: SourceDatabase, cache: dict[str, list], new_cache: dict[str, list]) -> bool:
     is_ok = True
     root = Path(config['dirs'][database.lower()])
+    datafiles = []
     for datafile in root.rglob('*'):
         relpath = datafile.relative_to(root)
         if datafile.is_dir():
@@ -124,25 +235,7 @@ def validate_data(database: SourceDatabase) -> bool:
                 print(f'{datafile} is not a correctly placed file', file=sys.stderr)
                 is_ok = False
             elif datafile.name == 'data.zip':
-                with ZipFile(datafile) as z:
-                    if not any(Path(file).stem in channel_types for file in z.namelist()):
-                        print(f'{datafile} has no channels', file=sys.stderr)
-                        is_ok = False
-                    for file in z.namelist():
-                        if Path(file).suffix != '.json' or Path(file).stem not in channel_types | {'annotations'}:
-                            print(f'{datafile} contains invalid file {file}', file=sys.stderr)
-                            is_ok = False
-                            continue
-                        with z.open(file) as f:
-                            try:
-                                data = json.load(f)
-                            except json.decoder.JSONDecodeError as e:
-                                print(f'{datafile}/{file} is not a valid JSON', file=sys.stderr)
-                                print(e, file=sys.stderr)
-                                is_ok = False
-                                continue
-                        if Path(file).stem in channel_types:
-                            is_ok &= validate_channels(f'{datafile}/{file}', data)
+                datafiles.append(datafile)
             elif datafile.suffix == '.png':
                 if datafile.stem != relpath.parts[-2]:
                     print(f'{datafile} is not a correctly named image', file=sys.stderr)
@@ -153,13 +246,31 @@ def validate_data(database: SourceDatabase) -> bool:
         else:
             print(f'{datafile} is not a file, neither a directory', file=sys.stderr)
             is_ok = False
-    return is_ok
+    return validate_datafiles(database, datafiles, cache, new_cache) and is_ok
+
+
+def load_cache() -> dict[str, list]:
+    try:
+        with open(CACHE_FILE) as f:
+            return json.load(f)
+    except (FileNotFoundError, json.decoder.JSONDecodeError):
+        return {}
+
+
+def save_cache(cache: dict[str, list]) -> None:
+    tmp = CACHE_FILE.with_name(f'.{CACHE_FILE.name}.tmp')
+    with open(tmp, 'w') as f:
+        json.dump(cache, f)
+    os.replace(tmp, CACHE_FILE)
 
 
 def validate() -> bool:
+    cache = load_cache()
+    new_cache: dict[str, list] = {}
     is_ok = validate_annotations()
-    is_ok &= validate_data(SourceDatabase.PDB)
-    is_ok &= validate_data(SourceDatabase.AlphaFill)
+    is_ok &= validate_data(SourceDatabase.PDB, cache, new_cache)
+    is_ok &= validate_data(SourceDatabase.AlphaFill, cache, new_cache)
+    save_cache(new_cache)
     return is_ok
 
 

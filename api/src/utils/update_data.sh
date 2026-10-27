@@ -58,9 +58,12 @@ if (( add )); then
 else
     echo "Copying $source to $release"
     rsync "${rsync_opts[@]}" --delete "${link_dest[@]}" "$source/" "$release/"
-    if [[ -f $current/.statistics_cache.json ]]; then
-        cp "$current/.statistics_cache.json" "$release/"
-    fi
+    # What was read of the current release, so that only the new and changed files are read again
+    for cache in .validation_cache.json .statistics_cache.json; do
+        if [[ -f $current/$cache ]]; then
+            cp "$current/$cache" "$release/"
+        fi
+    done
 fi
 
 cd "$api_dir"

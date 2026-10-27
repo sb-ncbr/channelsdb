@@ -9,6 +9,7 @@ from zipfile import ZipFile
 
 from api.common import CHANNEL_TYPES, CHANNEL_TYPES_ALPHAFILL, CHANNEL_TYPES_PDB, SourceDatabase
 from api.config import config
+from utils.progress import Progress
 
 
 BASE = Path(config['dirs']['base'])
@@ -61,7 +62,8 @@ def get_statistics(database: SourceDatabase, cache: dict[str, list], new_cache: 
         else:
             to_read.append((datafile, stat))
 
-    print(f'{database}: {len(all_counts) + len(to_read)} entries, reading {len(to_read)} new or changed', file=sys.stderr)
+    print(f'{database}: {len(all_counts) + len(to_read)} entries, reading {len(to_read)} new or changed', file=sys.stderr, flush=True)
+    progress = Progress(database, len(to_read))
     with ProcessPoolExecutor(WORKERS) as executor:
         results = executor.map(count_channels, [datafile for datafile, _ in to_read], chunksize=16)
         for (datafile, stat), (counts, is_ok) in zip(to_read, results, strict=True):
@@ -69,6 +71,7 @@ def get_statistics(database: SourceDatabase, cache: dict[str, list], new_cache: 
             # Entries with errors are not cached, so that they are reported again
             if is_ok:
                 new_cache[str(datafile.relative_to(BASE))] = [stat.st_size, stat.st_mtime_ns, counts]
+            progress.update(stat.st_size)
 
     return {protein_id: Counter({value: counts.get(value, 0) for value in channel_types.values()})
             for protein_id, counts in all_counts.items()}

@@ -18,7 +18,6 @@ names and channels put back, it is the original byte for byte. Errors are report
 be released.
 """
 import json
-import math
 import os
 import sys
 from collections import Counter
@@ -30,7 +29,16 @@ from pathlib import Path
 from zipfile import ZipFile, ZipInfo
 
 from api.common import CHANNEL_TYPES
-from utils.validate_data import FLAG, RENAMED_GEOMETRY_KEYS, Types, geometries, has_type, is_channel, typed_fields
+from utils.validate_data import (
+    FLAG,
+    RENAMED_GEOMETRY_KEYS,
+    Types,
+    along_path,
+    geometries,
+    has_type,
+    is_channel,
+    typed_fields,
+)
 
 
 DATA_DIRS = ('PDB', 'AlphaFill')
@@ -70,14 +78,6 @@ def rename_keys(container: dict, names: dict[str, str]) -> None:
     items = list(container.items())
     container.clear()
     container.update((names.get(key, key), value) for key, value in items)
-
-
-def along_path(profile: list[dict]) -> list[float]:
-    """The distance of each point of a profile from the first one, along the path through the points"""
-    distances = [0.0]
-    for a, b in pairwise(profile):
-        distances.append(distances[-1] + math.dist((a['X'], a['Y'], a['Z']), (b['X'], b['Y'], b['Z'])))
-    return distances
 
 
 def fix_profiles(data: dict, counts: Counter) -> dict[str, list]:
