@@ -8,7 +8,13 @@
 #
 # The releases are kept in DATA_DIR/releases (default /data/releases), the API reads DATA_DIR/current, a link
 # to one of them. Files unchanged since the current release are hardlinked, so a release takes the space of the
-# changed files only. Nothing is switched if any step fails, the release is left as NAME.incomplete for inspection.
+# changed files only. So are the files of SOURCE when it is on the same file system, which are then not copied once
+# more; do not modify them afterwards. Nothing is switched if any step fails, the release is left as NAME.incomplete
+# for inspection.
+#
+# The validation and the statistics read only the files not read before: SOURCE may bring their caches
+# (.validation_cache.json, .statistics_cache.json) from where it was prepared, e.g. a release made elsewhere by the
+# same code, otherwise those of the current release are used.
 # Before switching, the changes against the current release are shown and have to be approved (YES=1 approves
 # them without asking). Set FORCE=1 to release data with considerably fewer entries than the current ones.
 #
@@ -23,7 +29,7 @@ if [[ ${1:-} == --add ]]; then
     add=1
     shift
 fi
-source=${1:?Usage: $0 [--add] SOURCE [DATA_DIR]}
+source=$(realpath "${1:?Usage: $0 [--add] SOURCE [DATA_DIR]}")
 data_dir=$(realpath "${2:-/data}")
 keep=${KEEP:-2}
 if [[ ! $keep =~ ^[1-9][0-9]*$ ]]; then
@@ -47,6 +53,11 @@ if [[ -e $current ]]; then
     link_dest=(--link-dest "$(realpath "$current")")
     previous=$(basename "$(realpath "$current")")
 fi
+# The files of the source are linked rather than copied, which matters for large ones on the slow storage
+source_link_dest=()
+if [[ $(stat -c %d "$source") == $(stat -c %d "$data_dir/releases") ]]; then
+    source_link_dest=(--link-dest "$source")
+fi
 
 if (( add )); then
     [[ -e $current ]] || { echo "No current data to add to" >&2; exit 1; }
@@ -54,13 +65,14 @@ if (( add )); then
     rsync "${rsync_opts[@]}" "${link_dest[@]}" "$current/" "$release/"
     # rsync replaces the changed files with new ones, the hardlinked files of the current release are not modified
     echo "Adding $source to $release"
-    rsync "${rsync_opts[@]}" "$source/" "$release/"
+    rsync "${rsync_opts[@]}" "${source_link_dest[@]}" "$source/" "$release/"
 else
     echo "Copying $source to $release"
-    rsync "${rsync_opts[@]}" --delete "${link_dest[@]}" "$source/" "$release/"
-    # What was read of the current release, so that only the new and changed files are read again
+    rsync "${rsync_opts[@]}" --delete "${link_dest[@]}" "${source_link_dest[@]}" "$source/" "$release/"
+    # What was read of the current release, so that only the new and changed files are read again, unless the source
+    # brought what was read where it was prepared
     for cache in .validation_cache.json .statistics_cache.json; do
-        if [[ -f $current/$cache ]]; then
+        if [[ ! -f $release/$cache && -f $current/$cache ]]; then
             cp "$current/$cache" "$release/"
         fi
     done

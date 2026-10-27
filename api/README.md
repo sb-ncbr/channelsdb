@@ -71,7 +71,10 @@ An entry is updated as a whole file, so a changed `data.zip` must contain all th
 Files unchanged since the current release are hardlinked, so a release takes only the space of the changed files.
 Never modify the files of a release in place, the change would show in all of them. Only the new and changed files are
 read to validate them and calculate the statistics, and all of them after the rules of the validation change; the
-progress of reading them is shown every 30 seconds.
+progress of reading them is shown every 30 seconds. Data prepared and released elsewhere by the same code (e.g. fixed
+on another machine) can bring what was read there: copy that release with its `.validation_cache.json` and
+`.statistics_cache.json`, keeping the times of the files, and release the copy. On the same file system, its files are
+hardlinked into the release instead of being copied once more.
 
 To roll back, point the link to the previous release:
 
