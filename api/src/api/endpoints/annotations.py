@@ -1,8 +1,10 @@
 import gzip
 import json
 import logging
+import time
 import xml.etree.ElementTree as ET
 import zlib
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -182,20 +184,37 @@ def get_annotations_alphafill(uniprot_id: Uniprot_ID_Format_Type) -> Annotations
     return annotations
 
 
-@router.get('/annotations/pdb/{pdb_id}', name='Annotation data', tags=['PDB'],
-            description='Returns annotations of individual protein and its residues', responses=pdb_id_404_response)
-def get_annotations_pdb(pdb_id: PDB_ID_Format_Type) -> Annotations:
-    annotations = Annotations()
-    req = session.get(f'https://ftp.ebi.ac.uk/pub/databases/msd/sifts/xml/{pdb_id}.xml.gz', timeout=10)
+SIFTS_TTL = 86400  # seconds
+SIFTS_URL = 'https://ftp.ebi.ac.uk/pub/databases/msd/sifts/xml/{pdb_id}.xml.gz'
+
+
+# Every view of an entry's annotations needs its SIFTS mappings, which change only when the entry is revised, while
+# EBI's FTP server can be slow to send them. They are kept for at most SIFTS_TTL. Failures are not cached.
+# Callers must not modify the returned data.
+def get_sifts(pdb_id: str) -> dict[str, SiftsMapping]:
+    return _get_sifts(pdb_id, int(time.monotonic() // SIFTS_TTL))
+
+
+# Fewer than of the PDBe summaries, the mappings of large entries take much more memory
+@lru_cache(maxsize=256)
+def _get_sifts(pdb_id: str, _time_window: int) -> dict[str, SiftsMapping]:
+    # A new time window makes the cached mappings from the previous one unused
+    req = session.get(SIFTS_URL.format(pdb_id=pdb_id), timeout=10)
     check_response(req, 'PDBe server', f'Cannot find annotations for PDB ID \'{pdb_id}\'')
 
     try:
-        sifts = parse_sifts_data(gzip.decompress(req.content).decode('utf-8'))
+        return parse_sifts_data(gzip.decompress(req.content).decode('utf-8'))
     except (OSError, EOFError, zlib.error, ET.ParseError, ValueError, KeyError):
         # OSError, EOFError and zlib.error cover invalid, truncated or corrupted gzip data,
         # ValueError invalid UTF-8 and unexpected documents
         raise unexpected_response('PDBe server', req.url) from None
-    for uniprot_id, mapping in sifts.items():
+
+
+@router.get('/annotations/pdb/{pdb_id}', name='Annotation data', tags=['PDB'],
+            description='Returns annotations of individual protein and its residues', responses=pdb_id_404_response)
+def get_annotations_pdb(pdb_id: PDB_ID_Format_Type) -> Annotations:
+    annotations = Annotations()
+    for uniprot_id, mapping in get_sifts(pdb_id).items():
         try:
             fill_annotations(annotations, mapping, uniprot_id)
         except HTTPException as e:

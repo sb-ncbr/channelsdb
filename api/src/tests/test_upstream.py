@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 from api import common
 from api.common import SourceDatabase, _get_pdbe_summary, get_pdbe_summary, protein_dir, session
 from api.config import config
+from api.endpoints.annotations import _get_sifts
 from api.endpoints.assembly import get_assembly_id
 from api.main import app
 
@@ -66,10 +67,12 @@ def upstream(monkeypatch):
 
     monkeypatch.setattr(session, 'get', get)
     monkeypatch.setattr(session, 'head', lambda url, **kwargs: reply('uniprot', ''))
-    # Summaries cached by other tests would bypass the mocked responses
+    # Summaries and mappings cached by other tests would bypass the mocked responses
     _get_pdbe_summary.cache_clear()
+    _get_sifts.cache_clear()
     yield statuses
     _get_pdbe_summary.cache_clear()
+    _get_sifts.cache_clear()
 
 
 def uniprot_ids(response) -> list[str]:
@@ -94,6 +97,22 @@ def test_all_uniprot_ids_unknown(upstream):
     response = client.get('/annotations/pdb/1abc')
     assert response.status_code == 200
     assert uniprot_ids(response) == []
+
+
+def test_sifts_are_fetched_once(upstream, monkeypatch):
+    fetched = []
+    get = session.get
+    monkeypatch.setattr(session, 'get', lambda url, **kwargs: fetched.append(url) or get(url, **kwargs))
+    for _ in range(2):
+        assert uniprot_ids(client.get('/annotations/pdb/1abc')) == ['P11111', 'P22222']
+    assert sum('sifts' in url for url in fetched) == 1
+
+
+def test_sifts_failure_is_not_cached(upstream):
+    upstream['sifts'] = 503
+    assert client.get('/annotations/pdb/1abc').status_code == 502
+    upstream['sifts'] = 200
+    assert client.get('/annotations/pdb/1abc').status_code == 200
 
 
 @pytest.mark.parametrize('status_code', [400, 403, 429, 500, 503])
