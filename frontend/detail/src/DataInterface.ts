@@ -7,16 +7,7 @@ export interface LayerGeometry{
     StartDistance:number,
     EndDistance:number,
     LocalMinimum: boolean,
-    Bottleneck: boolean,
-    bottleneck: boolean
-};
-export interface LayerGeometryCaver{
-    MinRadius:number,
-    MinFreeRadius:number,
-    StartDistance:number,
-    EndDistance:number,
-    LocalMinimum: boolean,
-    bottleneck: boolean
+    Bottleneck: boolean
 };
 export interface Layerweightedproperties{
     Hydrophobicity: number,
@@ -30,23 +21,11 @@ export interface LayersInfo{
     FlowIndices:string[],
     Properties:Properties 
 };
-export interface LayersInfoCaver{
-    LayerGeometry:LayerGeometryCaver,
-    Residues:string[],
-    FlowIndices:string[],
-    Properties:Properties 
-};
 export interface Layers{
     ResidueFlow:string[],
     HetResidues:any[], //Not Used
     LayerWeightedProperties:Layerweightedproperties
     LayersInfo:LayersInfo[]
-};
-export interface LayersCaver{
-    ResidueFlow:string[],
-    HetResidues:any[], //Not Used
-    LayerWeightedProperties:Layerweightedproperties
-    LayersInfo:LayersInfoCaver[]
 };
 export interface Profile{
     Radius: number,
@@ -84,15 +63,6 @@ export interface TunnelMetaInfo{
     __ref: string,
     __group: number,
     __loci: Shape.Loci,
-};
-export interface TunnelCaver{
-    Type: string,
-    Id: string,
-    Cavity: string,
-    Auto: boolean,
-    Properties: Properties,
-    Profile: Profile[],
-    Layers: LayersCaver
 };
 export interface MoleData{
     Channels:{
