@@ -64,6 +64,22 @@ def validate_types(name: str, data: dict) -> bool:
     return not wrong and not renamed
 
 
+def is_channel(channel: dict) -> bool:
+    """A channel is a path: CAVER stored a single point where it found none (DATA_FIXES.md, fix 5)"""
+    return len(channel.get('Profile', [])) >= 2
+
+
+def validate_channels(name: str, data: dict) -> bool:
+    channels = [(f'Channels.{group}[{i}]', channel) for group, group_channels in data.get('Channels', {}).items()
+                for i, channel in enumerate(group_channels)]
+    if not channels:
+        print(f'{name} has no channels', file=sys.stderr)
+    single = [path for path, channel in channels if not is_channel(channel)]
+    if single:
+        print(f'{name} has {len(single)} channels with fewer than 2 points, e.g. {single[0]}', file=sys.stderr)
+    return bool(channels) and not single and validate_types(name, data)
+
+
 def validate_annotations() -> bool:
     is_ok = True
     root = Path(config['dirs']['annotations'])
@@ -109,6 +125,9 @@ def validate_data(database: SourceDatabase) -> bool:
                 is_ok = False
             elif datafile.name == 'data.zip':
                 with ZipFile(datafile) as z:
+                    if not any(Path(file).stem in channel_types for file in z.namelist()):
+                        print(f'{datafile} has no channels', file=sys.stderr)
+                        is_ok = False
                     for file in z.namelist():
                         if Path(file).suffix != '.json' or Path(file).stem not in channel_types | {'annotations'}:
                             print(f'{datafile} contains invalid file {file}', file=sys.stderr)
@@ -123,7 +142,7 @@ def validate_data(database: SourceDatabase) -> bool:
                                 is_ok = False
                                 continue
                         if Path(file).stem in channel_types:
-                            is_ok &= validate_types(f'{datafile}/{file}', data)
+                            is_ok &= validate_channels(f'{datafile}/{file}', data)
             elif datafile.suffix == '.png':
                 if datafile.stem != relpath.parts[-2]:
                     print(f'{datafile} is not a correctly named image', file=sys.stderr)
