@@ -112,6 +112,9 @@ PATH_LENGTH_TOLERANCE = 0.005  # relative
 # further had their profile cut short, the rest of the tunnel squeezed into the last layer. MOLE's end before it.
 LAYERS_PAST_PROFILE = 5.0
 
+# What a channel is; its name, if any, is in the annotations, with its reference
+CHANNEL_KINDS = ('Tunnel', 'Pore', 'Path')
+
 
 def profile_errors(profile: list[dict]) -> list[str]:
     """The rules of fix 3 the channel's profile (of at least 2 points) breaks"""
@@ -141,6 +144,9 @@ def channel_errors(name: str, data: dict) -> list[str]:
     single = [path for path, channel in channels if not is_channel(channel)]
     if single:
         errors.append(f'{name} has {len(single)} channels with fewer than 2 points, e.g. {single[0]}')
+    kinds = [f'{path}.Type = {channel.get("Type")!r}' for path, channel in channels if channel.get('Type') not in CHANNEL_KINDS]
+    if kinds:
+        errors.append(f'{name} has {len(kinds)} channels whose Type is not one of {", ".join(CHANNEL_KINDS)}, e.g. {kinds[0]}')
     profiles: dict[str, list[str]] = {}
     for path, channel in channels:
         if is_channel(channel):
