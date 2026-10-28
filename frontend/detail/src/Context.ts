@@ -22,12 +22,54 @@ import { TrajectoryFromMmCif, ModelFromTrajectory, StructureFromModel, Structure
 import { StructureRepresentation3D } from "molstar/lib/mol-plugin-state/transforms/representation";
 import { TunnelFromRawData, TunnelShapeProvider } from "molstar/lib/extensions/sb-ncbr"
 import { Tunnel } from "molstar/lib/extensions/sb-ncbr/tunnels/data-model"
+import { StateBuilder } from "molstar/lib/mol-state";
+import { Model } from "molstar/lib/mol-model/structure";
+import { ModelSymmetry } from "molstar/lib/mol-model-formats/structure/property/symmetry";
+import { MolScriptBuilder as MS } from "molstar/lib/mol-script/language/builder";
+import { Expression } from "molstar/lib/mol-script/language/expression";
+import { formatMolScript } from "molstar/lib/mol-script/language/expression-formatter";
+import { Script } from "molstar/lib/mol-script/script";
+
+/** The structure the channels of a category were computed on: the preferred assembly of the PDB entry or its deposited
+ * model (the asymmetric unit). Not known for the reviewed channels. */
+const COMPUTED_ON: { [category: string]: 'assembly' | 'model' } = {
+  CSATunnels_MOLE: 'assembly',
+  CofactorTunnels_MOLE: 'assembly',
+  TransmembranePores_MOLE: 'assembly',
+  CSATunnels_Caver: 'model',
+  CofactorTunnels_Caver: 'model',
+  TransmembranePores_Caver: 'model',
+  ProcognateTunnels_MOLE: 'model',
+  ProcognateTunnels_Caver: 'model',
+};
+
+/** Transparency of the parts of the structure that the shown channels were not computed with */
+const GHOST_TRANSPARENCY = 0.85;
+
+/** Color of the symmetry copies, so that the deposited chains, which residues and annotations refer to, stand out */
+const COPIES_COLOR = Color(0x9a9a9a);
+
+/** The parts of the shown structure in only one of the preferred assembly and the deposited model, with the
+ * transparency of their representations */
+interface AssemblyParts {
+  /** Chains of the deposited model not in the assembly (e.g. other copies in the crystal) */
+  outside: Expression | undefined,
+  /** Transparency of the deposited model's representations, applied to the outside chains */
+  modelTransparencies: string[],
+  /** Transparency of the representations of the assembly's symmetry copies, which the deposited model does not have */
+  copiesTransparencies: string[],
+  /** Whether the outside chains and the copies are transparent now */
+  dimmed: { outside: boolean, copies: boolean },
+}
 
 export class Context {
   plugin: PluginUIContext;
   // Loaded by loadChannelData, before any channel is shown
   data!: ChannelsDBData;
+  // The deposited model: the structure the residues of the channels are looked up in
   assemblyRef = '';
+  // Set by load when the preferred assembly differs from the deposited model
+  assemblyParts?: AssemblyParts;
   selectedParams: any;
   selectedLoci: Loci | null = null;
   // Colors of the 3D view after loading, which visual.reset returns to
@@ -78,47 +120,128 @@ export class Context {
     return [tunnlRepr.data!.repr.getAllLoci()[0], repr.ref];
   }
 
-  async load(url: string, isBinary: boolean) {
+  /** The deposited model of the structure at url; with assemblyId (a PDB entry's preferred assembly), also the
+   * assembly's symmetry copies, so that all channels are shown with the structure they were computed with */
+  async load(url: string, isBinary: boolean, assemblyId?: Promise<string | undefined>) {
     const update = this.plugin.build();
-    const structure = await update.toRoot()
+    const model = update.toRoot()
         .apply(Download, { url, isBinary })
         .apply(ParseCif)
         .apply(TrajectoryFromMmCif)
-        .apply(ModelFromTrajectory)
-        .apply(StructureFromModel);
-
-    const polymer = structure.apply(StructureComponent, { type: { name: 'static', params: 'polymer' } });
-    const water = structure.apply(StructureComponent, { type: { name: 'static', params: 'water' } });
-    const het = structure.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-het' }, { ref: "het" });
-
-    polymer.apply(StructureRepresentation3D, {
-        type: { name: 'cartoon', params: { alpha: 1 } },
-        colorTheme: { name: 'chain-id', params: {} },
-    });
-    het.apply(StructureRepresentation3D, {
-        type: { name: 'ball-and-stick', params: { alpha: 1 } },
-        colorTheme: { name: 'element-symbol', params: {} },
-        sizeTheme: { name: 'physical', params: {} },
-    });
-    water.apply(StructureRepresentation3D, {
-        type: { name: 'ball-and-stick', params: { alpha: 1 } },
-        colorTheme: { name: 'element-symbol', params: {} },
-        sizeTheme: { name: 'physical', params: {} },
-    });
+        .apply(ModelFromTrajectory);
+    const structure = model.apply(StructureFromModel);
+    const modelRepresentations = this.represent(structure, "het");
 
     await update.commit();
 
-    const pivotIndex = this.plugin.managers.structure.hierarchy.selection.structures.length - 1;
-    const pivot = this.plugin.managers.structure.hierarchy.selection.structures[pivotIndex];
-    if (pivot && pivot.cell.parent) { 
-      this.assemblyRef = pivot.cell.transform.ref;
-      this.assemblyRef = pivot.cell.transform.ref;
-    };
+    this.assemblyRef = structure.ref;
     await this.visual.setDefaultColor({r:255,g:0,b:255});
     if (this.plugin.canvas3d) {
       this.defaultRendererProps = { ...this.plugin.canvas3d.props.renderer };
       this.defaultMarkingProps = { ...this.plugin.canvas3d.props.marking };
     }
+
+    const id = await assemblyId;
+    if (id !== undefined) await this.addAssembly(model.ref, modelRepresentations, id);
+  }
+
+  /** The representations of the polymer, HET groups and water of structure, their refs; with color, the polymer and the
+   * carbons of HET groups in that color instead of by chain */
+  private represent(structure: StateBuilder.To<PluginStateObject.Molecule.Structure>, hetRef?: string, color?: Color): string[] {
+    const polymer = structure.apply(StructureComponent, { type: { name: 'static', params: 'polymer' } });
+    const water = structure.apply(StructureComponent, { type: { name: 'static', params: 'water' } });
+    const het = structure.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-het' }, hetRef ? { ref: hetRef } : undefined);
+
+    return [
+      polymer.apply(StructureRepresentation3D, {
+        type: { name: 'cartoon', params: { alpha: 1 } },
+        colorTheme: color === undefined ? { name: 'chain-id', params: {} } : { name: 'uniform', params: { value: color } },
+      }).ref,
+      het.apply(StructureRepresentation3D, {
+        type: { name: 'ball-and-stick', params: { alpha: 1 } },
+        colorTheme: { name: 'element-symbol', params: color === undefined ? {} : { carbonColor: { name: 'uniform', params: { value: color } } } },
+        sizeTheme: { name: 'physical', params: {} },
+      }).ref,
+      water.apply(StructureRepresentation3D, {
+        type: { name: 'ball-and-stick', params: { alpha: 1 } },
+        colorTheme: { name: 'element-symbol', params: {} },
+        sizeTheme: { name: 'physical', params: {} },
+      }).ref,
+    ];
+  }
+
+  /** Adds the symmetry copies of the assembly to the deposited model, and transparency to the parts that only one of
+   * them has, set by updateAssemblyParts. Nothing when the assembly is the deposited model. */
+  private async addAssembly(modelRef: string, modelRepresentations: string[], assemblyId: string) {
+    const model = this.plugin.state.data.select(modelRef)[0]?.obj?.data as Model | undefined;
+    const assembly = model && ModelSymmetry.Provider.get(model)?.assemblies.find(a => a.id === assemblyId);
+    if (!model || !assembly) return;
+
+    const chains = Array.from(model.atomicHierarchy.chains.label_asym_id.toArray());
+    const atIdentity = new Set<string>();
+    const copies: string[] = [];
+    for (const group of assembly.operatorGroups) {
+      for (const operator of group.operators) {
+        if (operator.isIdentity) (group.asymIds ?? chains).forEach(chain => atIdentity.add(chain));
+        else copies.push(operator.name);
+      }
+    }
+    const outside = [...new Set(chains)].filter(chain => !atIdentity.has(chain));
+    if (copies.length === 0 && outside.length === 0) return;
+
+    const update = this.plugin.build();
+    const modelTransparencies = outside.length === 0 ? [] : modelRepresentations.map(ref =>
+      update.to(ref).apply(StateTransforms.Representation.TransparencyStructureRepresentation3DFromScript, { layers: [] }).ref);
+    let copiesTransparencies: string[] = [];
+    if (copies.length > 0) {
+      const copiesOnly = MS.struct.generator.atomGroups({
+        'chain-test': MS.core.set.has([MS.set(...copies), MS.struct.atomProperty.core.operatorName()]),
+      });
+      const copiesStructure = update.to(modelRef)
+        .apply(StructureFromModel, { type: { name: 'assembly', params: { id: assemblyId } } })
+        .apply(StructureComponent, { type: { name: 'expression', params: copiesOnly }, nullIfEmpty: true, label: 'Symmetry copies' });
+      copiesTransparencies = this.represent(copiesStructure, undefined, COPIES_COLOR).map(ref =>
+        update.to(ref).apply(StateTransforms.Representation.TransparencyStructureRepresentation3DFromScript, { layers: [] }).ref);
+    }
+    await update.commit();
+    // The view was set for the deposited model only
+    if (copies.length > 0) await PluginCommands.Camera.Reset(this.plugin, {});
+
+    this.assemblyParts = {
+      outside: outside.length === 0 ? undefined : MS.struct.generator.atomGroups({
+        'chain-test': MS.core.set.has([MS.set(...outside), MS.struct.atomProperty.macromolecular.label_asym_id()]),
+      }),
+      modelTransparencies,
+      copiesTransparencies,
+      dimmed: { outside: false, copies: false },
+    };
+    await this.updateAssemblyParts();
+  }
+
+  /** Makes transparent the parts of the structure that none of the shown channels were computed with: the chains
+   * outside the assembly when only channels computed on the assembly are shown, the symmetry copies when only
+   * channels computed on the deposited model are. Nothing when no channel or a channel of unknown origin is shown. */
+  async updateAssemblyParts() {
+    const parts = this.assemblyParts;
+    if (!parts || !this.data) return;
+    const shown: string[] = Object.entries(this.data.Channels)
+      .filter(([, channels]) => (channels as any[] | undefined)?.some(channel => channel.__isVisible))
+      .map(([category]) => COMPUTED_ON[category] ?? 'unknown');
+    const known = shown.length > 0 && !shown.includes('unknown');
+    const dimmed = { outside: known && !shown.includes('model'), copies: known && !shown.includes('assembly') };
+    if (dimmed.outside === parts.dimmed.outside && dimmed.copies === parts.dimmed.copies) return;
+    parts.dimmed = dimmed;
+    const layers = (dim: boolean, selection: Expression) =>
+      dim ? [{ script: Script(formatMolScript(selection), 'mol-script'), value: GHOST_TRANSPARENCY }] : [];
+
+    const update = this.plugin.build();
+    if (parts.outside) {
+      for (const ref of parts.modelTransparencies) update.to(ref).update({ layers: layers(dimmed.outside, parts.outside) });
+    }
+    for (const ref of parts.copiesTransparencies) {
+      update.to(ref).update({ layers: layers(dimmed.copies, MS.struct.generator.all()) });
+    }
+    await update.commit();
   }
 
   getData() {

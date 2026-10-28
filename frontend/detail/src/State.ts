@@ -216,6 +216,8 @@ async function updateChannelVisuals(plugin: Context, channels: Tunnel[]&TunnelMe
         }
     }
 
+    await plugin.updateAssemblyParts();
+
     return Promise.resolve().then(()=>{
         for(let channel of channels){
             channel.__isBusy = false;

@@ -16,7 +16,11 @@ export class Viewer extends React.Component<{ context: Context }> {
         let subDB = GlobalRouter.getCurrentDB();
         this.props.context.canvas.setBgColor({r: 0, g: 0, b: 0})
         if (subDB === 'pdb') {
-            this.props.context.load(`https://models.rcsb.org/${pid}.bcif`, true)
+            // The preferred assembly: most channels were computed on it, and the deposited model may not have all its chains
+            const assemblyId = fetch(`${GlobalRouter.getChannelsURL()}/assembly/${pid}`)
+                .then(response => response.ok ? response.json() as Promise<string> : undefined)
+                .catch(() => undefined);
+            this.props.context.load(`https://models.rcsb.org/${pid}.bcif`, true, assemblyId)
             // this.props.context.load(`https://www.ebi.ac.uk/pdbe/entry-files/download/${pid}.bcif`)
         } else {
             this.props.context.load(`https://alphafill.eu/v1/aff/${pid.toLocaleUpperCase()}`, false);
