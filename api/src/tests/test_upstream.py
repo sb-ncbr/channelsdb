@@ -1,5 +1,6 @@
 import gzip
 import json
+import sys
 import zipfile
 
 import pytest
@@ -8,7 +9,7 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from api import common
-from api.common import SourceDatabase, _get_pdbe_summary, get_pdbe_summary, protein_dir, session
+from api.common import SourceDatabase, _get_pdbe_status, _get_pdbe_summary, get_pdbe_summary, protein_dir, session
 from api.config import config
 from api.endpoints.annotations import _get_sifts
 from api.endpoints.assembly import get_assembly_id
@@ -34,6 +35,9 @@ SIFTS = ('<entry xmlns="http://www.ebi.ac.uk/pdbe/docs/sifts/eFamily.xsd">'
 
 SUMMARY = '{"1abc": [{"assemblies": [{"assembly_id": "1", "preferred": true}]}]}'
 
+# PDBe's status of 1abc, asked when it has no summary; tests set the status they need
+STATUS = {'1abc': [{'status_code': 'REL', 'since': '20050208', 'superceded_by': []}]}
+
 UNIPROT = '<uniprot xmlns="https://uniprot.org/uniprot"><entry><protein><recommendedName><fullName>Protein</fullName></recommendedName></protein></entry></uniprot>'
 
 
@@ -47,7 +51,7 @@ def response(status_code: int, content: bytes = b'') -> requests.Response:
 
 @pytest.fixture
 def upstream(monkeypatch):
-    """Mock the external APIs. Status codes can be set for 'pdbe', 'sifts', 'uniprot' (ID validation)
+    """Mock the external APIs. Status codes can be set for 'pdbe', 'status' (PDBe's status of an entry), 'sifts', 'uniprot' (ID validation)
     or for individual UniProt IDs (EBI Proteins API); everything else succeeds."""
     statuses: dict[str, int] = {}
 
@@ -61,6 +65,8 @@ def upstream(monkeypatch):
             return response(status, gzip.compress(SIFTS.encode()) if status == 200 else b'')
         if 'proteins/api' in url:
             return reply(url.rsplit('/', 1)[-1], UNIPROT)
+        if 'entry/status' in url:
+            return reply('status', json.dumps(STATUS))
         if 'pdbe/api' in url:
             return reply('pdbe', SUMMARY)
         raise AssertionError(f'Unexpected request: {url}')
@@ -69,9 +75,11 @@ def upstream(monkeypatch):
     monkeypatch.setattr(session, 'head', lambda url, **kwargs: reply('uniprot', ''))
     # Summaries and mappings cached by other tests would bypass the mocked responses
     _get_pdbe_summary.cache_clear()
+    _get_pdbe_status.cache_clear()
     _get_sifts.cache_clear()
     yield statuses
     _get_pdbe_summary.cache_clear()
+    _get_pdbe_status.cache_clear()
     _get_sifts.cache_clear()
 
 
@@ -286,3 +294,54 @@ def test_empty_annotations(upstream, monkeypatch):
     result = client.get('/annotations/alphafill/P11111')
     assert result.status_code == 200
     assert uniprot_ids(result) == ['P11111']
+
+
+def obsolete(monkeypatch, successors: list[str]) -> None:
+    status = {'1abc': [{'status_code': 'OBS', 'since': '20200715', 'superceded_by': successors}]}
+    monkeypatch.setattr(sys.modules[__name__], 'STATUS', status)
+
+
+def test_obsolete_entry(upstream, stored, monkeypatch):
+    upstream['pdbe'] = 404
+    obsolete(monkeypatch, ['1XYZ', '2abc'])
+    response = client.get('/channels/pdb/1abc')
+    assert response.status_code == 404
+    assert response.json() == {'detail': "PDB entry '1abc' is obsolete since 2020-07-15, superseded by 1xyz, 2abc",
+                               'obsolete_since': '2020-07-15',
+                               'superseded_by': [{'pdb_id': '1xyz', 'in_channelsdb': True}, {'pdb_id': '2abc', 'in_channelsdb': False}]}
+
+
+def test_obsolete_entry_without_successor(upstream, monkeypatch):
+    upstream['pdbe'] = 404
+    obsolete(monkeypatch, [])
+    response = client.get('/channels/pdb/1abc')
+    assert response.status_code == 404
+    assert response.json()['detail'] == "PDB entry '1abc' is obsolete since 2020-07-15, without a successor"
+    assert response.json()['superseded_by'] == []
+
+
+@pytest.mark.parametrize('status', [None, 404, 503])
+def test_not_obsolete_or_status_unknown(upstream, status):
+    # Released (the default status), unknown to PDBe or the status failed: the 404 as before
+    upstream['pdbe'] = 404
+    if status is not None:
+        upstream['status'] = status
+    response = client.get('/channels/pdb/1abc')
+    assert response.status_code == 404
+    assert response.json() == {'detail': "Cannot find PDB ID '1abc'"}
+
+
+@pytest.mark.parametrize('error', [requests.ConnectionError, requests.Timeout])
+def test_status_unreachable(upstream, monkeypatch, error):
+    # PDBe confirmed that it has no summary; not reaching its status leaves the 404, not 502 or 504
+    upstream['pdbe'] = 404
+    get = session.get
+
+    def failing(url, **kwargs):
+        if 'entry/status' in url:
+            raise error(f'Unreachable: {url}')
+        return get(url, **kwargs)
+    monkeypatch.setattr(session, 'get', failing)
+    response = client.get('/channels/pdb/1abc')
+    assert response.status_code == 404
+    assert response.json() == {'detail': "Cannot find PDB ID '1abc'"}

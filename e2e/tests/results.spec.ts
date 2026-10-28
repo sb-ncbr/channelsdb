@@ -125,6 +125,57 @@ test('failed annotations leave the channels shown', async ({ page, pageErrors })
     ignoreFailedRequests(pageErrors);
 });
 
+// The API's 404 for an obsolete PDB entry
+const obsolete = (successors: { pdb_id: string, in_channelsdb: boolean }[]) => ({
+    detail: `PDB entry '4gn6' is obsolete since 2012-09-19`,
+    obsolete_since: '2012-09-19',
+    superseded_by: successors,
+});
+
+// An obsolete entry's structure is not served by RCSB any more, the 3D view fails to load it (and logs it)
+async function obsoleteStructure(page: Page) {
+    await page.route('https://models.rcsb.org/**', (route) => route.fulfill({ status: 404, body: '' }));
+}
+
+// Waits for the error, which may come after the test's checks, then removes it
+async function ignoreMissingStructure(pageErrors: string[]) {
+    const missing = (error: string) => error.startsWith('console.error: Error: Download failed with status code 404');
+    await expect.poll(() => pageErrors.some(missing)).toBe(true);
+    const others = pageErrors.filter((error) => !missing(error));
+    pageErrors.splice(0, pageErrors.length, ...others);
+}
+
+test('an obsolete entry links to its successor, also when other requests answer later', async ({ page, pageErrors }) => {
+    await obsoleteStructure(page);
+    await page.route('**/api/channels/**', (route) => route.fulfill({ status: 404, json: obsolete([{ pdb_id: '6m7e', in_channelsdb: true }]) }));
+    // A late answer elsewhere must not replace the message
+    await page.route('**/api/statistics', async (route) => {
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        await route.continue();
+    });
+    await page.goto('/detail/pdb/4gn6');
+    const message = page.locator('.error-message');
+    await expect(message).toContainText('PDB entry 4gn6 is obsolete (since 2012-09-19)');
+    await page.waitForTimeout(4000);
+    await expect(message).toContainText('It was superseded by 6m7e.');
+    await expect(message.getByRole('link', { name: '6m7e' })).toHaveAttribute('href', '/detail/pdb/6m7e');
+    await expect(page.getByRole('button', { name: 'Reload Data' })).toHaveCount(0);
+    ignoreFailedRequests(pageErrors);
+    await ignoreMissingStructure(pageErrors);
+});
+
+test('an obsolete entry without its successor in ChannelsDB links to PDBe', async ({ page, pageErrors }) => {
+    await obsoleteStructure(page);
+    await page.route('**/api/channels/**', (route) => route.fulfill({ status: 404, json: obsolete([{ pdb_id: '9vm1', in_channelsdb: false }]) }));
+    await page.goto('/detail/pdb/4gn6');
+    const message = page.locator('.error-message');
+    await expect(message).toContainText('superseded by 9vm1 (not in ChannelsDB)');
+    await expect(message.getByRole('link', { name: '9vm1' })).toHaveAttribute('href', 'https://www.ebi.ac.uk/pdbe/entry/pdb/9vm1');
+    await expect(message.getByRole('link', { name: 'MOLEonline' })).toBeVisible();
+    ignoreFailedRequests(pageErrors);
+    await ignoreMissingStructure(pageErrors);
+});
+
 test('a failed channels request is reported', async ({ page, pageErrors }) => {
     // A gateway error page rather than the API's JSON
     await page.route('**/api/channels/**', (route) => route.fulfill({ status: 504, contentType: 'text/html', body: '<html>Gateway Timeout</html>' }));

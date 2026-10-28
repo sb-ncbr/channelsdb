@@ -26,6 +26,33 @@ class IDError(BaseModel):
     detail: str
 
 
+class Successor(BaseModel):
+    pdb_id: str
+    in_channelsdb: bool
+
+
+class PDBIDError(IDError):
+    """A PDB ID not found; when PDBe knows it as obsolete, since when and by what it was superseded"""
+    obsolete_since: str | None = None
+    superseded_by: list[Successor] | None = None
+
+
+class ObsoleteEntry(HTTPException):
+    """404 for an obsolete PDB entry, answered with PDBIDError (its handler is in main.py). An HTTPException, so that
+    the code catching 404s handles it as any other."""
+
+    def __init__(self, pdb_id: str, since: str, successors: list[str]):
+        if successors:
+            superseded = f'superseded by {", ".join(successors)}'
+        else:
+            superseded = 'without a successor'
+        self.error = PDBIDError(detail=f'PDB entry \'{pdb_id}\' is obsolete since {since}, {superseded}',
+                                obsolete_since=since,
+                                superseded_by=[Successor(pdb_id=successor, in_channelsdb=is_stored(SourceDatabase.PDB, successor))
+                                               for successor in successors])
+        super().__init__(status_code=404, detail=self.error.detail)
+
+
 def check_response(req: requests.Response, service: str, not_found_detail: str) -> None:
     """Report 404 from an external API as not found, and any other failure (server error, rate limiting, ...) as 502"""
     if req.status_code == 404:
@@ -78,13 +105,57 @@ def _get_pdbe_summary(pdb_id: str, _time_window: int) -> dict:
     return summary
 
 
+PDBE_STATUS_URL = 'https://www.ebi.ac.uk/pdbe/api/pdb/entry/status/{pdb_id}'
+
+
+# Asked only for the PDB IDs without a summary, which PDBe does not have for obsolete entries. Kept as the summaries.
+def get_pdbe_status(pdb_id: str) -> dict | None:
+    """PDBe's status of the entry (its status_code, since when, superceded_by, ...), None when PDBe does not know it"""
+    return _get_pdbe_status(pdb_id, int(time.monotonic() // PDBE_SUMMARY_TTL))
+
+
+@lru_cache(maxsize=1024)
+def _get_pdbe_status(pdb_id: str, _time_window: int) -> dict | None:
+    req = session.get(PDBE_STATUS_URL.format(pdb_id=pdb_id), timeout=10)
+    if req.status_code == 404:
+        return None
+    check_response(req, 'PDBe API', f'Cannot find PDB ID \'{pdb_id}\'')
+    try:
+        status = req.json()[pdb_id][0]
+    except (ValueError, LookupError, TypeError):
+        raise unexpected_response('PDBe API', req.url) from None
+    if not isinstance(status, dict):
+        raise unexpected_response('PDBe API', req.url)
+    return status
+
+
 def validate_pdb_id(pdb_id: Annotated[str, AnnotationPath(description='PDB ID', pattern=PDB_ID_REGEX)]) -> str:
     pdb_id = pdb_id.lower()
-    get_pdbe_summary(pdb_id)
+    try:
+        get_pdbe_summary(pdb_id)
+    except HTTPException as e:
+        if e.status_code == 404:
+            raise_if_obsolete(pdb_id)
+        raise
     return pdb_id
 
 
-pdb_id_404_response = {404: {'description': 'PDB ID not found', 'model': IDError}}
+def raise_if_obsolete(pdb_id: str) -> None:
+    """Raises ObsoleteEntry when PDBe knows the entry as obsolete. A failure to tell (an error of PDBe, or none of its
+    answer at all) leaves the 404 as it was, rather than reporting a confirmed absence as an upstream failure."""
+    try:
+        status = get_pdbe_status(pdb_id)
+    except (HTTPException, requests.RequestException):
+        return
+    if status is None or status.get('status_code') != 'OBS':
+        return
+    since = str(status.get('since', ''))
+    if len(since) == 8 and since.isdigit():
+        since = f'{since[:4]}-{since[4:6]}-{since[6:]}'
+    raise ObsoleteEntry(pdb_id, since, [str(successor).lower() for successor in status.get('superceded_by') or []])
+
+
+pdb_id_404_response = {404: {'description': 'PDB ID not found, or obsolete', 'model': PDBIDError}}
 uniprot_id_404_response = {404: {'description': 'Uniprot ID not found', 'model': IDError}}
 
 

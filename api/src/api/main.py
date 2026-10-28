@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from uvicorn.logging import DefaultFormatter
 
+from api.common import ObsoleteEntry
 from api.endpoints import annotations, assembly, channels, content, download, statistics
 
 
@@ -22,6 +23,12 @@ fastapi_app = FastAPI(title='ChannelsDB 2.0 API',
 
 for module in (annotations, assembly, channels, content, statistics, download):
     fastapi_app.include_router(module.router)
+
+
+@fastapi_app.exception_handler(ObsoleteEntry)
+async def obsolete_entry_handler(request: Request, exc: ObsoleteEntry):
+    # Since when the entry is obsolete and its successors, besides the detail of any other 404
+    return JSONResponse(status_code=404, content=exc.error.model_dump())
 
 
 @fastapi_app.exception_handler(requests.ConnectionError)

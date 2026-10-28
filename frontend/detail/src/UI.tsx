@@ -13,9 +13,42 @@ import { Context } from "./Context";
 
 import { listen } from "./CommonUtils/Events";
 
-export class UI extends React.Component<{ plugin: Context }, { isLoading?: boolean, error?: string, data?: any, apiStatus: number|undefined }> {
+// An obsolete PDB entry, as the API answers its 404 (PDBIDError)
+interface ObsoleteEntry {
+    obsolete_since: string,
+    superseded_by: { pdb_id: string, in_channelsdb: boolean }[]
+}
 
-    state = { isLoading: false, data: void 0, error: void 0, apiStatus: undefined };
+function isObsolete(error: any): error is ObsoleteEntry {
+    return error !== null && typeof error === 'object' && Array.isArray(error.superseded_by);
+}
+
+function ObsoleteMessage(props: { pid: string, entry: ObsoleteEntry }) {
+    const successors = props.entry.superseded_by;
+    const links = successors.map((successor, i) => <React.Fragment key={successor.pdb_id}>
+        {i > 0 ? ', ' : null}
+        {successor.in_channelsdb
+            ? <a href={`/detail/pdb/${successor.pdb_id}`}>{successor.pdb_id}</a>
+            : <><a href={`https://www.ebi.ac.uk/pdbe/entry/pdb/${successor.pdb_id}`} target="_blank">{successor.pdb_id}</a> (not in ChannelsDB)</>}
+    </React.Fragment>);
+    return <div className="error-message">
+        <div>
+            <b>PDB entry {props.pid} is obsolete</b> (since {props.entry.obsolete_since}).
+        </div>
+        <div>
+            {successors.length > 0 ? <>It was superseded by {links}.</> : <>It was withdrawn without a successor.</>}
+        </div>
+        {successors.some(successor => !successor.in_channelsdb)
+            ? <div>
+                <i>To see the tunnels of its successor, calculate them at <a href="https://moleonline.cz">MOLEonline</a> or <a href="https://loschmidt.chemi.muni.cz/caverweb/">CaverWeb</a>.</i>
+            </div>
+            : null}
+    </div>;
+}
+
+export class UI extends React.Component<{ plugin: Context }, { isLoading?: boolean, error?: string, errorData?: any, data?: any, apiStatus: number|undefined }> {
+
+    state = { isLoading: false, data: void 0, error: void 0, errorData: void 0, apiStatus: undefined };
 
     private unsubscribeData?: () => void;
     private unsubscribeResize?: () => void;
@@ -23,9 +56,6 @@ export class UI extends React.Component<{ plugin: Context }, { isLoading?: boole
     componentDidMount() {
         this.load();
         this.unsubscribeResize = listen("contentResize", this.onContentResize.bind(this));
-        let globalRouter = GlobalRouter;
-        const url = `${globalRouter.getChannelsURL()}/statistics`;
-        fetch(url).then(resp => this.setState({apiStatus: resp.status}));
     }
 
     componentWillUnmount() {
@@ -49,14 +79,15 @@ export class UI extends React.Component<{ plugin: Context }, { isLoading?: boole
         const subDB = GlobalRouter.getCurrentDB();
         const channelsURL = GlobalRouter.getChannelsURL();
 
-        this.setState({ isLoading: true, error: void 0 });
+        // The status of the channels' request only: the error shown depends on it
+        this.setState({ isLoading: true, error: void 0, errorData: void 0, apiStatus: undefined });
         const channels = this.props.plugin.loadChannelData(channelsURL, currentProteinId, subDB);
         const annotations = this.props.plugin.loadAnnotations(channelsURL, currentProteinId, subDB);
         AnnotationDataProvider.load(channels, annotations);
         channels
             .then(data => {
                 if ((data as any).Error !== void 0){
-                    this.setState({ isLoading: false, error: (data as any).Error.detail ? (data as any).Error.detail as string : JSON.stringify((data as any).Error), apiStatus: (data as any).apiStatus });
+                    this.setState({ isLoading: false, error: (data as any).Error.detail ? (data as any).Error.detail as string : JSON.stringify((data as any).Error), errorData: (data as any).Error, apiStatus: (data as any).apiStatus });
                 } else {
                     this.setState({ data: data });
                     // Replaces the subscription of a previous load. Gets the data directly, as the state may not be updated yet.
@@ -98,6 +129,8 @@ export class UI extends React.Component<{ plugin: Context }, { isLoading?: boole
                                     </div>
                                 </div>);
                             controls.push(<button key={controls.length} className="reload-data btn btn-primary" onClick={() => this.load()}>Reload Data</button>);
+                        } else if (isObsolete(this.state.errorData)) {
+                            controls.push(<ObsoleteMessage key={controls.length} pid={GlobalRouter.getCurrentPid()} entry={this.state.errorData} />);
                         } else {
                             controls.push(
                                 <div key={controls.length} className="error-message">
