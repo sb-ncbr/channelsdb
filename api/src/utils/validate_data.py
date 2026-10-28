@@ -193,6 +193,8 @@ def is_valid_id_dir(name: str, database: SourceDatabase) -> bool:
 def datafile_errors(datafile: Path, channel_types: set[str]) -> list[str]:
     """The errors of an entry's data.zip, read in a worker process"""
     errors = []
+    channel_ids: set[str] = set()
+    annotations: list[dict] = []
     with ZipFile(datafile) as z:
         if not any(Path(file).stem in channel_types for file in z.namelist()):
             errors.append(f'{datafile} has no channels')
@@ -208,8 +210,13 @@ def datafile_errors(datafile: Path, channel_types: set[str]) -> list[str]:
                     continue
             if Path(file).stem in channel_types:
                 errors += channel_errors(f'{datafile}/{file}', data)
+                channel_ids.update(str(channel.get('Id')) for group in data.get('Channels', {}).values() for channel in group)
             else:
                 errors += reference_errors(f'{datafile}/{file}', data)
+                annotations = data
+    # The website shows an annotation with the channel of its Id, an annotation of no channel is not shown
+    if orphans := sorted({str(annotation.get('Id')) for annotation in annotations} - channel_ids):
+        errors.append(f'{datafile}/annotations.json has annotations of channels the entry does not have: {", ".join(orphans)}')
     return errors
 
 
