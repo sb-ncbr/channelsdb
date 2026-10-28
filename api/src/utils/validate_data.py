@@ -147,17 +147,37 @@ def channel_errors(name: str, data: dict) -> list[str]:
     return errors + type_errors(name, data)
 
 
+DOI_REGEX = re.compile(r'^10\.\d{4,9}/\S+$')
+
+
+def reference_errors(name: str, annotations: list[dict]) -> list[str]:
+    """The annotations (of channels or residues) whose reference is broken: its type is missing, it has whitespace around
+    it (e.g. tabs, which break it as a link), or a DOI does not look like one"""
+    wrong = [annotation for annotation in annotations
+             if not isinstance(reference_type := annotation.get('ReferenceType'), str) or not reference_type
+             or not isinstance(reference := annotation.get('Reference'), str) or reference != reference.strip()
+             or (reference_type == 'DOI' and not DOI_REGEX.match(reference))]
+    if wrong:
+        example = f'{wrong[0].get("Id")}: {wrong[0].get("ReferenceType")!r} {wrong[0].get("Reference")!r}'
+        return [f'{name} has {len(wrong)} annotations with a broken reference, e.g. {example}']
+    return []
+
+
 def validate_annotations() -> bool:
     is_ok = True
     root = Path(config['dirs']['annotations'])
     for datafile in root.glob('*.json'):
         with open(datafile) as f:
             try:
-                json.load(f)
+                annotations = json.load(f)
             except json.decoder.JSONDecodeError as e:
                 print(f'{datafile} is not a valid JSON', file=sys.stderr)
                 print(e, file=sys.stderr)
                 is_ok = False
+                continue
+        for error in reference_errors(str(datafile), annotations):
+            print(error, file=sys.stderr)
+            is_ok = False
     return is_ok
 
 
@@ -188,6 +208,8 @@ def datafile_errors(datafile: Path, channel_types: set[str]) -> list[str]:
                     continue
             if Path(file).stem in channel_types:
                 errors += channel_errors(f'{datafile}/{file}', data)
+            else:
+                errors += reference_errors(f'{datafile}/{file}', data)
     return errors
 
 
