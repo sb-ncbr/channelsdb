@@ -108,6 +108,11 @@ PROFILE_TOLERANCE = 1e-3  # Å, and of T
 PATH_LENGTH_TOLERANCE = 0.005  # relative
 
 
+# Å, how far a channel's last layer may end past its profile. CAVER's end 4 % after it in the median; those ending much
+# further had their profile cut short, the rest of the tunnel squeezed into the last layer. MOLE's end before it.
+LAYERS_PAST_PROFILE = 5.0
+
+
 def profile_errors(profile: list[dict]) -> list[str]:
     """The rules of fix 3 the channel's profile (of at least 2 points) breaks"""
     distances = [point['Distance'] for point in profile]
@@ -141,8 +146,23 @@ def channel_errors(name: str, data: dict) -> list[str]:
         if is_channel(channel):
             for error in profile_errors(channel['Profile']):
                 profiles.setdefault(error, []).append(path)
+            layers = channel.get('Layers', {}).get('LayersInfo') or [{}]
+            end = layers[-1].get('LayerGeometry', {}).get('EndDistance')
+            if has_type(end, NUMBER) and end - channel['Profile'][-1]['Distance'] > LAYERS_PAST_PROFILE:
+                profiles.setdefault(f'the layers end more than {LAYERS_PAST_PROFILE} Å past it', []).append(path)
     for error, paths in profiles.items():
         errors.append(f'{name} has {len(paths)} channels whose profile is wrong: {error}, e.g. {paths[0]}')
+    # The same channel twice, possibly found from two cavities
+    seen: dict[str, str] = {}
+    duplicates = []
+    for path, channel in channels:
+        content = json.dumps({key: value for key, value in channel.items() if key not in ('Id', 'Cavity')}, sort_keys=True)
+        if content in seen:
+            duplicates.append(f'{path} (of {seen[content]})')
+        else:
+            seen[content] = path
+    if duplicates:
+        errors.append(f'{name} has {len(duplicates)} channels twice, e.g. {duplicates[0]}')
     errors += [f'{name} has {key}, which nothing reads' for key in UNUSED_KEYS if key in data]
     return errors + type_errors(name, data)
 
