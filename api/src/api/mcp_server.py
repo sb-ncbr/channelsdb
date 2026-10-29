@@ -13,6 +13,7 @@ from fastapi import FastAPI
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.server.transport_security import TransportSecuritySettings
+from mcp.types import ToolAnnotations
 from starlette.exceptions import HTTPException
 from starlette.routing import Route
 from starlette.types import ASGIApp, Receive, Scope, Send
@@ -229,11 +230,15 @@ def describe_channel_of(entry: str, channel: str) -> dict:
     return answer | {'found': True, 'channel': summary}
 
 
+# The tools only read the stored data, the same answer for the same data
+READ_ONLY = ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False)
+
+
 def create_server() -> MCPServer:
     """The server; its route is added to the app (add_to), its session manager runs in the app's lifespan"""
     server = MCPServer('ChannelsDB', instructions=INSTRUCTIONS)
 
-    @server.tool()
+    @server.tool(annotations=READ_ONLY)
     async def describe_entry(entry: str) -> dict:
         """The channels ChannelsDB has for an entry, given as a PDB ID (e.g. 1tqn) or a UniProt ID of an AlphaFill model (e.g.
         P10635), by category: what they start from, the structure they were computed on, and for each channel its ref (for
@@ -241,11 +246,11 @@ def create_server() -> MCPServer:
         (Å, distances along the channel from its start). An entry not in ChannelsDB is found: false, not an error."""
         return await anyio.to_thread.run_sync(describe_entry_of, entry)
 
-    @server.tool()
+    @server.tool(annotations=READ_ONLY)
     async def describe_channel(entry: str, channel: str) -> dict:
         """One channel of an entry by its ref from describe_entry (e.g. cofactors/2): its geometry, curated names with their
-        references, and for MOLE its lining residues and bottleneck residues (backbone_only: only the backbone lines it, a
-        mutation would not change that) and properties. CAVER channels have geometry only, the rest is null with the reason."""
+        references, and for MOLE its lining residues and bottleneck residues (backbone_only: only its backbone atoms line the
+        channel in the stored structure) and properties. CAVER channels have geometry only, the rest is null with the reason."""
         return await anyio.to_thread.run_sync(describe_channel_of, entry, channel)
 
     return server

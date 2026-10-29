@@ -80,7 +80,10 @@ def tool(client, name: str, **arguments) -> tuple[bool, dict | str]:
 
 
 def test_tools(client):
-    assert {t['name'] for t in rpc(client, 'tools/list')['tools']} == {'describe_entry', 'describe_channel'}
+    tools = rpc(client, 'tools/list')['tools']
+    assert {t['name'] for t in tools} == {'describe_entry', 'describe_channel'}
+    # Read-only, so that clients need not ask before calling them
+    assert all(t['annotations']['readOnlyHint'] and not t['annotations']['destructiveHint'] for t in tools)
 
 
 @pytest.mark.parametrize('method', ['GET', 'DELETE'])
