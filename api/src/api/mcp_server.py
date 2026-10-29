@@ -200,11 +200,12 @@ def layer_details(channel: dict, method: str) -> list[dict]:
     return details
 
 
-# A residue as MOLE writes it: name, author number and chain, its insertion code (i:A), and Backbone when only the
-# backbone lines the layer. The chain of a symmetry copy of an assembly has the copy's number after a dash (B-2): MOLE's
-# notation, not of author chain IDs in general (in the release of 2026-10-28 no other chain has a dash, and all MOLE's
-# residues parse).
-RESIDUE = re.compile(r'(?P<name>\S+) (?P<number>-?\d+) (?P<chain>\S+?)(?:-(?P<copy>\d+))?(?: i:(?P<insertion_code>\S))?')
+# A residue as MOLE writes it: name, author number, chain (none when the file has none), its insertion code (i:A), and
+# Backbone when only the backbone lines the layer. The chain of a copy in an assembly has the copy's number after a dash
+# (ChannelsDB's B-2) or an underscore (PDBe's C_2, which MOLEonline computes on): MOLE's notation, not of author chain IDs
+# in general (in the release of 2026-10-28 no other chain has a dash, and all MOLE's residues parse). The same pattern as
+# MOLEonline's MCP server, so that both parse residues alike (sbncbr-mcp-design.md, Shared vocabulary).
+RESIDUE = re.compile(r'(?P<name>\S+) (?P<number>-?\d+)(?: (?!i:)(?P<chain>\S+?)(?:[_-](?P<copy>\d+))?)?(?: i:(?P<insertion_code>\S))?')
 
 
 def residue_parts(residue: str) -> dict:
@@ -243,10 +244,30 @@ def shared_ids(files: dict[str, dict]) -> dict[str, list[str]]:
     return {channel_id: refs for channel_id, refs in by_id.items() if len(refs) > 1}
 
 
+def stated(value):
+    """The parameters without their empty parts (no origin points, no query, ...), as the model reads them (as MOLEonline's)"""
+    if isinstance(value, dict):
+        return {k: v for k, v in ((k, stated(v)) for k, v in value.items()) if v not in (None, '', [], {})}
+    if isinstance(value, list):
+        return [stated(v) for v in value]
+    return value
+
+
+def computed_with(name: str, data: dict) -> dict:
+    """What the channels of a file were computed with (provenance as in the shared vocabulary): the structure, the starting
+    point, and for MOLE its version and parameters as stored (of that version: WeightFunction 0 is its VoronoiScale). CAVER's
+    files and the reviewed channels and pores record no parameters (their config is a placeholder, their Version MOLE's)."""
+    config = data.get('Config', {})
+    recorded = CATEGORIES[name][0] == 'MOLE' and 'Params' in config
+    return {'structure': CATEGORIES[name][2] or 'not recorded', 'starting_point': starts(data) or 'not recorded',
+            'mole_version': data.get('Version') if recorded else 'not recorded',
+            # Without the export settings, and the starting points given above
+            'parameters': stated({k: v for k, v in config.items() if k not in ('Export', 'Origins')}) if recorded else 'not recorded'}
+
+
 def category(name: str, data: dict) -> dict:
-    method, what, computed_on = CATEGORIES[name]
-    summary = {'file': f'{name}.json', 'method': method, 'channels_of': what,
-               'computed_on': computed_on or 'not recorded', 'starts_from': starts(data) or 'not recorded'}
+    method, what, _ = CATEGORIES[name]
+    summary = {'file': f'{name}.json', 'method': method, 'channels_of': what, 'computed_with': computed_with(name, data)}
     if method == 'CAVER':
         summary['unavailable'] = CAVER_UNAVAILABLE
     return summary
@@ -256,8 +277,11 @@ def channel_summary(ref: str, channel: dict, annotations: list[dict], shared: di
     names = names_of(annotations, channel['Id'], details)
     # Where the results page lists it: under its first curated name, or its type, as the page labels channels
     label = names[0]['name'] if names else channel['Type']
-    summary = {'ref': ref, 'id': channel['Id'], 'on_web': f'{SECTIONS[ref.partition("/")[0]]}: {label} (Id: {channel["Id"]})',
-               'names': names} | geometry(channel)
+    name = ref.partition('/')[0]
+    # Properties are averages over the lining residues, which CAVER's are not given of (the category's unavailable)
+    properties = properties_of(channel['Properties']) if CATEGORIES[name][0] == 'MOLE' else None
+    summary = {'ref': ref, 'type': channel['Type'], 'id': channel['Id'], 'on_web': f'{SECTIONS[name]}: {label} (Id: {channel["Id"]})',
+               'names': names} | geometry(channel) | {'properties': properties}
     if names and channel['Id'] in shared:
         summary['names_apply_also_to'] = [other for other in shared[channel['Id']] if other != ref]
     return summary
@@ -433,14 +457,13 @@ def describe_channel_of(entry: str, channel: str, website: str, with_layers: boo
     if unavailable := of_category.get('unavailable', {}) | summary.get('unavailable', {}):
         summary['unavailable'] = unavailable
     if CATEGORIES[name][0] == 'CAVER':
-        summary |= {'lining_residues': None, 'bottleneck_residues': None, 'properties': None}
+        summary |= {'lining_residues': None, 'bottleneck_residues': None}
         if with_layers:
             summary['unavailable'] |= {'layer_residues': CAVER_CONVERSION, 'layer_properties': CAVER_CONVERSION,
                                        'local_minimum': 'caver_local_minimum_always_set'}
     else:
         layers = found['Layers']['LayersInfo']
-        summary |= {'lining_residues': residues(layers, parts=True), 'bottleneck_residues': None,
-                    'properties': properties_of(found['Properties'])}
+        summary |= {'lining_residues': residues(layers, parts=True), 'bottleneck_residues': None}
         if summary['bottleneck_radius'] is None:
             # Unknown, not none: for the same reason as the bottleneck itself
             summary['unavailable']['bottleneck_residues'] = summary['unavailable']['bottleneck_radius']
@@ -476,9 +499,10 @@ def create_server() -> MCPServer:
     @server.tool(annotations=READ_ONLY)
     async def describe_entry(ctx: Context, entry: str, category: str | None = None, offset: int = 0) -> dict:
         """The channels ChannelsDB has for an entry, given as a PDB ID (e.g. 1tqn) or a UniProt ID of an AlphaFill model (e.g.
-        P10635), by category: what they start from, the structure they were computed on, and for each channel its ref (for
-        describe_channel), curated names, length, bottleneck (the method's, MOLE's not counting the start) and narrowest point
-        (Å, distances along the channel from its start); web: its page on the website, showing the channels in 3D with the
+        P10635), by category: computed_with (the structure, the starting point, MOLE's version and parameters as stored), and
+        for each channel its ref (for describe_channel), type (Tunnel, Pore, Path), curated names, length, bottleneck (the
+        method's, MOLE's not counting the start) and narrowest point (Å, distances along the channel from its start), and
+        properties (averages over the lining residues; MOLE's only); web: its page on the website, showing the channels in 3D with the
         structure, on_web: where the page lists each channel; downloads: all its channels for PyMOL, Chimera (legacy UCSF
         Chimera), VMD, as PDB or all in a ZIP. At most 30 channels of a category are listed, in the order of its file: a
         category with more has next_offset, to list the next ones with category (its file name, e.g. cocaver) and offset. An

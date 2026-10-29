@@ -28,11 +28,14 @@ def channel(channel_id: str, layers: list[dict], profile: list[tuple[float, floa
 
 
 def channels_file(channels: list[dict], config_: dict) -> dict:
-    return {'Config': config_, 'Channels': {'Paths': channels, 'Tunnels': [], 'Pores': [], 'MergedPores': []}}
+    # CAVER's files too carry MOLE's version
+    return {'Version': '2.5.17.4.24', 'Config': config_, 'Channels': {'Paths': channels, 'Tunnels': [], 'Pores': [], 'MergedPores': []}}
 
 
-MOLE_CONFIG = {'Origins': {'Points': {'Points': [{'Residues': [], 'Points': [],
-                                                 'Queries': [{'Text': "Atoms('Fe').Inside(Residues('HEM'))"}]}]}}}
+MOLE_CONFIG = {'Params': {'Parameters': {'ProbeRadius': 5.0, 'BottleneckRadius': 1.25, 'WeightFunction': 0}, 'QueryFilterString': None},
+               'Export': {'Parameters': {'FormatJSON': True}}, 'CustomVdw': {'Values': {}},
+               'Origins': {'Points': {'Points': [{'Residues': [], 'Points': [],
+                                                  'Queries': [{'Text': "Atoms('Fe').Inside(Residues('HEM'))"}]}]}}}
 # MOLE: the start narrowest, the flagged bottleneck after it; a residue lining with its backbone only
 COFACTORS = channels_file([channel('25.20', [layer(0, 2, 1.0, ['HEM 500 A', 'PHE 57 A'], charge=-1),
                                              layer(2, 9, 1.4, ['PHE 57 A Backbone', 'GLY 58 A Backbone'], bottleneck=True),
@@ -131,17 +134,26 @@ def test_describe_entry(client):
     assert set(answer['downloads']) == {'pymol', 'chimera', 'vmd', 'pdb', 'zip'}
     cofactors, cocaver, procognate = answer['categories']
     assert (cofactors['method'], cofactors['file'], cofactors['total_channels']) == ('MOLE', 'cofactors.json', 1)
-    assert cofactors['starts_from'] == ["atoms of the query Atoms('Fe').Inside(Residues('HEM'))"]
-    assert 'preferred assembly' in cofactors['computed_on']
+    # What they were computed with, as MOLEonline's computed_with: the parameters as stored, without the export settings,
+    # the starting points (given apart) and empty parts
+    assert cofactors['computed_with'] == {
+        'structure': 'the preferred assembly of the PDB entry at the time of the computation',
+        'starting_point': ["atoms of the query Atoms('Fe').Inside(Residues('HEM'))"], 'mole_version': '2.5.17.4.24',
+        'parameters': {'Params': {'Parameters': {'ProbeRadius': 5.0, 'BottleneckRadius': 1.25, 'WeightFunction': 0}}}}
     [mole] = cofactors['channels']
     # The bottleneck is the flagged layer, the narrowest point is at the start; the length is the profile's end
     assert {key: mole[key] for key in ('ref', 'length', 'bottleneck_radius', 'bottleneck_at', 'min_radius', 'min_radius_at')} == {
         'ref': 'cofactors/1', 'length': 25.2, 'bottleneck_radius': 1.4, 'bottleneck_at': [2, 9], 'min_radius': 1.0, 'min_radius_at': 0}
     assert mole['names'] == [{'name': 'Channel 2a', 'reference': '10.1016/j.bbagen.2006.07.005', 'reference_type': 'DOI'}]
     assert mole['names_apply_also_to'] == ['cocaver/2']
+    # The type and properties of each channel, as in MOLEonline's summaries; CAVER's properties not given
+    assert (mole['type'], mole['properties']['charge']) == ('Tunnel', 1)
+    assert (cocaver['channels'][0]['type'], cocaver['channels'][0]['properties']) == ('Tunnel', None)
     # Where the page lists each channel, without a describe_channel call
     assert mole['on_web'] == 'Cofactor Tunnels MOLE: Channel 2a (Id: 25.20)'
-    assert (cocaver['method'], cocaver['starts_from']) == ('CAVER', 'not recorded')
+    assert cocaver['method'] == 'CAVER'
+    assert cocaver['computed_with'] == {'structure': 'the deposited model (asymmetric unit) of the PDB entry',
+                                        'starting_point': 'not recorded', 'mole_version': 'not recorded', 'parameters': 'not recorded'}
     assert cocaver['unavailable']['lining_residues'] == 'caver_conversion'
     assert cocaver['channels'][0]['bottleneck_radius'] is None
     assert cocaver['channels'][0]['unavailable'] == {'bottleneck_radius': 'several_bottleneck_flags'}
@@ -149,7 +161,7 @@ def test_describe_entry(client):
     for outside, length in zip(cocaver['channels'][2:], (6.9, 13.9), strict=True):
         assert (outside['length'], outside['bottleneck_radius'], outside['bottleneck_at']) == (length, None, None)
         assert outside['unavailable'] == {'bottleneck_radius': 'bottleneck_outside_channel'}
-    assert procognate['starts_from'] == ['starting points chosen automatically by MOLE (in the cavities it found)']
+    assert procognate['computed_with']['starting_point'] == ['starting points chosen automatically by MOLE (in the cavities it found)']
     assert 'MOLE tunnels from the catalytic site (M-CSA)' in answer['channelsdb_has_none_of']
 
 
@@ -385,3 +397,13 @@ def test_find_channels_pages(client, monkeypatch):
 def test_find_channels_needs_chain_and_number(client, residue):
     failed, text = tool(client, 'find_channels', entry='1tqn', residue=residue)
     assert failed and 'chain and author number' in text
+
+
+@pytest.mark.parametrize(('residue', 'parts'), [
+    ('GLU 221 B-2', {'name': 'GLU', 'number': 221, 'insertion_code': None, 'chain': 'B', 'copy': 2}),
+    ('ALA 5 C_2', {'name': 'ALA', 'number': 5, 'insertion_code': None, 'chain': 'C', 'copy': 2}),
+    ('SER 12 i:B', {'name': 'SER', 'number': 12, 'insertion_code': 'B', 'chain': None, 'copy': None}),
+    ('GLN 221 A i:A', {'name': 'GLN', 'number': 221, 'insertion_code': 'A', 'chain': 'A', 'copy': None})])
+def test_residues_parsed_as_moleonline(residue, parts):
+    """The copies of PDBe (C_2) and of ChannelsDB (B-2), residues without a chain"""
+    assert mcp_server.residue_parts(residue) == parts
