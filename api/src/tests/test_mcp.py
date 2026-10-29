@@ -138,7 +138,8 @@ def test_describe_entry(client):
     # the starting points (given apart) and empty parts
     assert cofactors['computed_with'] == {
         'structure': 'the preferred assembly of the PDB entry at the time of the computation',
-        'starting_point': ["atoms of the query Atoms('Fe').Inside(Residues('HEM'))"], 'mole_version': '2.5.17.4.24',
+        'starting_point': [{'start': 'ligand', 'ligands': ['HEM'], 'queries': ["Atoms('Fe').Inside(Residues('HEM'))"]}],
+        'mole_version': '2.5.17.4.24',
         'parameters': {'Params': {'Parameters': {'ProbeRadius': 5.0, 'BottleneckRadius': 1.25, 'WeightFunction': 0}}}}
     [mole] = cofactors['channels']
     # The bottleneck is the flagged layer, the narrowest point is at the start; the length is the profile's end
@@ -161,7 +162,9 @@ def test_describe_entry(client):
     for outside, length in zip(cocaver['channels'][2:], (6.9, 13.9), strict=True):
         assert (outside['length'], outside['bottleneck_radius'], outside['bottleneck_at']) == (length, None, None)
         assert outside['unavailable'] == {'bottleneck_radius': 'bottleneck_outside_channel'}
-    assert procognate['computed_with']['starting_point'] == ['starting points chosen automatically by MOLE (in the cavities it found)']
+    assert procognate['computed_with']['starting_point'] == [{'start': 'auto'}]
+    # Only an AlphaFill model has a structure_url (a PDB entry is loaded by its ID)
+    assert 'structure_url' not in answer
     assert 'MOLE tunnels from the catalytic site (M-CSA)' in answer['channelsdb_has_none_of']
 
 
@@ -407,3 +410,28 @@ def test_find_channels_needs_chain_and_number(client, residue):
 def test_residues_parsed_as_moleonline(residue, parts):
     """The copies of PDBe (C_2) and of ChannelsDB (B-2), residues without a chain"""
     assert mcp_server.residue_parts(residue) == parts
+
+
+def test_structure_url_of_an_alphafill_model(client):
+    _, answer = tool(client, 'describe_entry', entry='Q9XYZ1')
+    assert answer['structure_url'] == 'https://alphafill.eu/v1/aff/Q9XYZ1'
+
+
+OR_QUERY = "Or(AtomNames('N1N').Inside(Residues('NDP')),Atoms('Fe').Inside(Residues('HEM')))"
+
+
+@pytest.mark.parametrize(('origin', 'started'), [
+    ({'Residues': [{'Chain': 'A', 'SequenceNumber': 59, 'InsertionCode': 'A'}], 'Points': [], 'Queries': []},
+     [{'start': 'residues', 'residues': ['A 59A']}]),
+    ({'Residues': [], 'Points': [{'Point': [31.8114, -7.314, -15.896]}], 'Queries': []},
+     [{'start': 'point', 'point': [31.811, -7.314, -15.896]}]),
+    # Several cofactors, from their reactive atoms
+    ({'Residues': [], 'Points': [], 'Queries': [{'Text': OR_QUERY}]},
+     [{'start': 'ligand', 'ligands': ['NDP', 'HEM'], 'queries': [OR_QUERY]}]),
+    ({'Residues': [], 'Points': [], 'Queries': [{'Text': "AtomNames('N5').Inside(Residues('FAD, FMN'))"}]},
+     [{'start': 'ligand', 'ligands': ['FAD', 'FMN'], 'queries': ["AtomNames('N5').Inside(Residues('FAD, FMN'))"]}]),
+    # AlphaFill's: any of the ligands, the queries adding nothing to their names
+    ({'Residues': [], 'Points': [], 'Queries': [{'Text': 'Residues("HEM")'}, {'Text': 'Residues("ATP")'}]},
+     [{'start': 'ligand', 'ligands': ['HEM', 'ATP']}])])
+def test_starting_points_as_moleonline_takes_them(origin, started):
+    assert mcp_server.starts({'Config': {'Origins': {'Points': {'Points': [origin]}}}}) == started

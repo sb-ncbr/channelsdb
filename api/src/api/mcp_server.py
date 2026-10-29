@@ -132,17 +132,30 @@ def channels_of(data: dict) -> list[dict]:
     return [channel for group in ('Paths', 'Tunnels', 'Pores', 'MergedPores') for channel in data['Channels'][group]]
 
 
-def starts(data: dict) -> list[str] | None:
-    """Where MOLE started the channels of a file, from its Config; None when not recorded (CAVER, reviewed, pores)"""
+# The residue names a MOLE query selects (Residues('HEM'), Residues('FAD', 'FMN'), Residues('FAD, FMN'))
+QUERY_RESIDUES = re.compile(r"Residues\(([^()]*)\)")
+PLAIN_QUERY = re.compile(r"Residues\((['\"])[A-Za-z0-9]{1,5}\1\)")
+
+
+def starts(data: dict) -> list[dict] | None:
+    """Where MOLE started the channels of a file, from its Config, in the terms of MOLEonline's compute_tunnels (start:
+    residues, ligand, point, auto), so that an assistant can compute the like there; None when not recorded (CAVER,
+    reviewed channels, pores). Of a ligand, its names (MOLE starts from any of them the structure has) and the queries
+    when they select more than the residues (its reactive atoms, as MOLEonline's known cofactors)."""
     origins = data.get('Config', {}).get('Origins')
     if origins is None:
         return None
-    found = ['starting points chosen automatically by MOLE (in the cavities it found)'] if origins.get('UseAutoPoints') else []
+    found = [{'start': 'auto'}] if origins.get('UseAutoPoints') else []
     for origin in origins['Points']['Points']:
         if residues := origin['Residues']:
-            found.append('residues ' + ', '.join(f'{r["Chain"]} {r["SequenceNumber"]}{r["InsertionCode"].strip()}' for r in residues))
-        found.extend(f'atoms of the query {query["Text"]}' for query in origin['Queries'])
-        found.extend('point [{:.2f}, {:.2f}, {:.2f}] Å'.format(*point['Point']) for point in origin['Points'])
+            found.append({'start': 'residues',
+                          'residues': [f'{r["Chain"]} {r["SequenceNumber"]}{r["InsertionCode"].strip()}' for r in residues]})
+        if queries := [query['Text'] for query in origin['Queries']]:
+            names = [name.strip(' \'"') for query in queries for listed in QUERY_RESIDUES.findall(query)
+                     for name in re.split(r"[,\s]+", listed.strip(' \'"')) if name.strip(' \'"')]
+            found.append({'start': 'ligand', 'ligands': list(dict.fromkeys(names))}
+                         | ({'queries': queries} if not all(PLAIN_QUERY.fullmatch(query) for query in queries) else {}))
+        found.extend({'start': 'point', 'point': [round(c, 3) for c in point['Point']]} for point in origin['Points'])
     return found
 
 
@@ -294,6 +307,9 @@ def describe_entry_of(entry: str, website: str, category_name: str | None = None
         return answer | {'found': False, 'message': NOT_COMPUTED.format(entry=protein_id)}
     answer['web'] = web_page(website, source_db, protein_id)
     answer['downloads'] = downloads(website, source_db, protein_id)
+    if source_db == SourceDatabase.AlphaFill:
+        # Today's model, which the website shows too; it may have changed since the channels were computed
+        answer['structure_url'] = f'https://alphafill.eu/v1/aff/{protein_id}'
     files, annotations = read
     if category_name is not None and category_name not in files:
         raise ToolError(f'"{category_name}" is not a category of {protein_id}. Its categories are {", ".join(files)}.')
@@ -498,35 +514,40 @@ def create_server() -> MCPServer:
 
     @server.tool(annotations=READ_ONLY)
     async def describe_entry(ctx: Context, entry: str, category: str | None = None, offset: int = 0) -> dict:
-        """The channels ChannelsDB has for an entry, given as a PDB ID (e.g. 1tqn) or a UniProt ID of an AlphaFill model (e.g.
-        P10635), by category: computed_with (the structure, the starting point, MOLE's version and parameters as stored), and
-        for each channel its ref (for describe_channel), type (Tunnel, Pore, Path), curated names, length, bottleneck (the
-        method's, MOLE's not counting the start) and narrowest point (Å, distances along the channel from its start), and
-        properties (averages over the lining residues; MOLE's only); web: its page on the website, showing the channels in 3D with the
-        structure, on_web: where the page lists each channel; downloads: all its channels for PyMOL, Chimera (legacy UCSF
-        Chimera), VMD, as PDB or all in a ZIP. At most 30 channels of a category are listed, in the order of its file: a
-        category with more has next_offset, to list the next ones with category (its file name, e.g. cocaver) and offset. An
-        entry not in ChannelsDB is found: false, not an error."""
+        """The channels ChannelsDB has for an entry, given as a PDB ID (e.g. 1tqn) or a UniProt ID of an AlphaFill model
+        (e.g. P10635), by category: computed_with (the structure; the starting point in the terms of MOLEonline's
+        compute_tunnels: residues, ligand, point or auto; MOLE's version and parameters as stored). For each channel: its
+        ref (for describe_channel; id is a label from the data and the website, not a length), type (Tunnel, Pore, Path),
+        curated names, length, bottleneck (the method's, MOLE's not counting the start) and narrowest point (Å, distances
+        along the channel from its start), and properties (averages over the lining residues; MOLE's only). web: its page
+        on the website, showing the channels in 3D with the structure; on_web: where the page lists each channel;
+        downloads: all its channels for PyMOL, Chimera (legacy UCSF Chimera), VMD, as PDB or all in a ZIP; structure_url
+        (AlphaFill): the model, as AlphaFill has it today, which may differ from the one the channels were computed on.
+        At most 30 channels of a category are listed, in the order of its file: a category with more has next_offset, to
+        list the next ones with category (its file name, e.g. cocaver) and offset. An entry not in ChannelsDB is found:
+        false, not an error."""
         return await anyio.to_thread.run_sync(describe_entry_of, entry, site(ctx), category, offset)
 
     @server.tool(annotations=READ_ONLY_OPEN)
     async def describe_channel(ctx: Context, entry: str, channel: str, layers: bool = False, layer_offset: int = 0,
                                uniprot: bool = False) -> dict:
         """One channel of an entry by its ref from describe_entry (e.g. cofactors/2): its geometry, curated names with their
-        references, and for MOLE its lining residues and bottleneck residues (backbone_only: only its backbone atoms line the
-        channel in the stored structure; with their name, author number, insertion code and chain, and the copy of a symmetry
-        copy of the assembly: residue 'GLU 221 B-2' is GLU 221 of chain B in copy 2; all null for a residue not in this form)
-        and properties. CAVER channels have
-        geometry only, the rest is null with the reason. web: the entry's page on the website, on_web: where the page lists
-        the channel, to show it in 3D. With layers: each layer along the channel (from, to: Å from its start), its narrowest
-        radius and whether it is the flagged bottleneck; for MOLE also whether it is a local minimum of the radius, its
-        residues (by their residue in lining_residues) and properties, to see where along the channel a residue lines it and
-        how narrow it is there. A layer's min_radius is the narrowest anywhere in the layer, not
-        at each of its residues; layer radii are MOLE's or CAVER's own, not the profile's. At most 40 layers at once: a channel
-        with more has next_layer_offset, to list the next ones with layers=true and layer_offset. With uniprot: each lining and
-        bottleneck residue of MOLE with its UniProt accession and position (from SIFTS for a PDB entry), to look up what is
-        known about it, e.g. in UniProt; null for a residue without one (a ligand, a chain without UniProt), and all null with
-        the reason in unavailable when the mapping is not available."""
+        references, and for MOLE its lining residues, bottleneck residues (those of the bottleneck layer) and properties.
+        Each residue as stored (residue, for display: a copy in an assembly is written B-2 here, C_2 in MOLEonline) and its
+        parts, to match residues by: name, author number, insertion code, chain (as deposited) and copy (GLU 221 B-2 is GLU
+        221 of chain B in copy 2); all null for a residue not in this form. backbone_only: only its backbone atoms line the
+        channel in the stored structure; in bottleneck_residues, only in the bottleneck layer. CAVER channels have geometry
+        only, the rest is null with the reason. web: the entry's page on the website, on_web: where the page lists the
+        channel, to show it in 3D.
+        With layers: each layer along the channel (from, to: Å from its start), its narrowest radius and whether it is the
+        flagged bottleneck; for MOLE also whether it is a local minimum of the radius, its residues (by their residue in
+        lining_residues) and properties, to see where along the channel a residue lines it and how narrow it is there. A
+        layer's min_radius is the narrowest anywhere in the layer, not at each of its residues; layer radii are MOLE's or
+        CAVER's own, not the profile's. At most 40 layers at once: a channel with more has next_layer_offset, to list the
+        next ones with layers=true and layer_offset.
+        With uniprot: each lining and bottleneck residue of MOLE with its UniProt accession and position (from SIFTS for a
+        PDB entry), to look up what is known about it, e.g. in UniProt; null for a residue without one (a ligand, a chain
+        without UniProt), and all null with the reason in unavailable when the mapping is not available."""
         return await anyio.to_thread.run_sync(describe_channel_of, entry, channel, site(ctx), layers, layer_offset, uniprot)
 
     @server.tool(annotations=READ_ONLY)
@@ -541,13 +562,13 @@ def create_server() -> MCPServer:
     async def find_channels(ctx: Context, entry: str, residue: str, offset: int = 0) -> dict:
         """The channels of an entry a residue lines, given as chain and author number (as in the structure file), with an
         insertion code if it has one: "A 221", "A 221A". Lines means listed among the residues of a channel's layers as
-        computed, not merely near the channel. Also in the symmetry copies of an assembly (as GLU 221 A-2). For each channel
-        its ref (for describe_channel), curated names, length and bottleneck, and the residue as stored with backbone_only,
-        whether it lines the bottleneck (null when the channel has none, with the reason in unavailable), and the layers it
-        lines (from, to: Å from the start; min_radius is the layer's narrowest, not at the residue; backbone_only in that
-        layer). MOLE's channels only: CAVER's residues are not given, their number is in not_searched.
-        No channels is an answer: the residue lines none of the channels searched. At most 30 channels at once: with more,
-        next_offset, to list the next ones with offset."""
+        computed, not merely near the channel. Also in the symmetry copies of an assembly (stored as GLU 221 A-2). For each
+        channel its ref (for describe_channel), curated names, length and bottleneck, and the residue as stored (for
+        display; its copy in copy) with backbone_only, whether it lines the bottleneck (null when the channel has none, with
+        the reason in unavailable), and the layers it lines (from, to: Å from the start; min_radius is the layer's
+        narrowest, not at the residue; backbone_only in that layer). MOLE's channels only: CAVER's residues are not given,
+        their number is in not_searched. No channels is an answer: the residue lines none of the channels searched. At most
+        30 channels at once: with more, next_offset, to list the next ones with offset."""
         return await anyio.to_thread.run_sync(find_channels_of, entry, residue, site(ctx), offset)
 
     return server
