@@ -1,4 +1,7 @@
 import json
+import os
+import shutil
+from pathlib import Path
 from zipfile import ZipFile
 
 import pytest
@@ -464,3 +467,110 @@ def test_parameters_for_moleonline():
                           'CustomExits': {'Points': [{'X': 1.0, 'Y': 2.0, 'Z': 3.0}]}}
     # A pore's paths are not MOLEonline's tunnel parameters; empty parts are left out
     assert not_in_moleonline == {'WeightFunction': 2, 'MinDepth': 8, 'NonActiveParts': ['HetResidues()'], 'Paths': [{'Start': [0, 0, 0]}]}
+
+
+@pytest.fixture
+def parses(monkeypatch) -> list[str]:
+    """The entries parsed, from an empty cache"""
+    parsed = []
+    parse = mcp_server.parse
+    monkeypatch.setattr(mcp_server, 'parse', lambda data_file: parsed.append(data_file.parent.name) or parse(data_file))
+    monkeypatch.setattr(mcp_server, 'cache', type(mcp_server.cache)())
+    return parsed
+
+
+def test_entry_parsed_once(client, parses):
+    """Paging and the channels of an entry read it once, not at each call"""
+    tool(client, 'describe_entry', entry='1tqn')
+    tool(client, 'describe_channel', entry='1tqn', channel='cofactors/1')
+    tool(client, 'find_channels', entry='1tqn', residue='A 57')
+    assert parses == ['1tqn']
+
+
+def test_changed_entry_parsed_again(client, parses, tmp_path):
+    tool(client, 'describe_entry', entry='1tqn')
+    data_file = tmp_path / 'current' / 'PDB' / 'tq' / '1tqn' / 'data.zip'
+    with ZipFile(data_file, 'w') as z:
+        z.writestr('cofactors.json', json.dumps(COFACTORS))
+    os.utime(data_file, ns=(data_file.stat().st_atime_ns, data_file.stat().st_mtime_ns + 10**9))
+    _, answer = tool(client, 'describe_entry', entry='1tqn')
+    assert parses == ['1tqn', '1tqn']
+    assert [listed['file'] for listed in answer['categories']] == ['cofactors.json']
+
+
+def test_large_entry_not_kept(client, parses, monkeypatch):
+    """Its parsed data would take about 5 times its file's size in each worker"""
+    monkeypatch.setattr(mcp_server, 'CACHE_BYTES', 100)
+    tool(client, 'describe_entry', entry='1tqn')
+    tool(client, 'describe_channel', entry='1tqn', channel='cofactors/1')
+    assert parses == ['1tqn', '1tqn']
+
+
+def test_one_release_per_call(client, tmp_path, monkeypatch):
+    """The data are switched to another release during the call: the answer is of the release it names, read whole"""
+    other = tmp_path / 'releases' / '20261029-000000'
+    shutil.copytree(tmp_path / 'releases' / '20261028-073322', other)
+    with ZipFile(other / 'PDB' / 'tq' / '1tqn' / 'data.zip', 'w') as z:
+        z.writestr('csa.json', json.dumps(COFACTORS))
+    entry_file = mcp_server.entry_file
+
+    def switched(*args):
+        (tmp_path / 'current').unlink()
+        (tmp_path / 'current').symlink_to(other)
+        return entry_file(*args)
+    monkeypatch.setattr(mcp_server, 'entry_file', switched)
+    _, answer = tool(client, 'describe_entry', entry='1tqn')
+    assert (answer['release'], [listed['file'] for listed in answer['categories']]) == (
+        '20261028-073322', ['cofactors.json', 'cocaver.json', 'procognate.json'])
+
+
+def test_unexpected_failure_has_a_message(client, monkeypatch):
+    """Not the SDK's bare "Error executing tool": the model can report what failed"""
+    def broken(channel):
+        raise KeyError('Profile')
+    monkeypatch.setattr(mcp_server, 'geometry', broken)
+    failed, text = tool(client, 'describe_entry', entry='1tqn')
+    # What failed, not its details (paths, data), which go to the log
+    assert failed and 'ChannelsDB failed to answer (KeyError).' in text and 'Profile' not in text
+
+
+def test_reasons_of_caver_stay_as_they_are(client):
+    """An answer adding reasons to CAVER's does not change them for the next answers"""
+    tool(client, 'describe_channel', entry='1tqn', channel='cocaver/1', layers=True)
+    assert mcp_server.CAVER_UNAVAILABLE == {'lining_residues': 'caver_conversion', 'bottleneck_residues': 'caver_conversion',
+                                            'properties': 'caver_conversion'}
+
+
+# The stored data of a release made by update_data.sh, which validates them (the sample data of the repository are older),
+# when asked for: with --subset all, they are all of a release's entries
+STORED = os.environ.get('CHANNELSDB_MCP_STORED_TESTS') == '1' and Path(config['dirs']['base']).resolve().parent.name == 'releases'
+WEBSITE = 'https://channelsdb.example'
+
+
+def answers_of(entry: str) -> None:
+    """Every tool answers about the entry, as the data are: each category, a few channels of each with their layers, the
+    channels their first residue lines, the next page"""
+    answer = mcp_server.describe_entry_of(entry, WEBSITE)
+    assert answer['found']
+    for listed in answer['categories']:
+        assert len(listed['channels']) <= listed['total_channels']
+        for channel in listed['channels'][:3]:
+            found = mcp_server.describe_channel_of(entry, channel['ref'], WEBSITE, with_layers=True)['channel']
+            if lining := found['lining_residues']:
+                residue = lining[0]
+                if residue['chain'] is not None:
+                    asked = f'{residue["chain"]} {residue["number"]}{residue["insertion_code"] or ""}'
+                    assert mcp_server.find_channels_of(entry, asked, WEBSITE)['total_channels'] >= 1
+        if 'next_offset' in listed:
+            mcp_server.describe_entry_of(entry, WEBSITE, listed['file'].removesuffix('.json'), listed['next_offset'])
+    assert mcp_server.lookup_entries_of([entry])['entries'][0]['found']
+
+
+@pytest.mark.skipif(not STORED, reason='asked for with CHANNELSDB_MCP_STORED_TESTS=1, on a release (CHANNELSDB_BASE)')
+def test_stored_pdb_entries(stored_pdb_ids):
+    answers_of(stored_pdb_ids)
+
+
+@pytest.mark.skipif(not STORED, reason='asked for with CHANNELSDB_MCP_STORED_TESTS=1, on a release (CHANNELSDB_BASE)')
+def test_stored_alphafill_models(stored_uniprot_ids):
+    answers_of(stored_uniprot_ids)

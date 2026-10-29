@@ -4,6 +4,8 @@ a model can read, saying what the data cannot provide and why (MCP.md). Stateles
 import json
 import logging
 import re
+import threading
+from collections import OrderedDict
 from contextlib import asynccontextmanager
 from functools import lru_cache
 from pathlib import Path
@@ -20,7 +22,7 @@ from starlette.exceptions import HTTPException
 from starlette.routing import Route
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from api.common import CHANNEL_TYPES_ALPHAFILL, CHANNEL_TYPES_PDB, PDB_ID_REGEX, UNIPROT_ID_REGEX, SourceDatabase, protein_dir
+from api.common import CHANNEL_TYPES_ALPHAFILL, CHANNEL_TYPES_PDB, PDB_ID_REGEX, UNIPROT_ID_REGEX, SourceDatabase
 from api.config import config
 from api.endpoints.annotations import get_sifts
 
@@ -28,7 +30,12 @@ from api.endpoints.annotations import get_sifts
 MAX_CHANNELS = 30  # of a category in describe_entry, the rest are counted
 MAX_ENTRIES = 100  # in a call of lookup_entries
 MAX_LAYERS = 40  # of a channel in describe_channel, about 400 characters each (long channels have hundreds)
+# Of the data.zip files kept parsed in each worker: parsed, an entry takes about 5 times its file's size (6hif: 180 MB, 1 GB).
+# 99.9 % of the entries have less than 17 MB; larger ones than half of this are parsed at each call, not kept.
+CACHE_BYTES = 40 * 2**20
 PROPERTIES = ('Charge', 'Hydropathy', 'Hydrophobicity', 'Polarity', 'Mutability')  # of MOLE's channels, averages over the lining residues
+
+logger = logging.getLogger(__name__)
 
 # not in the API's log: each stateless request's end of its MCP session
 logging.getLogger('mcp.server.streamable_http').setLevel(logging.WARNING)
@@ -63,6 +70,7 @@ SECTIONS = {
 # Why a value is not given (MCP.md, What each method provides)
 CAVER_CONVERSION = 'caver_conversion'
 CAVER_UNAVAILABLE = {'lining_residues': CAVER_CONVERSION, 'bottleneck_residues': CAVER_CONVERSION, 'properties': CAVER_CONVERSION}
+NOT_NEGATIVE = 'Not found is not a negative result: ChannelsDB has the channels found for its starting points and parameters only.'
 NOT_COMPUTED = ('ChannelsDB has no channels of {entry}. That is not a negative result: ChannelsDB has the channels found for '
                 'its starting points and parameters only. They can be computed in MOLEonline (https://moleonline.cz).')
 
@@ -105,26 +113,73 @@ def downloads(website: str, source_db: SourceDatabase, protein_id: str) -> dict[
     return {name: f'{website}/api/download/{source_db.lower()}/{protein_id}/{name}' for name in DOWNLOADS}
 
 
-def release() -> str:
-    """The name of the data release read (the directory the data link points to)"""
-    return Path(config['dirs']['base']).resolve().name
+def channel_types(source_db: SourceDatabase) -> dict[str, str]:
+    return CHANNEL_TYPES_PDB if source_db == SourceDatabase.PDB else CHANNEL_TYPES_ALPHAFILL
 
 
-def read_entry(source_db: SourceDatabase, protein_id: str) -> tuple[dict[str, dict], list[dict]] | None:
-    """The channel files of an entry by their name (csa, cocaver, ...) and its curated annotations; None when not stored"""
-    data_file = protein_dir(source_db, protein_id) / 'data.zip'
-    if not data_file.exists():
-        return None
-    names = CHANNEL_TYPES_PDB if source_db == SourceDatabase.PDB else CHANNEL_TYPES_ALPHAFILL
+def alphafill_model(protein_id: str) -> str:
+    """The AlphaFill model as AlphaFill has it today (the website loads it from there); it may have changed since the
+    channels were computed"""
+    return f'https://alphafill.eu/v1/aff/{protein_id}'
+
+
+def base() -> Path:
+    """The directory of the data release, resolved once per call (the data link is switched to release new data), so that
+    an answer comes from a single release, the one it names"""
+    return Path(config['dirs']['base']).resolve()
+
+
+def entry_file(release_dir: Path, source_db: SourceDatabase, protein_id: str) -> Path:
+    # As protein_dir() in api.common, within the given release
+    return release_dir / str(source_db) / protein_id.lower()[1:3] / protein_id.lower() / 'data.zip'
+
+
+def parse(data_file: Path) -> tuple[dict[str, dict], list[dict]]:
+    """The channel files of an entry by their name (csa, cocaver, ...) and its curated annotations"""
     files, annotations = {}, []
     with ZipFile(data_file) as z:
         for member in z.namelist():
-            if (name := Path(member).stem) in names:
+            if (name := Path(member).stem) in CATEGORIES:
                 files[name] = json.loads(z.read(member))
             elif member == 'annotations.json':
                 annotations = json.loads(z.read(member))
     # In the order of the categories, as the results page lists them
     return {name: files[name] for name in CATEGORIES if name in files}, annotations
+
+
+# Entries parsed in this worker, by their file and its modification time (a changed file is parsed again), the least
+# recently used first, with the sizes of their files; the tools run in threads
+cache: OrderedDict[tuple[str, int], tuple[int, tuple[dict[str, dict], list[dict]]]] = OrderedDict()
+cache_lock = threading.Lock()
+
+
+def parsed(data_file: Path) -> tuple[dict[str, dict], list[dict]]:
+    """An entry's data, kept for the next calls about it (paging, its channels), up to CACHE_BYTES of files in a worker. The
+    data are shared by the calls and must not be modified. Two calls missing the same entry at once both parse it."""
+    status = data_file.stat()
+    key = (str(data_file), status.st_mtime_ns)
+    with cache_lock:
+        if key in cache:
+            cache.move_to_end(key)
+            return cache[key][1]
+    data = parse(data_file)
+    if status.st_size <= CACHE_BYTES // 2:
+        with cache_lock:
+            cache[key] = (status.st_size, data)
+            while sum(size for size, _ in cache.values()) > CACHE_BYTES:
+                cache.popitem(last=False)
+    return data
+
+
+def opened(entry: str) -> tuple[dict, SourceDatabase, str, tuple[dict[str, dict], list[dict]] | None]:
+    """An entry's answer to start from (its database, ID and release) and its data, None when ChannelsDB does not have it"""
+    source_db, protein_id = entry_of(entry)
+    release_dir = base()
+    answer = {'source': 'channelsdb', 'release': release_dir.name, 'entry': protein_id, 'database': str(source_db)}
+    data_file = entry_file(release_dir, source_db, protein_id)
+    if not data_file.exists():
+        return answer | {'found': False, 'message': NOT_COMPUTED.format(entry=protein_id)}, source_db, protein_id, None
+    return answer, source_db, protein_id, parsed(data_file)
 
 
 def channels_of(data: dict) -> list[dict]:
@@ -149,7 +204,7 @@ def starts(data: dict) -> list[dict] | None:
     for origin in origins['Points']['Points']:
         if residues := origin['Residues']:
             found.append({'start': 'residues',
-                          'residues': [f'{r["Chain"]} {r["SequenceNumber"]}{r["InsertionCode"].strip()}' for r in residues]})
+                          'residues': [f'{r["Chain"]} {r["SequenceNumber"]}{(r.get("InsertionCode") or "").strip()}' for r in residues]})
         if queries := [query['Text'] for query in origin['Queries']]:
             names = [name.strip(' \'"') for query in queries for listed in QUERY_RESIDUES.findall(query)
                      for name in re.split(r"[,\s]+", listed.strip(' \'"')) if name.strip(' \'"')]
@@ -164,6 +219,12 @@ def is_bottleneck(layer: dict) -> bool:
     return layer['LayerGeometry'].get('Bottleneck', False)
 
 
+def outside_channel(layer_geometry: dict, length: float) -> bool:
+    """CAVER's last layer can start after it ends, or past the profile (CAVER.md): no location on the channel. A layer only
+    ending past the profile is not outside, CAVER's layers end up to 5 Å after it."""
+    return layer_geometry['StartDistance'] > layer_geometry['EndDistance'] or layer_geometry['StartDistance'] >= length
+
+
 def geometry(channel: dict) -> dict:
     """Length, bottleneck (the method's flagged layer) and narrowest point of a channel, with why a value is missing"""
     profile = channel['Profile']
@@ -174,9 +235,7 @@ def geometry(channel: dict) -> dict:
     flagged = [layer['LayerGeometry'] for layer in channel['Layers']['LayersInfo'] if is_bottleneck(layer)]
     if len(flagged) != 1:
         summary['unavailable'] = {'bottleneck_radius': 'several_bottleneck_flags' if flagged else 'no_bottleneck_flag'}
-    elif flagged[0]['StartDistance'] > flagged[0]['EndDistance'] or flagged[0]['StartDistance'] >= profile[-1]['Distance']:
-        # CAVER's last layer can start after it ends, or past the profile (CAVER.md): no location on the channel. A layer
-        # only ending past the profile is not excluded, CAVER's layers end up to 5 Å after it.
+    elif outside_channel(flagged[0], profile[-1]['Distance']):
         summary['unavailable'] = {'bottleneck_radius': 'bottleneck_outside_channel'}
     else:
         summary['bottleneck_radius'] = round(flagged[0]['MinRadius'], 2)
@@ -203,8 +262,7 @@ def layer_details(channel: dict, method: str) -> list[dict]:
     for layer in channel['Layers']['LayersInfo']:
         geometry_ = layer['LayerGeometry']
         detail = layer_interval(layer)
-        if geometry_['StartDistance'] > geometry_['EndDistance'] or geometry_['StartDistance'] >= length:
-            # CAVER's last layer can start after it ends, or past the profile: no location on the channel (geometry())
+        if outside_channel(geometry_, length):
             detail['outside_channel'] = True
         if method == 'MOLE':
             detail |= {'local_minimum': geometry_.get('LocalMinimum', False), 'residues': residues([layer]),
@@ -338,7 +396,7 @@ def computed_with(name: str, data: dict, source_db: SourceDatabase, protein_id: 
     if structure_kind is None:
         structure = None
     elif source_db == SourceDatabase.AlphaFill:
-        structure = {'url': f'https://alphafill.eu/v1/aff/{protein_id}',
+        structure = {'url': alphafill_model(protein_id),
                      'note': 'the model as AlphaFill has it today, which may differ from the one computed on'}
     elif structure_kind == ASSEMBLY:
         structure = {'pdb_id': protein_id, 'assembly': 'preferred',
@@ -360,7 +418,8 @@ def category(name: str, data: dict, source_db: SourceDatabase, protein_id: str) 
     summary = {'file': f'{name}.json', 'method': method, 'channels_of': what,
                'computed_with': computed_with(name, data, source_db, protein_id)}
     if method == 'CAVER':
-        summary['unavailable'] = CAVER_UNAVAILABLE
+        # A copy: answers are added to, the constant must not be
+        summary['unavailable'] = dict(CAVER_UNAVAILABLE)
     return summary
 
 
@@ -379,15 +438,13 @@ def channel_summary(ref: str, channel: dict, annotations: list[dict], shared: di
 
 
 def describe_entry_of(entry: str, website: str, category_name: str | None = None, offset: int = 0) -> dict:
-    source_db, protein_id = entry_of(entry)
-    answer = {'source': 'channelsdb', 'release': release(), 'entry': protein_id, 'database': str(source_db)}
-    if (read := read_entry(source_db, protein_id)) is None:
-        return answer | {'found': False, 'message': NOT_COMPUTED.format(entry=protein_id)}
+    answer, source_db, protein_id, read = opened(entry)
+    if read is None:
+        return answer
     answer['web'] = web_page(website, source_db, protein_id)
     answer['downloads'] = downloads(website, source_db, protein_id)
     if source_db == SourceDatabase.AlphaFill:
-        # Today's model, which the website shows too; it may have changed since the channels were computed
-        answer['structure_url'] = f'https://alphafill.eu/v1/aff/{protein_id}'
+        answer['structure_url'] = alphafill_model(protein_id)
     files, annotations = read
     if category_name is not None and category_name not in files:
         raise ToolError(f'"{category_name}" is not a category of {protein_id}. Its categories are {", ".join(files)}.')
@@ -406,9 +463,8 @@ def describe_entry_of(entry: str, website: str, category_name: str | None = None
         categories.append(listed)
     if category_name is not None:
         return answer | {'found': True, 'categories': categories}
-    names = CHANNEL_TYPES_PDB if source_db == SourceDatabase.PDB else CHANNEL_TYPES_ALPHAFILL
     # Said explicitly, so that a missing category is not read as a protein without such channels
-    none = [f'{method} {what}' for name, (method, what, _) in CATEGORIES.items() if name in names and name not in files]
+    none = [f'{method} {what}' for name, (method, what, _) in CATEGORIES.items() if name in channel_types(source_db) and name not in files]
     return answer | {'found': True, 'categories': categories, 'channelsdb_has_none_of': none}
 
 
@@ -417,16 +473,15 @@ ASKED_RESIDUE = re.compile(r'(?P<chain>[A-Za-z0-9]+)[ :](?P<number>-?\d+)(?P<ins
 
 
 def find_channels_of(entry: str, residue: str, website: str, offset: int = 0) -> dict:
-    source_db, protein_id = entry_of(entry)
     if (asked := ASKED_RESIDUE.fullmatch(residue.strip())) is None:
         raise ToolError(f'"{residue}" is not a residue as chain and author number, e.g. "A 221", or with an insertion code "A 221A".')
     if offset < 0:
         raise ToolError('offset is the position to list the channels from (from next_offset).')
     chain, number, insertion_code = asked['chain'], int(asked['number']), asked['insertion_code'] or None
-    answer = {'source': 'channelsdb', 'release': release(), 'entry': protein_id, 'database': str(source_db),
-              'residue': {'chain': chain, 'number': number, 'insertion_code': insertion_code}}
-    if (read := read_entry(source_db, protein_id)) is None:
-        return answer | {'found': False, 'message': NOT_COMPUTED.format(entry=protein_id)}
+    answer, source_db, protein_id, read = opened(entry)
+    answer['residue'] = {'chain': chain, 'number': number, 'insertion_code': insertion_code}
+    if read is None:
+        return answer
     files, annotations = read
     lined, searched, not_searched = [], 0, 0
     for name, data in files.items():
@@ -472,7 +527,10 @@ def content(release_dir: str) -> dict[str, dict[str, list[int]]]:
 
 
 def lookup_entries_of(entries: list[str]) -> dict:
-    stored = content(str(Path(config['dirs']['base']).resolve()))
+    if len(entries) > MAX_ENTRIES:
+        raise ToolError(f'{len(entries)} entries asked, at most {MAX_ENTRIES} in one call: split the list.')
+    release_dir = base()
+    stored = content(str(release_dir))
     found, seen = [], set()
     for entry in entries:
         try:
@@ -488,14 +546,11 @@ def lookup_entries_of(entries: list[str]) -> dict:
         if (counts := stored[str(source_db)].get(protein_id.lower())) is None:
             found.append(answer | {'found': False})
             continue
-        names = CHANNEL_TYPES_PDB if source_db == SourceDatabase.PDB else CHANNEL_TYPES_ALPHAFILL
-        found.append(answer | {'found': True, 'channels': {name: n for name, n in zip(names, counts, strict=True) if n}})
-    if len(found) > MAX_ENTRIES:
-        raise ToolError(f'{len(found)} entries asked, at most {MAX_ENTRIES} in one call: split the list.')
-    return {'source': 'channelsdb', 'release': release(),
+        found.append(answer | {'found': True, 'channels': {name: n for name, n in zip(channel_types(source_db), counts, strict=True) if n}})
+    return {'source': 'channelsdb', 'release': release_dir.name,
             'categories': {name: f'{method} {what}' for name, (method, what, _) in CATEGORIES.items()},
             'entries': found, 'found': sum(1 for answer in found if answer.get('found')), 'asked': len(found),
-            'note': 'Not found is not a negative result: ChannelsDB has the channels found for its starting points and parameters only.'}
+            'note': NOT_NEGATIVE}
 
 
 UNIPROT_FROM_SIFTS = 'SIFTS (PDBe), as it maps the entry now, read when asked and kept for up to a day; not of the data release'
@@ -532,10 +587,9 @@ def add_uniprot(listed: list[dict], source_db: SourceDatabase, protein_id: str, 
 
 def describe_channel_of(entry: str, channel: str, website: str, with_layers: bool = False, layer_offset: int = 0,
                         with_uniprot: bool = False) -> dict:
-    source_db, protein_id = entry_of(entry)
-    answer = {'source': 'channelsdb', 'release': release(), 'entry': protein_id, 'database': str(source_db)}
-    if (read := read_entry(source_db, protein_id)) is None:
-        return answer | {'found': False, 'message': NOT_COMPUTED.format(entry=protein_id)}
+    answer, source_db, protein_id, read = opened(entry)
+    if read is None:
+        return answer
     answer['web'] = web_page(website, source_db, protein_id)
     files, annotations = read
     if layer_offset < 0 or (layer_offset and not with_layers):
@@ -586,6 +640,20 @@ READ_ONLY = ToolAnnotations(read_only_hint=True, destructive_hint=False, idempot
 READ_ONLY_OPEN = READ_ONLY.model_copy(update={'open_world_hint': True})
 
 
+async def answered(function, *args) -> dict:
+    """The function's answer, computed in a thread (it reads files). An unexpected failure (data not as expected) becomes
+    an error the model can report, rather than the SDK's bare "Error executing tool": what failed, without details."""
+    try:
+        return await anyio.to_thread.run_sync(function, *args)
+    except ToolError:
+        raise
+    except Exception as e:
+        # Its details (paths, data) only in the log, the server is public
+        logger.exception('MCP %s%s failed', function.__name__, args)
+        raise ToolError(f'ChannelsDB failed to answer ({type(e).__name__}). The fault is ChannelsDB\'s, not the request\'s; '
+                        'it is logged.') from e
+
+
 def create_server() -> MCPServer:
     """The server; its route is added to the app (add_to), its session manager runs in the app's lifespan"""
     server = MCPServer('ChannelsDB', version='1.0.0', instructions=INSTRUCTIONS)
@@ -607,7 +675,7 @@ def create_server() -> MCPServer:
         At most 30 channels of a category are listed, in the order of its file: a category with more has next_offset, to
         list the next ones with category (its file name, e.g. cocaver) and offset. An entry not in ChannelsDB is found:
         false, not an error."""
-        return await anyio.to_thread.run_sync(describe_entry_of, entry, site(ctx), category, offset)
+        return await answered(describe_entry_of, entry, site(ctx), category, offset)
 
     @server.tool(annotations=READ_ONLY_OPEN)
     async def describe_channel(ctx: Context, entry: str, channel: str, layers: bool = False, layer_offset: int = 0,
@@ -629,7 +697,7 @@ def create_server() -> MCPServer:
         With uniprot: each lining and bottleneck residue of MOLE with its UniProt accession and position (from SIFTS for a
         PDB entry), to look up what is known about it, e.g. in UniProt; null for a residue without one (a ligand, a chain
         without UniProt), and all null with the reason in unavailable when the mapping is not available."""
-        return await anyio.to_thread.run_sync(describe_channel_of, entry, channel, site(ctx), layers, layer_offset, uniprot)
+        return await answered(describe_channel_of, entry, channel, site(ctx), layers, layer_offset, uniprot)
 
     @server.tool(annotations=READ_ONLY)
     async def lookup_entries(entries: list[str]) -> dict:
@@ -637,7 +705,7 @@ def create_server() -> MCPServer:
         category (keyed as describe_entry's files and channel refs; categories says what they are). For the IDs of a search
         elsewhere (PDBe, RCSB, UniProt), then describe_entry for the entries of interest. An invalid ID is an error of its
         item only."""
-        return await anyio.to_thread.run_sync(lookup_entries_of, entries)
+        return await answered(lookup_entries_of, entries)
 
     @server.tool(annotations=READ_ONLY)
     async def find_channels(ctx: Context, entry: str, residue: str, offset: int = 0) -> dict:
@@ -650,7 +718,7 @@ def create_server() -> MCPServer:
         narrowest, not at the residue; backbone_only in that layer). MOLE's channels only: CAVER's residues are not given,
         their number is in not_searched. No channels is an answer: the residue lines none of the channels searched. At most
         30 channels at once: with more, next_offset, to list the next ones with offset."""
-        return await anyio.to_thread.run_sync(find_channels_of, entry, residue, site(ctx), offset)
+        return await answered(find_channels_of, entry, residue, site(ctx), offset)
 
     return server
 
