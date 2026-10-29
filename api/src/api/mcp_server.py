@@ -5,6 +5,7 @@ import json
 import logging
 import re
 from contextlib import asynccontextmanager
+from functools import lru_cache
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -23,6 +24,7 @@ from api.config import config
 
 
 MAX_CHANNELS = 30  # of a category in describe_entry, the rest are counted
+MAX_ENTRIES = 100  # in a call of lookup_entries
 PROPERTIES = ('Charge', 'Hydropathy', 'Hydrophobicity', 'Polarity', 'Mutability')  # of MOLE's channels, averages over the lining residues
 
 # not in the API's log: each stateless request's end of its MCP session
@@ -234,6 +236,41 @@ def describe_entry_of(entry: str, website: str) -> dict:
     return answer | {'found': True, 'categories': categories, 'channelsdb_has_none_of': none}
 
 
+@lru_cache(maxsize=2)
+def content(release_dir: str) -> dict[str, dict[str, list[int]]]:
+    """db_content.json of a release: the numbers of channels of each entry (by lowercased ID) in the order of
+    CHANNEL_TYPES_PDB or CHANNEL_TYPES_ALPHAFILL, as calculate_stats.py writes them; read once per release"""
+    with open(Path(release_dir) / 'db_content.json') as f:
+        return json.load(f)
+
+
+def lookup_entries_of(entries: list[str]) -> dict:
+    stored = content(str(Path(config['dirs']['base']).resolve()))
+    found, seen = [], set()
+    for entry in entries:
+        try:
+            source_db, protein_id = entry_of(entry)
+        except ToolError as e:
+            # One mistyped ID does not lose the answer for the others
+            found.append({'entry': entry, 'error': str(e)})
+            continue
+        if (source_db, protein_id) in seen:
+            continue
+        seen.add((source_db, protein_id))
+        answer = {'entry': protein_id, 'database': str(source_db)}
+        if (counts := stored[str(source_db)].get(protein_id.lower())) is None:
+            found.append(answer | {'found': False})
+            continue
+        names = CHANNEL_TYPES_PDB if source_db == SourceDatabase.PDB else CHANNEL_TYPES_ALPHAFILL
+        found.append(answer | {'found': True, 'channels': {name: n for name, n in zip(names, counts, strict=True) if n}})
+    if len(found) > MAX_ENTRIES:
+        raise ToolError(f'{len(found)} entries asked, at most {MAX_ENTRIES} in one call: split the list.')
+    return {'source': 'channelsdb', 'release': release(),
+            'categories': {name: f'{method} {what}' for name, (method, what, _) in CATEGORIES.items()},
+            'entries': found, 'found': sum(1 for answer in found if answer.get('found')), 'asked': len(found),
+            'note': 'Not found is not a negative result: ChannelsDB has the channels found for its starting points and parameters only.'}
+
+
 def describe_channel_of(entry: str, channel: str, website: str) -> dict:
     source_db, protein_id = entry_of(entry)
     answer = {'source': 'channelsdb', 'release': release(), 'entry': protein_id, 'database': str(source_db)}
@@ -290,6 +327,14 @@ def create_server() -> MCPServer:
         channel in the stored structure) and properties. CAVER channels have geometry only, the rest is null with the reason.
         web: the entry's page on the website, on_web: where the page lists the channel, to show it in 3D."""
         return await anyio.to_thread.run_sync(describe_channel_of, entry, channel, site(ctx))
+
+    @server.tool(annotations=READ_ONLY)
+    async def lookup_entries(entries: list[str]) -> dict:
+        """Which of up to 100 entries (PDB IDs, UniProt IDs of AlphaFill models) ChannelsDB has, and how many channels of each
+        category (keyed as describe_entry's files and channel refs; categories says what they are). For the IDs of a search
+        elsewhere (PDBe, RCSB, UniProt), then describe_entry for the entries of interest. An invalid ID is an error of its
+        item only."""
+        return await anyio.to_thread.run_sync(lookup_entries_of, entries)
 
     return server
 

@@ -59,6 +59,9 @@ def client(tmp_path, monkeypatch):
         for name, content in (('cofactors.json', COFACTORS), ('cocaver.json', COCAVER), ('procognate.json', PROCOGNATE),
                               ('annotations.json', ANNOTATIONS)):
             z.writestr(name, json.dumps(content))
+    # As calculate_stats.py writes it: the numbers of channels in the order of CHANNEL_TYPES_PDB / CHANNEL_TYPES_ALPHAFILL
+    (release / 'db_content.json').write_text(json.dumps({'PDB': {'1tqn': [0, 0, 0, 0, 1, 4, 0, 0, 1, 0]},
+                                                         'AlphaFill': {'p10635': [6, 8]}}))
     (tmp_path / 'current').symlink_to(release)
     monkeypatch.setitem(config['dirs'], 'base', str(tmp_path / 'current'))
     with TestClient(app) as client:
@@ -81,7 +84,7 @@ def tool(client, name: str, **arguments) -> tuple[bool, dict | str]:
 
 def test_tools(client):
     tools = rpc(client, 'tools/list')['tools']
-    assert {t['name'] for t in tools} == {'describe_entry', 'describe_channel'}
+    assert {t['name'] for t in tools} == {'describe_entry', 'describe_channel', 'lookup_entries'}
     # Read-only, so that clients need not ask before calling them
     assert all(t['annotations']['readOnlyHint'] and not t['annotations']['destructiveHint'] for t in tools)
 
@@ -178,3 +181,22 @@ def test_describe_caver_channel(client):
 def test_unknown_channel_is_an_error(client, ref):
     failed, text = tool(client, 'describe_channel', entry='1tqn', channel=ref)
     assert failed and 'cofactors/1..1, cocaver/1..4, procognate/1..1' in text
+
+
+def test_lookup_entries(client):
+    _, answer = tool(client, 'lookup_entries', entries=['1TQN', 'P10635', '9zzz', 'cyp3a4', '1tqn'])
+    assert answer['release'] == '20261028-073322'
+    # In the order asked, each once; the counts keyed as describe_entry's files, only those it has
+    assert answer['entries'] == [
+        {'entry': '1tqn', 'database': 'PDB', 'found': True, 'channels': {'cofactors': 1, 'cocaver': 4, 'procognate': 1}},
+        {'entry': 'P10635', 'database': 'AlphaFill', 'found': True, 'channels': {'alphafill': 6, 'alphacaver': 8}},
+        {'entry': '9zzz', 'database': 'PDB', 'found': False},
+        {'entry': 'cyp3a4', 'error': '"cyp3a4" is neither a PDB ID (e.g. 1tqn) nor a UniProt ID of an AlphaFill model (e.g. P10635).'}]
+    assert (answer['found'], answer['asked']) == (2, 4)
+    assert answer['categories']['cocaver'] == 'CAVER tunnels from cofactors'
+    assert 'not a negative result' in answer['note']
+
+
+def test_lookup_entries_at_most_100(client):
+    failed, text = tool(client, 'lookup_entries', entries=[f'{n}abc' for n in range(1, 10)] + [f'1{n:03}' for n in range(100)])
+    assert failed and '109 entries asked, at most 100' in text
