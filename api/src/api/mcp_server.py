@@ -92,6 +92,14 @@ def web_page(website: str, source_db: SourceDatabase, protein_id: str) -> str:
     return f'{website}/detail/{source_db.lower()}/{protein_id}'
 
 
+# The API's exports of all the channels of an entry, to open them in a viewer with the structure
+DOWNLOADS = ('pymol', 'chimera', 'vmd', 'pdb', 'zip')
+
+
+def downloads(website: str, source_db: SourceDatabase, protein_id: str) -> dict[str, str]:
+    return {name: f'{website}/api/download/{source_db.lower()}/{protein_id}/{name}' for name in DOWNLOADS}
+
+
 def release() -> str:
     """The name of the data release read (the directory the data link points to)"""
     return Path(config['dirs']['base']).resolve().name
@@ -210,6 +218,7 @@ def describe_entry_of(entry: str, website: str) -> dict:
     if (read := read_entry(source_db, protein_id)) is None:
         return answer | {'found': False, 'message': NOT_COMPUTED.format(entry=protein_id)}
     answer['web'] = web_page(website, source_db, protein_id)
+    answer['downloads'] = downloads(website, source_db, protein_id)
     files, annotations = read
     shared = shared_ids(files)
     categories = []
@@ -270,7 +279,8 @@ def create_server() -> MCPServer:
         P10635), by category: what they start from, the structure they were computed on, and for each channel its ref (for
         describe_channel), curated names, length, bottleneck (the method's, MOLE's not counting the start) and narrowest point
         (Å, distances along the channel from its start); web: its page on the website, showing the channels in 3D with the
-        structure, on_web: where the page lists each channel. An entry not in ChannelsDB is found: false, not an error."""
+        structure, on_web: where the page lists each channel; downloads: all its channels for PyMOL, Chimera (legacy UCSF
+        Chimera), VMD, as PDB or all in a ZIP. An entry not in ChannelsDB is found: false, not an error."""
         return await anyio.to_thread.run_sync(describe_entry_of, entry, site(ctx))
 
     @server.tool(annotations=READ_ONLY)

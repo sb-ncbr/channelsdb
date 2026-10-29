@@ -110,6 +110,8 @@ def test_describe_entry(client):
     assert (answer['source'], answer['entry'], answer['found']) == ('channelsdb', '1tqn', True)
     # The results page, on the host the client reached
     assert answer['web'] == 'http://testserver/detail/pdb/1tqn'
+    assert answer['downloads']['pymol'] == 'http://testserver/api/download/pdb/1tqn/pymol'
+    assert set(answer['downloads']) == {'pymol', 'chimera', 'vmd', 'pdb', 'zip'}
     cofactors, cocaver, procognate = answer['categories']
     assert (cofactors['method'], cofactors['file'], cofactors['total_channels']) == ('MOLE', 'cofactors.json', 1)
     assert cofactors['starts_from'] == ["atoms of the query Atoms('Fe').Inside(Residues('HEM'))"]
