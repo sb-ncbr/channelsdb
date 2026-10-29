@@ -10,7 +10,7 @@ from zipfile import ZipFile
 
 import anyio
 from fastapi import FastAPI
-from mcp.server.mcpserver import MCPServer
+from mcp.server.mcpserver import Context, MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.server.transport_security import TransportSecuritySettings
 from mcp.types import ToolAnnotations
@@ -47,6 +47,14 @@ CATEGORIES = {
     'alphacaver': ('CAVER', 'tunnels from AlphaFill ligands', ALPHAFILL),
 }
 
+# The sections of the results page listing the channels of each file
+SECTIONS = {
+    'csa': 'CSA Tunnels MOLE', 'cscaver': 'CSA Tunnels CAVER', 'authors': 'Reviewed Channels MOLE', 'aucaver': 'Reviewed Channels CAVER',
+    'cofactors': 'Cofactor Tunnels MOLE', 'cocaver': 'Cofactor Tunnels CAVER', 'pores': 'Transmembrane Pores MOLE',
+    'pocaver': 'Transmembrane Pores CAVER', 'procognate': 'COGNATE Tunnels MOLE', 'procaver': 'COGNATE Tunnels CAVER',
+    'alphafill': 'AlphaFill Tunnels MOLE', 'alphacaver': 'AlphaFill Tunnels CAVER',
+}
+
 # Why a value is not given (MCP.md, What each method provides)
 CAVER_CONVERSION = 'caver_conversion'
 CAVER_UNAVAILABLE = {'lining_residues': CAVER_CONVERSION, 'bottleneck_residues': CAVER_CONVERSION, 'properties': CAVER_CONVERSION}
@@ -70,6 +78,18 @@ def entry_of(entry: str) -> tuple[SourceDatabase, str]:
     if re.fullmatch(UNIPROT_ID_REGEX, entry.upper()):
         return SourceDatabase.AlphaFill, entry.upper()
     raise ToolError(f'"{entry}" is neither a PDB ID (e.g. 1tqn) nor a UniProt ID of an AlphaFill model (e.g. P10635).')
+
+
+def site(ctx: Context) -> str:
+    """The website as the user reached it: nginx passes the user's host and scheme (X-Forwarded-Proto, which uvicorn
+    trusts), as it ends TLS itself"""
+    url = ctx.request_context.request.url
+    return f'{url.scheme}://{url.netloc}'
+
+
+def web_page(website: str, source_db: SourceDatabase, protein_id: str) -> str:
+    """The entry's results page, to see its channels in 3D with the structure"""
+    return f'{website}/detail/{source_db.lower()}/{protein_id}'
 
 
 def release() -> str:
@@ -180,11 +200,12 @@ def channel_summary(ref: str, channel: dict, annotations: list[dict], shared: di
     return summary
 
 
-def describe_entry_of(entry: str) -> dict:
+def describe_entry_of(entry: str, website: str) -> dict:
     source_db, protein_id = entry_of(entry)
     answer = {'source': 'channelsdb', 'release': release(), 'entry': protein_id, 'database': str(source_db)}
     if (read := read_entry(source_db, protein_id)) is None:
         return answer | {'found': False, 'message': NOT_COMPUTED.format(entry=protein_id)}
+    answer['web'] = web_page(website, source_db, protein_id)
     files, annotations = read
     shared = shared_ids(files)
     categories = []
@@ -200,11 +221,12 @@ def describe_entry_of(entry: str) -> dict:
     return answer | {'found': True, 'categories': categories, 'channelsdb_has_none_of': none}
 
 
-def describe_channel_of(entry: str, channel: str) -> dict:
+def describe_channel_of(entry: str, channel: str, website: str) -> dict:
     source_db, protein_id = entry_of(entry)
     answer = {'source': 'channelsdb', 'release': release(), 'entry': protein_id, 'database': str(source_db)}
     if (read := read_entry(source_db, protein_id)) is None:
         return answer | {'found': False, 'message': NOT_COMPUTED.format(entry=protein_id)}
+    answer['web'] = web_page(website, source_db, protein_id)
     files, annotations = read
     name, _, position = channel.strip().partition('/')
     channels = channels_of(files[name]) if name in files else []
@@ -216,6 +238,9 @@ def describe_channel_of(entry: str, channel: str) -> dict:
     summary = of_category | channel_summary(f'{name}/{position}', found, annotations, shared_ids(files), details=True)
     if unavailable := of_category.get('unavailable', {}) | summary.get('unavailable', {}):
         summary['unavailable'] = unavailable
+    # Where the page lists it: under its first curated name, or its type, as the page labels channels
+    label = summary['names'][0]['name'] if summary['names'] else found['Type']
+    summary['on_web'] = f'{SECTIONS[name]}: {label} (Id: {found["Id"]})'
     if CATEGORIES[name][0] == 'CAVER':
         summary |= {'lining_residues': None, 'bottleneck_residues': None, 'properties': None}
     else:
@@ -236,22 +261,24 @@ READ_ONLY = ToolAnnotations(read_only_hint=True, destructive_hint=False, idempot
 
 def create_server() -> MCPServer:
     """The server; its route is added to the app (add_to), its session manager runs in the app's lifespan"""
-    server = MCPServer('ChannelsDB', instructions=INSTRUCTIONS)
+    server = MCPServer('ChannelsDB', version='1.0.0', instructions=INSTRUCTIONS)
 
     @server.tool(annotations=READ_ONLY)
-    async def describe_entry(entry: str) -> dict:
+    async def describe_entry(ctx: Context, entry: str) -> dict:
         """The channels ChannelsDB has for an entry, given as a PDB ID (e.g. 1tqn) or a UniProt ID of an AlphaFill model (e.g.
         P10635), by category: what they start from, the structure they were computed on, and for each channel its ref (for
         describe_channel), curated names, length, bottleneck (the method's, MOLE's not counting the start) and narrowest point
-        (Å, distances along the channel from its start). An entry not in ChannelsDB is found: false, not an error."""
-        return await anyio.to_thread.run_sync(describe_entry_of, entry)
+        (Å, distances along the channel from its start); web: its page on the website, showing the channels in 3D with the
+        structure. An entry not in ChannelsDB is found: false, not an error."""
+        return await anyio.to_thread.run_sync(describe_entry_of, entry, site(ctx))
 
     @server.tool(annotations=READ_ONLY)
-    async def describe_channel(entry: str, channel: str) -> dict:
+    async def describe_channel(ctx: Context, entry: str, channel: str) -> dict:
         """One channel of an entry by its ref from describe_entry (e.g. cofactors/2): its geometry, curated names with their
         references, and for MOLE its lining residues and bottleneck residues (backbone_only: only its backbone atoms line the
-        channel in the stored structure) and properties. CAVER channels have geometry only, the rest is null with the reason."""
-        return await anyio.to_thread.run_sync(describe_channel_of, entry, channel)
+        channel in the stored structure) and properties. CAVER channels have geometry only, the rest is null with the reason.
+        web: the entry's page on the website, on_web: where the page lists the channel, to show it in 3D."""
+        return await anyio.to_thread.run_sync(describe_channel_of, entry, channel, site(ctx))
 
     return server
 

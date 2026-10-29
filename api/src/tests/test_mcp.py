@@ -102,11 +102,14 @@ def test_entry_not_stored_is_an_answer(client):
     assert not failed
     assert (answer['found'], answer['database'], answer['release']) == (False, 'AlphaFill', '20261028-073322')
     assert 'not a negative result' in answer['message']
+    assert 'web' not in answer
 
 
 def test_describe_entry(client):
     _, answer = tool(client, 'describe_entry', entry='1TQN')
     assert (answer['source'], answer['entry'], answer['found']) == ('channelsdb', '1tqn', True)
+    # The results page, on the host the client reached
+    assert answer['web'] == 'http://testserver/detail/pdb/1tqn'
     cofactors, cocaver, procognate = answer['categories']
     assert (cofactors['method'], cofactors['file'], cofactors['total_channels']) == ('MOLE', 'cofactors.json', 1)
     assert cofactors['starts_from'] == ["atoms of the query Atoms('Fe').Inside(Residues('HEM'))"]
@@ -139,6 +142,8 @@ def test_describe_mole_channel(client):
     assert found['bottleneck_residues'] == [{'residue': 'PHE 57 A', 'backbone_only': True}, {'residue': 'GLY 58 A', 'backbone_only': True}]
     assert found['properties'] == {'charge': 1, 'hydropathy': -0.5, 'hydrophobicity': -0.2, 'polarity': 10.0, 'mutability': 80}
     assert found['names'][0]['description'] == 'Between the F-G loop and the B-C loop'
+    # Listed on the page under its curated name
+    assert (answer['web'], found['on_web']) == ('http://testserver/detail/pdb/1tqn', 'Cofactor Tunnels MOLE: Channel 2a (Id: 25.20)')
 
 
 def test_unknown_bottleneck_has_unknown_residues(client):
@@ -158,8 +163,9 @@ def test_describe_caver_channel(client):
                                     'properties': 'caver_conversion'}
     # Its flagged layer ends past the profile, and is the bottleneck still
     assert (found['length'], found['bottleneck_radius'], found['bottleneck_at']) == (3.0, 1.2, [0, 3])
-    # A missing bottleneck adds to the reasons of the method
+    # A missing bottleneck adds to the reasons of the method; without a curated name, listed by its type
     _, answer = tool(client, 'describe_channel', entry='1tqn', channel='cocaver/1')
+    assert answer['channel']['on_web'] == 'Cofactor Tunnels CAVER: Tunnel (Id: 1)'
     assert answer['channel']['unavailable'] == {'lining_residues': 'caver_conversion', 'bottleneck_residues': 'caver_conversion',
                                                 'properties': 'caver_conversion', 'bottleneck_radius': 'several_bottleneck_flags'}
 
