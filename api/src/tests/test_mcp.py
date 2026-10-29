@@ -34,7 +34,7 @@ MOLE_CONFIG = {'Origins': {'Points': {'Points': [{'Residues': [], 'Points': [],
 # MOLE: the start narrowest, the flagged bottleneck after it; a residue lining with its backbone only
 COFACTORS = channels_file([channel('25.20', [layer(0, 2, 1.0, ['HEM 500 A', 'PHE 57 A'], charge=-1),
                                              layer(2, 9, 1.4, ['PHE 57 A Backbone', 'GLY 58 A Backbone'], bottleneck=True),
-                                             layer(9, 24, 2.2, ['GLN 221 A i:A'], charge=2)],
+                                             layer(9, 24, 2.2, ['GLN 221 A i:A', 'GLU 221 B-2', 'ALA -3 AA'], charge=2)],
                                    [(0, 1.0), (5, 1.4), (25.23, 2.6)])], MOLE_CONFIG)
 # CAVER: two flagged layers; its ID also of the MOLE channel, its flagged layer ending past the profile (as CAVER's do);
 # the flagged layer inverted (starting after it ends); the flagged layer starting at the profile's end
@@ -144,11 +144,17 @@ def test_describe_entry(client):
 def test_describe_mole_channel(client):
     _, answer = tool(client, 'describe_channel', entry='1tqn', channel='cofactors/1')
     found = answer['channel']
-    assert found['lining_residues'] == [{'residue': 'HEM 500 A', 'backbone_only': False},
-                                        {'residue': 'PHE 57 A', 'backbone_only': False},
-                                        {'residue': 'GLY 58 A', 'backbone_only': True},
-                                        {'residue': 'GLN 221 A i:A', 'backbone_only': False}]
-    assert found['bottleneck_residues'] == [{'residue': 'PHE 57 A', 'backbone_only': True}, {'residue': 'GLY 58 A', 'backbone_only': True}]
+    assert [(r['residue'], r['backbone_only']) for r in found['lining_residues']] == [
+        ('HEM 500 A', False), ('PHE 57 A', False), ('GLY 58 A', True), ('GLN 221 A i:A', False), ('GLU 221 B-2', False),
+        ('ALA -3 AA', False)]
+    # The parts of each residue, so that a reader need not parse it; a symmetry copy's chain is the deposited chain
+    parts = [{key: r[key] for key in ('name', 'number', 'insertion_code', 'chain', 'copy')} for r in found['lining_residues'][3:]]
+    assert parts == [{'name': 'GLN', 'number': 221, 'insertion_code': 'A', 'chain': 'A', 'copy': None},
+                     {'name': 'GLU', 'number': 221, 'insertion_code': None, 'chain': 'B', 'copy': 2},
+                     {'name': 'ALA', 'number': -3, 'insertion_code': None, 'chain': 'AA', 'copy': None}]
+    assert found['bottleneck_residues'] == [
+        {'residue': 'PHE 57 A', 'name': 'PHE', 'number': 57, 'insertion_code': None, 'chain': 'A', 'copy': None, 'backbone_only': True},
+        {'residue': 'GLY 58 A', 'name': 'GLY', 'number': 58, 'insertion_code': None, 'chain': 'A', 'copy': None, 'backbone_only': True}]
     assert found['properties'] == {'charge': 1, 'hydropathy': -0.5, 'hydrophobicity': -0.2, 'polarity': 10.0, 'mutability': 80}
     assert found['names'][0]['description'] == 'Between the F-G loop and the B-C loop'
     # Listed on the page under its curated name
@@ -161,7 +167,7 @@ def test_unknown_bottleneck_has_unknown_residues(client):
     found = answer['channel']
     assert (found['bottleneck_radius'], found['bottleneck_residues']) == (None, None)
     assert found['unavailable'] == {'bottleneck_radius': 'no_bottleneck_flag', 'bottleneck_residues': 'no_bottleneck_flag'}
-    assert found['lining_residues'] == [{'residue': 'TYR 96 A', 'backbone_only': False}]
+    assert [r['residue'] for r in found['lining_residues']] == ['TYR 96 A']
 
 
 def test_describe_caver_channel(client):
@@ -210,6 +216,7 @@ def test_mole_layers(client):
     first, bottleneck, last = answer['channel']['layers']
     assert {key: first[key] for key in ('from', 'to', 'min_radius', 'bottleneck', 'local_minimum')} == {
         'from': 0, 'to': 2, 'min_radius': 1.0, 'bottleneck': False, 'local_minimum': False}
+    # In the layers, residues by their string only (the key into lining_residues), to keep long channels small
     assert first['residues'] == [{'residue': 'HEM 500 A', 'backbone_only': False}, {'residue': 'PHE 57 A', 'backbone_only': False}]
     # Backbone only in this layer, though not in the whole channel
     assert (bottleneck['bottleneck'], bottleneck['residues'][0]) == (True, {'residue': 'PHE 57 A', 'backbone_only': True})
@@ -260,3 +267,9 @@ def test_paging_layers(client, monkeypatch):
     assert 'next_layer_offset' not in answer['channel']
     failed, text = tool(client, 'describe_channel', entry='1tqn', channel='cofactors/1', layer_offset=2)
     assert failed and 'with layers' in text
+
+
+def test_residue_not_in_the_form_has_no_parts():
+    """The string stays, the parts are null rather than guessed or missing"""
+    parts = mcp_server.residue_parts('GLN -0.295 C1164')
+    assert parts == {'name': None, 'number': None, 'insertion_code': None, 'chain': None, 'copy': None}

@@ -192,14 +192,31 @@ def layer_details(channel: dict, method: str) -> list[dict]:
     return details
 
 
-def residues(layers: list[dict]) -> list[dict]:
-    """The residues of layers in the order of their first appearance, each backbone_only when only its backbone lines them"""
+# A residue as MOLE writes it: name, author number and chain, its insertion code (i:A), and Backbone when only the
+# backbone lines the layer. The chain of a symmetry copy of an assembly has the copy's number after a dash (B-2): MOLE's
+# notation, not of author chain IDs in general (in the release of 2026-10-28 no other chain has a dash, and all MOLE's
+# residues parse).
+RESIDUE = re.compile(r'(?P<name>\S+) (?P<number>-?\d+) (?P<chain>\S+?)(?:-(?P<copy>\d+))?(?: i:(?P<insertion_code>\S))?')
+
+
+def residue_parts(residue: str) -> dict:
+    """The parts of a residue, so that a reader need not parse it: its chain is the deposited chain (author chain ID),
+    also for a symmetry copy, whose number is in copy"""
+    if (match := RESIDUE.fullmatch(residue)) is None:
+        return dict.fromkeys(('name', 'number', 'insertion_code', 'chain', 'copy'))
+    return {'name': match['name'], 'number': int(match['number']), 'insertion_code': match['insertion_code'],
+            'chain': match['chain'], 'copy': int(match['copy']) if match['copy'] else None}
+
+
+def residues(layers: list[dict], parts: bool = False) -> list[dict]:
+    """The residues of layers in the order of their first appearance, each backbone_only when only its backbone lines them,
+    with their parts"""
     found: dict[str, bool] = {}
     for layer in layers:
         for residue in layer['Residues']:
             name = residue.removesuffix(' Backbone')
             found[name] = found.get(name, True) and residue != name
-    return [{'residue': name, 'backbone_only': backbone} for name, backbone in found.items()]
+    return [{'residue': name} | (residue_parts(name) if parts else {}) | {'backbone_only': backbone} for name, backbone in found.items()]
 
 
 def names_of(annotations: list[dict], channel_id: str, details: bool = False) -> list[dict]:
@@ -330,12 +347,13 @@ def describe_channel_of(entry: str, channel: str, website: str, with_layers: boo
                                        'local_minimum': 'caver_local_minimum_always_set'}
     else:
         layers = found['Layers']['LayersInfo']
-        summary |= {'lining_residues': residues(layers), 'bottleneck_residues': None, 'properties': properties_of(found['Properties'])}
+        summary |= {'lining_residues': residues(layers, parts=True), 'bottleneck_residues': None,
+                    'properties': properties_of(found['Properties'])}
         if summary['bottleneck_radius'] is None:
             # Unknown, not none: for the same reason as the bottleneck itself
             summary['unavailable']['bottleneck_residues'] = summary['unavailable']['bottleneck_radius']
         else:
-            summary['bottleneck_residues'] = residues([layer for layer in layers if is_bottleneck(layer)])
+            summary['bottleneck_residues'] = residues([layer for layer in layers if is_bottleneck(layer)], parts=True)
     if with_layers:
         layers = layer_details(found, CATEGORIES[name][0])
         summary |= {'total_layers': len(layers), 'layers': layers[layer_offset:layer_offset + MAX_LAYERS]}
@@ -368,11 +386,14 @@ def create_server() -> MCPServer:
     async def describe_channel(ctx: Context, entry: str, channel: str, layers: bool = False, layer_offset: int = 0) -> dict:
         """One channel of an entry by its ref from describe_entry (e.g. cofactors/2): its geometry, curated names with their
         references, and for MOLE its lining residues and bottleneck residues (backbone_only: only its backbone atoms line the
-        channel in the stored structure) and properties. CAVER channels have geometry only, the rest is null with the reason.
-        web: the entry's page on the website, on_web: where the page lists the channel, to show it in 3D. With layers: each
-        layer along the channel (from, to: Å from its start), its narrowest radius and whether it is the flagged bottleneck;
-        for MOLE also whether it is a local minimum of the radius, its residues and properties, to see where along the
-        channel a residue lines it and how narrow it is there. A layer's min_radius is the narrowest anywhere in the layer, not
+        channel in the stored structure; with their name, author number, insertion code and chain, and the copy of a symmetry
+        copy of the assembly: residue 'GLU 221 B-2' is GLU 221 of chain B in copy 2; all null for a residue not in this form)
+        and properties. CAVER channels have
+        geometry only, the rest is null with the reason. web: the entry's page on the website, on_web: where the page lists
+        the channel, to show it in 3D. With layers: each layer along the channel (from, to: Å from its start), its narrowest
+        radius and whether it is the flagged bottleneck; for MOLE also whether it is a local minimum of the radius, its
+        residues (by their residue in lining_residues) and properties, to see where along the channel a residue lines it and
+        how narrow it is there. A layer's min_radius is the narrowest anywhere in the layer, not
         at each of its residues; layer radii are MOLE's or CAVER's own, not the profile's. At most 40 layers at once: a channel
         with more has next_layer_offset, to list the next ones with layers=true and layer_offset."""
         return await anyio.to_thread.run_sync(describe_channel_of, entry, channel, site(ctx), layers, layer_offset)
