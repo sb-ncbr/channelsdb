@@ -1,4 +1,5 @@
 import logging
+from contextlib import asynccontextmanager
 
 import requests
 from fastapi import FastAPI, Request
@@ -6,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from uvicorn.logging import DefaultFormatter
 
+from api import mcp_server
 from api.common import ObsoleteEntry
 from api.endpoints import annotations, assembly, channels, content, download, statistics
 
@@ -15,14 +17,25 @@ handler = logging.StreamHandler()
 handler.setFormatter(DefaultFormatter('%(levelprefix)s %(message)s'))
 logging.basicConfig(handlers=[handler])
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # The MCP server's route runs only while the API does
+    async with mcp_endpoint.running():
+        yield
+
+
 fastapi_app = FastAPI(title='ChannelsDB 2.0 API',
                       contact={'name': 'Tomáš Raček', 'email': 'tomas.racek@muni.cz'},
                       redoc_url=None, docs_url='/',
                       version='1.0.0',
-                      swagger_ui_parameters={'syntaxHighlight': False, 'defaultModelsExpandDepth': -1})
+                      swagger_ui_parameters={'syntaxHighlight': False, 'defaultModelsExpandDepth': -1},
+                      lifespan=lifespan)
 
 for module in (annotations, assembly, channels, content, statistics, download):
     fastapi_app.include_router(module.router)
+
+# For assistants, /mcp
+mcp_endpoint = mcp_server.add_to(fastapi_app, mcp_server.create_server())
 
 
 @fastapi_app.exception_handler(ObsoleteEntry)
