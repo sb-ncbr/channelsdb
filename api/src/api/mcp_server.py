@@ -175,6 +175,13 @@ def properties_of(properties: dict) -> dict:
     return {key.lower(): properties.get(key) for key in PROPERTIES}
 
 
+def layer_interval(layer: dict) -> dict:
+    """Where a layer is along the channel, its narrowest radius and whether it is the flagged bottleneck"""
+    geometry_ = layer['LayerGeometry']
+    return {'from': round(geometry_['StartDistance'], 1), 'to': round(geometry_['EndDistance'], 1),
+            'min_radius': round(geometry_['MinRadius'], 2), 'bottleneck': is_bottleneck(layer)}
+
+
 def layer_details(channel: dict, method: str) -> list[dict]:
     """Each layer of a channel: where it is along the channel, its narrowest radius, whether it is the flagged bottleneck,
     and for MOLE whether it is a local minimum of the radius, its residues and properties (CAVER's are not given)"""
@@ -182,8 +189,7 @@ def layer_details(channel: dict, method: str) -> list[dict]:
     details = []
     for layer in channel['Layers']['LayersInfo']:
         geometry_ = layer['LayerGeometry']
-        detail = {'from': round(geometry_['StartDistance'], 1), 'to': round(geometry_['EndDistance'], 1),
-                  'min_radius': round(geometry_['MinRadius'], 2), 'bottleneck': is_bottleneck(layer)}
+        detail = layer_interval(layer)
         if geometry_['StartDistance'] > geometry_['EndDistance'] or geometry_['StartDistance'] >= length:
             # CAVER's last layer can start after it ends, or past the profile: no location on the channel (geometry())
             detail['outside_channel'] = True
@@ -286,6 +292,57 @@ def describe_entry_of(entry: str, website: str, category_name: str | None = None
     # Said explicitly, so that a missing category is not read as a protein without such channels
     none = [f'{method} {what}' for name, (method, what, _) in CATEGORIES.items() if name in names and name not in files]
     return answer | {'found': True, 'categories': categories, 'channelsdb_has_none_of': none}
+
+
+# A residue asked for: chain and author number, with an insertion code (A 221, A:221, A 221A)
+ASKED_RESIDUE = re.compile(r'(?P<chain>[A-Za-z0-9]+)[ :](?P<number>-?\d+)(?P<insertion_code>[A-Za-z]?)')
+
+
+def find_channels_of(entry: str, residue: str, website: str, offset: int = 0) -> dict:
+    source_db, protein_id = entry_of(entry)
+    if (asked := ASKED_RESIDUE.fullmatch(residue.strip())) is None:
+        raise ToolError(f'"{residue}" is not a residue as chain and author number, e.g. "A 221", or with an insertion code "A 221A".')
+    if offset < 0:
+        raise ToolError('offset is the position to list the channels from (from next_offset).')
+    chain, number, insertion_code = asked['chain'], int(asked['number']), asked['insertion_code'] or None
+    answer = {'source': 'channelsdb', 'release': release(), 'entry': protein_id, 'database': str(source_db),
+              'residue': {'chain': chain, 'number': number, 'insertion_code': insertion_code}}
+    if (read := read_entry(source_db, protein_id)) is None:
+        return answer | {'found': False, 'message': NOT_COMPUTED.format(entry=protein_id)}
+    files, annotations = read
+    lined, searched, not_searched = [], 0, 0
+    for name, data in files.items():
+        if CATEGORIES[name][0] == 'CAVER':
+            not_searched += len(channels_of(data))
+            continue
+        for position, channel in enumerate(channels_of(data), 1):
+            searched += 1
+            # The residue as stored, in the deposited chain or a symmetry copy (GLU 221 A, GLU 221 A-2), with the layers it lines
+            found: dict[str, list[dict]] = {}
+            for layer in channel['Layers']['LayersInfo']:
+                for stored in layer['Residues']:
+                    parts = residue_parts(stored.removesuffix(' Backbone'))
+                    if (parts['chain'], parts['number'], parts['insertion_code']) == (chain, number, insertion_code):
+                        found.setdefault(stored.removesuffix(' Backbone'), []).append((layer, stored.endswith(' Backbone')))
+            if not found:
+                continue
+            summary = channel_summary(f'{name}/{position}', channel, annotations, {})
+            ways = []
+            for stored, layers in found.items():
+                # Unknown, not false, for a channel without a bottleneck (not exactly one flagged layer on the channel)
+                at_bottleneck = None if summary['bottleneck_radius'] is None else any(is_bottleneck(layer) for layer, _ in layers)
+                ways.append({'residue': stored, 'copy': residue_parts(stored)['copy'],
+                             'backbone_only': all(backbone for _, backbone in layers), 'at_bottleneck': at_bottleneck,
+                             'layers': [layer_interval(layer) | {'backbone_only': backbone} for layer, backbone in layers]})
+            keys = ('ref', 'on_web', 'names', 'length', 'bottleneck_radius', 'unavailable')
+            lined.append({key: summary[key] for key in keys if key in summary} | {'as': ways})
+    answer |= {'found': True, 'web': web_page(website, source_db, protein_id), 'searched_channels': searched,
+               'total_channels': len(lined), 'channels': lined[offset:offset + MAX_CHANNELS]}
+    if offset + MAX_CHANNELS < len(lined):
+        answer['next_offset'] = offset + MAX_CHANNELS
+    if not_searched:
+        answer['not_searched'] = {'channels': not_searched, 'reason': CAVER_CONVERSION}
+    return answer
 
 
 @lru_cache(maxsize=2)
@@ -455,6 +512,19 @@ def create_server() -> MCPServer:
         elsewhere (PDBe, RCSB, UniProt), then describe_entry for the entries of interest. An invalid ID is an error of its
         item only."""
         return await anyio.to_thread.run_sync(lookup_entries_of, entries)
+
+    @server.tool(annotations=READ_ONLY)
+    async def find_channels(ctx: Context, entry: str, residue: str, offset: int = 0) -> dict:
+        """The channels of an entry a residue lines, given as chain and author number (as in the structure file), with an
+        insertion code if it has one: "A 221", "A 221A". Lines means listed among the residues of a channel's layers as
+        computed, not merely near the channel. Also in the symmetry copies of an assembly (as GLU 221 A-2). For each channel
+        its ref (for describe_channel), curated names, length and bottleneck, and the residue as stored with backbone_only,
+        whether it lines the bottleneck (null when the channel has none, with the reason in unavailable), and the layers it
+        lines (from, to: Å from the start; min_radius is the layer's narrowest, not at the residue; backbone_only in that
+        layer). MOLE's channels only: CAVER's residues are not given, their number is in not_searched.
+        No channels is an answer: the residue lines none of the channels searched. At most 30 channels at once: with more,
+        next_offset, to list the next ones with offset."""
+        return await anyio.to_thread.run_sync(find_channels_of, entry, residue, site(ctx), offset)
 
     return server
 

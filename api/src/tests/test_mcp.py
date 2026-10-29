@@ -46,8 +46,10 @@ COCAVER = channels_file([channel('1', [layer(0, 1, 1.5, ['BSER 106 A'], bottlene
                          channel('3', [layer(0, 7.2, 1.8, []), layer(7.2, 7.1, 1.5, [], bottleneck=True)], [(0, 1.8), (6.9, 1.5)]),
                          channel('4', [layer(0, 13.9, 1.8, []), layer(13.9, 14.6, 1.1, [], bottleneck=True)], [(0, 1.8), (13.9, 1.5)])],
                         {'InMembrane': False})
-# MOLE: starting points chosen by MOLE, a channel without a flagged layer
-PROCOGNATE = channels_file([channel('12.00', [layer(0, 12, 1.3, ['TYR 96 A'])], [(0, 1.3), (12, 2.0)])],
+# MOLE: starting points chosen by MOLE, a channel without a flagged layer, and one with it, both lined by TYR 96 A
+PROCOGNATE = channels_file([channel('12.00', [layer(0, 12, 1.3, ['TYR 96 A'])], [(0, 1.3), (12, 2.0)]),
+                            channel('14.00', [layer(0, 3, 1.6, []), layer(3, 14, 1.2, ['TYR 96 A'], bottleneck=True)],
+                                    [(0, 1.6), (14, 2.0)])],
                            {'Origins': {'UseAutoPoints': True, 'Points': {'Points': []}}})
 ANNOTATIONS = [{'Id': '25.20', 'Name': 'Channel 2a', 'Description': 'Between the F-G loop and the B-C loop',
                 'Reference': '10.1016/j.bbagen.2006.07.005', 'ReferenceType': 'DOI'}]
@@ -94,11 +96,11 @@ def tool(client, name: str, **arguments) -> tuple[bool, dict | str]:
 
 def test_tools(client):
     tools = rpc(client, 'tools/list')['tools']
-    assert {t['name'] for t in tools} == {'describe_entry', 'describe_channel', 'lookup_entries'}
+    assert {t['name'] for t in tools} == {'describe_entry', 'describe_channel', 'lookup_entries', 'find_channels'}
     # Read-only, so that clients need not ask before calling them; describe_channel asks SIFTS
     assert all(t['annotations']['readOnlyHint'] and not t['annotations']['destructiveHint'] for t in tools)
     assert {t['name']: t['annotations']['openWorldHint'] for t in tools} == {
-        'describe_entry': False, 'describe_channel': True, 'lookup_entries': False}
+        'describe_entry': False, 'describe_channel': True, 'lookup_entries': False, 'find_channels': False}
 
 
 @pytest.mark.parametrize('method', ['GET', 'DELETE'])
@@ -198,7 +200,7 @@ def test_describe_caver_channel(client):
 @pytest.mark.parametrize('ref', ['cofactors/2', 'csa/1', 'cofactors', 'cofactors/x'])
 def test_unknown_channel_is_an_error(client, ref):
     failed, text = tool(client, 'describe_channel', entry='1tqn', channel=ref)
-    assert failed and 'cofactors/1..1, cocaver/1..4, procognate/1..1' in text
+    assert failed and 'cofactors/1..1, cocaver/1..4, procognate/1..2' in text
 
 
 def test_lookup_entries(client):
@@ -326,3 +328,60 @@ def test_uniprot_positions_unavailable(client, monkeypatch, failure, reason):
     assert not failed and found['unavailable']['uniprot'] == reason
     assert {r['uniprot'] for r in found['lining_residues']} == {None}
     assert found['length'] == 25.2
+
+
+def test_find_channels(client):
+    _, answer = tool(client, 'find_channels', entry='1tqn', residue='A 57')
+    assert (answer['residue'], answer['searched_channels'], answer['total_channels']) == (
+        {'chain': 'A', 'number': 57, 'insertion_code': None}, 3, 1)
+    # CAVER's residues are not given: its channels are counted, not searched
+    assert answer['not_searched'] == {'channels': 4, 'reason': 'caver_conversion'}
+    [found] = answer['channels']
+    assert (found['ref'], found['bottleneck_radius']) == ('cofactors/1', 1.4)
+    assert found['on_web'] == 'Cofactor Tunnels MOLE: Channel 2a (Id: 25.20)'
+    # With its side chain in the first layer, its backbone only in the bottleneck: not backbone only in the channel,
+    # backbone only in the bottleneck layer
+    assert found['as'] == [{'residue': 'PHE 57 A', 'copy': None, 'backbone_only': False, 'at_bottleneck': True,
+                            'layers': [{'from': 0, 'to': 2, 'min_radius': 1.0, 'bottleneck': False, 'backbone_only': False},
+                                       {'from': 2, 'to': 9, 'min_radius': 1.4, 'bottleneck': True, 'backbone_only': True}]}]
+
+
+def test_find_channels_unknown_bottleneck(client):
+    """Whether the residue lines a bottleneck the channel does not have is unknown, not false"""
+    _, answer = tool(client, 'find_channels', entry='1tqn', residue='A 96')
+    unknown, known = answer['channels']
+    assert (unknown['ref'], unknown['as'][0]['at_bottleneck'], unknown['unavailable']) == (
+        'procognate/1', None, {'bottleneck_radius': 'no_bottleneck_flag'})
+    assert (known['ref'], known['as'][0]['at_bottleneck'], 'unavailable' in known) == ('procognate/2', True, False)
+
+
+@pytest.mark.parametrize(('residue', 'stored'), [('B 221', 'GLU 221 B-2'), ('B:221', 'GLU 221 B-2'), ('A 221A', 'GLN 221 A i:A')])
+def test_find_channels_in_copies_and_with_insertion_codes(client, residue, stored):
+    _, answer = tool(client, 'find_channels', entry='1tqn', residue=residue)
+    [found] = answer['channels']
+    assert [way['residue'] for way in found['as']] == [stored]
+    if stored == 'GLU 221 B-2':
+        assert found['as'][0]['copy'] == 2
+
+
+def test_find_channels_none_is_an_answer(client):
+    """A 221 without its insertion code is another residue than A 221A"""
+    failed, answer = tool(client, 'find_channels', entry='1tqn', residue='A 221')
+    assert not failed and (answer['found'], answer['channels'], answer['total_channels']) == (True, [], 0)
+
+
+def test_find_channels_pages(client, monkeypatch):
+    monkeypatch.setattr(mcp_server, 'MAX_CHANNELS', 1)
+    _, answer = tool(client, 'find_channels', entry='1tqn', residue='A 96')
+    assert ([c['ref'] for c in answer['channels']], answer['total_channels'], answer['next_offset']) == (['procognate/1'], 2, 1)
+    _, answer = tool(client, 'find_channels', entry='1tqn', residue='A 96', offset=1)
+    assert [c['ref'] for c in answer['channels']] == ['procognate/2']
+    assert 'next_offset' not in answer
+    failed, text = tool(client, 'find_channels', entry='1tqn', residue='A 57', offset=-1)
+    assert failed and 'offset' in text
+
+
+@pytest.mark.parametrize('residue', ['GLU 221 A', '221', 'A'])
+def test_find_channels_needs_chain_and_number(client, residue):
+    failed, text = tool(client, 'find_channels', entry='1tqn', residue=residue)
+    assert failed and 'chain and author number' in text
