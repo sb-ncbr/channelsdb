@@ -340,7 +340,8 @@ export class Context {
         for await (const param of params.data) {
             // get loci from param
             const loci = this.getLociForParams([param], params.structureNumber);
-            if (Loci.isEmpty(loci)) return;
+            // A residue not in the structure (e.g. a chain of an assembly copy) selects nothing, the others still do
+            if (Loci.isEmpty(loci)) continue;
             // set default selection color to minimise change display
             this.visual.setColor({ select: param.color ? param.color : { r: 255, g: 112, b: 3 } });
             // apply selection
