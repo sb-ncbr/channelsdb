@@ -32,7 +32,9 @@ def channels_file(channels: list[dict], config_: dict) -> dict:
     return {'Version': '2.5.17.4.24', 'Config': config_, 'Channels': {'Paths': channels, 'Tunnels': [], 'Pores': [], 'MergedPores': []}}
 
 
-MOLE_CONFIG = {'Params': {'Parameters': {'ProbeRadius': 5.0, 'BottleneckRadius': 1.25, 'WeightFunction': 0}, 'QueryFilterString': None},
+MOLE_CONFIG = {'Params': {'Parameters': {'ProbeRadius': 5.0, 'BottleneckRadius': 1.25, 'WeightFunction': 0,
+                                         'FilterTunnelBoundaryLayers': True},
+                          'QueryFilterString': None},
                'Export': {'Parameters': {'FormatJSON': True}}, 'CustomVdw': {'Values': {}},
                'Origins': {'Points': {'Points': [{'Residues': [], 'Points': [],
                                                   'Queries': [{'Text': "Atoms('Fe').Inside(Residues('HEM'))"}]}]}}}
@@ -134,13 +136,16 @@ def test_describe_entry(client):
     assert set(answer['downloads']) == {'pymol', 'chimera', 'vmd', 'pdb', 'zip'}
     cofactors, cocaver, procognate = answer['categories']
     assert (cofactors['method'], cofactors['file'], cofactors['total_channels']) == ('MOLE', 'cofactors.json', 1)
-    # What they were computed with, as MOLEonline's computed_with: the parameters as stored, without the export settings,
-    # the starting points (given apart) and empty parts
+    # What they were computed with, in the terms of MOLEonline's tools: load_structure's structure, compute_tunnels' start,
+    # the parameters in its API's shape (WeightFunction 0 is VoronoiScale), and what its API cannot take
     assert cofactors['computed_with'] == {
-        'structure': 'the preferred assembly of the PDB entry at the time of the computation',
+        'structure': {'pdb_id': '1tqn', 'assembly': 'preferred',
+                      'note': "PDBe's preferred assembly at the time of the computation; today's may differ (its ID is not recorded)"},
         'starting_point': [{'start': 'ligand', 'ligands': ['HEM'], 'queries': ["Atoms('Fe').Inside(Residues('HEM'))"]}],
         'mole_version': '2.5.17.4.24',
-        'parameters': {'Params': {'Parameters': {'ProbeRadius': 5.0, 'BottleneckRadius': 1.25, 'WeightFunction': 0}}}}
+        'parameters': {'Cavity': {'ProbeRadius': 5.0}, 'Tunnel': {'BottleneckRadius': 1.25, 'WeightFunction': 'VoronoiScale'},
+                       'Origin': {'QueryExpression': "Atoms('Fe').Inside(Residues('HEM'))"}},
+        'not_in_moleonline': {'FilterTunnelBoundaryLayers': True}}
     [mole] = cofactors['channels']
     # The bottleneck is the flagged layer, the narrowest point is at the start; the length is the profile's end
     assert {key: mole[key] for key in ('ref', 'length', 'bottleneck_radius', 'bottleneck_at', 'min_radius', 'min_radius_at')} == {
@@ -153,8 +158,11 @@ def test_describe_entry(client):
     # Where the page lists each channel, without a describe_channel call
     assert mole['on_web'] == 'Cofactor Tunnels MOLE: Channel 2a (Id: 25.20)'
     assert cocaver['method'] == 'CAVER'
-    assert cocaver['computed_with'] == {'structure': 'the deposited model (asymmetric unit) of the PDB entry',
-                                        'starting_point': 'not recorded', 'mole_version': 'not recorded', 'parameters': 'not recorded'}
+    # Not recorded is null with the reason, as elsewhere
+    assert cocaver['computed_with'] == {
+        'structure': {'pdb_id': '1tqn', 'assembly': 'asymmetric'}, 'starting_point': None, 'mole_version': None, 'parameters': None,
+        'not_in_moleonline': None, 'unavailable': dict.fromkeys(('starting_point', 'mole_version', 'parameters', 'not_in_moleonline'),
+                                                                 'not_recorded')}
     assert cocaver['unavailable']['lining_residues'] == 'caver_conversion'
     assert cocaver['channels'][0]['bottleneck_radius'] is None
     assert cocaver['channels'][0]['unavailable'] == {'bottleneck_radius': 'several_bottleneck_flags'}
@@ -435,3 +443,24 @@ OR_QUERY = "Or(AtomNames('N1N').Inside(Residues('NDP')),Atoms('Fe').Inside(Resid
      [{'start': 'ligand', 'ligands': ['HEM', 'ATP']}])])
 def test_starting_points_as_moleonline_takes_them(origin, started):
     assert mcp_server.starts({'Config': {'Origins': {'Points': {'Points': [origin]}}}}) == started
+
+
+def test_parameters_for_moleonline():
+    """Residue and point origins, several queries joined, excluded residues and queries, and an unverified weight function"""
+    config = {'Input': {'SpecificChains': 'A'}, 'Params': {'Parameters': {'ProbeRadius': 3.0, 'WeightFunction': 2, 'MinDepth': 8},
+                                                           'QueryFilterString': ''},
+              'NonActiveParts': {'Residues': [{'Chain': 'A', 'SequenceNumber': 7, 'InsertionCode': ' '}],
+                                 'Queries': [{'Text': 'HetResidues()', 'Query': {}}]},
+              'CustomExits': {'Points': {'Points': [{'Residues': [], 'Points': [{'Point': [1.0, 2.0, 3.0]}], 'Queries': []}]}},
+              'Paths': [{'Start': [0, 0, 0]}], 'CustomVdw': {'Values': {}},
+              'Origins': {'Points': {'Points': [{'Residues': [{'Chain': 'A', 'SequenceNumber': 309, 'InsertionCode': ' '}],
+                                                 'Points': [{'Point': [4.0, 5.0, 6.0]}],
+                                                 'Queries': [{'Text': "Residues('HEM')"}, {'Text': "Residues('ATP')"}]}]}}}
+    parameters, not_in_moleonline = mcp_server.moleonline_parameters(config)
+    assert parameters == {'Input': {'SpecificChains': 'A'}, 'Cavity': {'ProbeRadius': 3.0},
+                          'NonActiveResidues': [{'Chain': 'A', 'SequenceNumber': 7}],
+                          'Origin': {'Residues': [[{'Chain': 'A', 'SequenceNumber': 309}]], 'Points': [{'X': 4.0, 'Y': 5.0, 'Z': 6.0}],
+                                     'QueryExpression': "Or(Residues('HEM'),Residues('ATP'))"},
+                          'CustomExits': {'Points': [{'X': 1.0, 'Y': 2.0, 'Z': 3.0}]}}
+    # A pore's paths are not MOLEonline's tunnel parameters; empty parts are left out
+    assert not_in_moleonline == {'WeightFunction': 2, 'MinDepth': 8, 'NonActiveParts': ['HetResidues()'], 'Paths': [{'Start': [0, 0, 0]}]}

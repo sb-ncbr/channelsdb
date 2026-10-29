@@ -266,21 +266,99 @@ def stated(value):
     return value
 
 
-def computed_with(name: str, data: dict) -> dict:
-    """What the channels of a file were computed with (provenance as in the shared vocabulary): the structure, the starting
-    point, and for MOLE its version and parameters as stored (of that version: WeightFunction 0 is its VoronoiScale). CAVER's
-    files and the reviewed channels and pores record no parameters (their config is a placeholder, their Version MOLE's)."""
+# MOLE's parameters (Config.Params.Parameters) where MOLEonline's API has them (its MoleParameters: Cavity, Tunnel)
+MOLEONLINE_PARAMETERS = {'ProbeRadius': 'Cavity', 'InteriorThreshold': 'Cavity', 'IgnoreHETAtoms': 'Cavity', 'IgnoreHydrogens': 'Cavity',
+                         'WeightFunction': 'Tunnel', 'BottleneckRadius': 'Tunnel', 'BottleneckTolerance': 'Tunnel',
+                         'MaxTunnelSimilarity': 'Tunnel', 'OriginRadius': 'Tunnel', 'SurfaceCoverRadius': 'Tunnel'}
+# MOLE 2.5.17's WeightFunction 0 is VoronoiScale (replayed exactly with MOLE 2.5.26); others are not verified
+WEIGHT_FUNCTIONS = {0: 'VoronoiScale'}
+
+
+def moleonline_residues(residues: list[dict]) -> list[dict]:
+    # MOLEonline's residues have no insertion code (none of the stored starting residues has one)
+    return [{'Chain': r['Chain'], 'SequenceNumber': r['SequenceNumber']} for r in residues]
+
+
+def moleonline_points(points: list[dict]) -> list[dict]:
+    return [{'X': x, 'Y': y, 'Z': z} for x, y, z in (point['Point'] for point in points)]
+
+
+def moleonline_parameters(config: dict) -> tuple[dict, dict]:
+    """MOLE's stored config as the parameters of MOLEonline's API (MoleParameters: Cavity, Tunnel, Origin, ...), all of them
+    given, also the defaults, so that a job can repeat the computation; and what MOLEonline's API cannot take, as stored"""
+    parameters: dict = {'Input': {}, 'Cavity': {}, 'Tunnel': {}}
+    not_in_moleonline = {}
+    for key, value in config['Params']['Parameters'].items():
+        if key == 'WeightFunction' and value not in WEIGHT_FUNCTIONS:
+            not_in_moleonline[key] = value
+        elif key in MOLEONLINE_PARAMETERS:
+            parameters[MOLEONLINE_PARAMETERS[key]][key] = WEIGHT_FUNCTIONS[value] if key == 'WeightFunction' else value
+        else:
+            not_in_moleonline[key] = value
+    if chains := config.get('Input', {}).get('SpecificChains'):
+        parameters['Input']['SpecificChains'] = chains
+    if config.get('Input', {}).get('ReadAllModels'):
+        not_in_moleonline['ReadAllModels'] = True
+    if query := config['Params'].get('QueryFilterString'):
+        parameters['QueryFilter'] = query
+    excluded = config.get('NonActiveParts', {})
+    if excluded.get('Residues'):
+        parameters['NonActiveResidues'] = moleonline_residues(excluded['Residues'])
+    if excluded.get('Queries'):
+        not_in_moleonline['NonActiveParts'] = [query['Text'] for query in excluded['Queries']]
+    origin = {}
+    for point in config.get('Origins', {}).get('Points', {}).get('Points', []):
+        if point['Residues']:
+            origin.setdefault('Residues', []).append(moleonline_residues(point['Residues']))
+        origin.setdefault('Points', []).extend(moleonline_points(point['Points']))
+        origin.setdefault('Queries', []).extend(query['Text'] for query in point['Queries'])
+    if queries := origin.pop('Queries', []):
+        # MOLEonline's origin is one query
+        origin['QueryExpression'] = queries[0] if len(queries) == 1 else f'Or({",".join(queries)})'
+    parameters['Origin'] = stated(origin)
+    # Exits are given as the origins are, points in groups
+    exits = [point for group in config.get('CustomExits', {}).get('Points', {}).get('Points', []) for point in group['Points']]
+    if exits:
+        parameters['CustomExits'] = {'Points': moleonline_points(exits)}
+    # Any other part (a pore's Paths, charges, van der Waals radii), when it has something
+    for key, value in config.items():
+        if key not in ('Input', 'Params', 'NonActiveParts', 'CustomExits', 'Origins', 'Export') and stated(value):
+            not_in_moleonline[key] = stated(value)
+    return stated(parameters), not_in_moleonline
+
+
+def computed_with(name: str, data: dict, source_db: SourceDatabase, protein_id: str) -> dict:
+    """What the channels of a file were computed with (provenance as in the shared vocabulary), in the terms of MOLEonline's
+    tools, so that an assistant can compute the like there: the structure (load_structure's pdb_id and assembly, or the
+    model's URL), the starting point (compute_tunnels' start), and for MOLE its version and parameters (MOLEonline's API
+    shape, and what MOLEonline cannot take). null when not recorded: CAVER's files and the reviewed channels and pores
+    record no parameters (their config is a placeholder, their Version MOLE's)."""
     config = data.get('Config', {})
-    recorded = CATEGORIES[name][0] == 'MOLE' and 'Params' in config
-    return {'structure': CATEGORIES[name][2] or 'not recorded', 'starting_point': starts(data) or 'not recorded',
-            'mole_version': data.get('Version') if recorded else 'not recorded',
-            # Without the export settings, and the starting points given above
-            'parameters': stated({k: v for k, v in config.items() if k not in ('Export', 'Origins')}) if recorded else 'not recorded'}
+    structure_kind = CATEGORIES[name][2]
+    if structure_kind is None:
+        structure = None
+    elif source_db == SourceDatabase.AlphaFill:
+        structure = {'url': f'https://alphafill.eu/v1/aff/{protein_id}',
+                     'note': 'the model as AlphaFill has it today, which may differ from the one computed on'}
+    elif structure_kind == ASSEMBLY:
+        structure = {'pdb_id': protein_id, 'assembly': 'preferred',
+                     'note': "PDBe's preferred assembly at the time of the computation; today's may differ (its ID is not recorded)"}
+    else:
+        structure = {'pdb_id': protein_id, 'assembly': 'asymmetric'}
+    answer = {'structure': structure, 'starting_point': starts(data) or None, 'mole_version': None, 'parameters': None,
+              'not_in_moleonline': None}
+    if CATEGORIES[name][0] == 'MOLE' and 'Params' in config:
+        answer['mole_version'] = data.get('Version')
+        answer['parameters'], answer['not_in_moleonline'] = moleonline_parameters(config)
+    if unavailable := {key: 'not_recorded' for key, value in answer.items() if value is None}:
+        answer['unavailable'] = unavailable
+    return answer
 
 
-def category(name: str, data: dict) -> dict:
+def category(name: str, data: dict, source_db: SourceDatabase, protein_id: str) -> dict:
     method, what, _ = CATEGORIES[name]
-    summary = {'file': f'{name}.json', 'method': method, 'channels_of': what, 'computed_with': computed_with(name, data)}
+    summary = {'file': f'{name}.json', 'method': method, 'channels_of': what,
+               'computed_with': computed_with(name, data, source_db, protein_id)}
     if method == 'CAVER':
         summary['unavailable'] = CAVER_UNAVAILABLE
     return summary
@@ -319,7 +397,7 @@ def describe_entry_of(entry: str, website: str, category_name: str | None = None
     categories = []
     for name, data in files.items() if category_name is None else [(category_name, files[category_name])]:
         channels = channels_of(data)
-        listed = category(name, data) | {
+        listed = category(name, data, source_db, protein_id) | {
             'total_channels': len(channels),
             'channels': [channel_summary(f'{name}/{position}', channel, annotations, shared)
                          for position, channel in enumerate(channels[offset:offset + MAX_CHANNELS], offset + 1)]}
@@ -468,7 +546,7 @@ def describe_channel_of(entry: str, channel: str, website: str, with_layers: boo
         refs = ', '.join(f'{n}/1..{len(channels_of(d))}' for n, d in files.items())
         raise ToolError(f'"{channel}" is not a channel of {protein_id}. Its channels are {refs} (from describe_entry).')
     found = channels[int(position) - 1]
-    of_category = category(name, files[name])
+    of_category = category(name, files[name], source_db, protein_id)
     summary = of_category | channel_summary(f'{name}/{position}', found, annotations, shared_ids(files), details=True)
     if unavailable := of_category.get('unavailable', {}) | summary.get('unavailable', {}):
         summary['unavailable'] = unavailable
@@ -515,8 +593,11 @@ def create_server() -> MCPServer:
     @server.tool(annotations=READ_ONLY)
     async def describe_entry(ctx: Context, entry: str, category: str | None = None, offset: int = 0) -> dict:
         """The channels ChannelsDB has for an entry, given as a PDB ID (e.g. 1tqn) or a UniProt ID of an AlphaFill model
-        (e.g. P10635), by category: computed_with (the structure; the starting point in the terms of MOLEonline's
-        compute_tunnels: residues, ligand, point or auto; MOLE's version and parameters as stored). For each channel: its
+        (e.g. P10635), by category: computed_with, in the terms of MOLEonline's tools: the structure (load_structure's pdb_id
+        and assembly, or the model's url), the starting point (compute_tunnels' start: residues, ligand, point or auto),
+        MOLE's version, its parameters in the shape of MOLEonline's API, and not_in_moleonline: those MOLEonline's API cannot
+        be given (it uses its own settings for them, so a job there may differ where they matter); null when not recorded.
+        For each channel: its
         ref (for describe_channel; id is a label from the data and the website, not a length), type (Tunnel, Pore, Path),
         curated names, length, bottleneck (the method's, MOLE's not counting the start) and narrowest point (Å, distances
         along the channel from its start), and properties (averages over the lining residues; MOLE's only). web: its page
