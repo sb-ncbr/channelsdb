@@ -120,6 +120,8 @@ def test_describe_entry(client):
         'ref': 'cofactors/1', 'length': 25.2, 'bottleneck_radius': 1.4, 'bottleneck_at': [2, 9], 'min_radius': 1.0, 'min_radius_at': 0}
     assert mole['names'] == [{'name': 'Channel 2a', 'reference': '10.1016/j.bbagen.2006.07.005', 'reference_type': 'DOI'}]
     assert mole['names_apply_also_to'] == ['cocaver/2']
+    # Where the page lists each channel, without a describe_channel call
+    assert mole['on_web'] == 'Cofactor Tunnels MOLE: Channel 2a (Id: 25.20)'
     assert (cocaver['method'], cocaver['starts_from']) == ('CAVER', 'not recorded')
     assert cocaver['unavailable']['lining_residues'] == 'caver_conversion'
     assert cocaver['channels'][0]['bottleneck_radius'] is None

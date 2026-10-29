@@ -194,8 +194,12 @@ def category(name: str, data: dict) -> dict:
 
 
 def channel_summary(ref: str, channel: dict, annotations: list[dict], shared: dict[str, list[str]], details: bool = False) -> dict:
-    summary = {'ref': ref, 'id': channel['Id'], 'names': names_of(annotations, channel['Id'], details)} | geometry(channel)
-    if summary['names'] and channel['Id'] in shared:
+    names = names_of(annotations, channel['Id'], details)
+    # Where the results page lists it: under its first curated name, or its type, as the page labels channels
+    label = names[0]['name'] if names else channel['Type']
+    summary = {'ref': ref, 'id': channel['Id'], 'on_web': f'{SECTIONS[ref.partition("/")[0]]}: {label} (Id: {channel["Id"]})',
+               'names': names} | geometry(channel)
+    if names and channel['Id'] in shared:
         summary['names_apply_also_to'] = [other for other in shared[channel['Id']] if other != ref]
     return summary
 
@@ -238,9 +242,6 @@ def describe_channel_of(entry: str, channel: str, website: str) -> dict:
     summary = of_category | channel_summary(f'{name}/{position}', found, annotations, shared_ids(files), details=True)
     if unavailable := of_category.get('unavailable', {}) | summary.get('unavailable', {}):
         summary['unavailable'] = unavailable
-    # Where the page lists it: under its first curated name, or its type, as the page labels channels
-    label = summary['names'][0]['name'] if summary['names'] else found['Type']
-    summary['on_web'] = f'{SECTIONS[name]}: {label} (Id: {found["Id"]})'
     if CATEGORIES[name][0] == 'CAVER':
         summary |= {'lining_residues': None, 'bottleneck_residues': None, 'properties': None}
     else:
@@ -269,7 +270,7 @@ def create_server() -> MCPServer:
         P10635), by category: what they start from, the structure they were computed on, and for each channel its ref (for
         describe_channel), curated names, length, bottleneck (the method's, MOLE's not counting the start) and narrowest point
         (Å, distances along the channel from its start); web: its page on the website, showing the channels in 3D with the
-        structure. An entry not in ChannelsDB is found: false, not an error."""
+        structure, on_web: where the page lists each channel. An entry not in ChannelsDB is found: false, not an error."""
         return await anyio.to_thread.run_sync(describe_entry_of, entry, site(ctx))
 
     @server.tool(annotations=READ_ONLY)
