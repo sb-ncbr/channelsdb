@@ -2,6 +2,8 @@ import json
 from zipfile import ZipFile
 
 import pytest
+import requests
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from api import mcp_server
@@ -64,6 +66,12 @@ def client(tmp_path, monkeypatch):
     # As calculate_stats.py writes it: the numbers of channels in the order of CHANNEL_TYPES_PDB / CHANNEL_TYPES_ALPHAFILL
     (release / 'db_content.json').write_text(json.dumps({'PDB': {'1tqn': [0, 0, 0, 0, 1, 4, 0, 0, 1, 0]},
                                                          'AlphaFill': {'p10635': [6, 8]}}))
+    # An AlphaFill model, numbered as UniProt; a ligand outside chain A
+    model = release / 'AlphaFill' / '9x' / 'q9xyz1'
+    model.mkdir(parents=True)
+    lining = layer(0, 8, 1.2, ['LEU 87 A', 'HIS 194 A Backbone', 'HEM 1 B'], bottleneck=True)
+    with ZipFile(model / 'data.zip', 'w') as z:
+        z.writestr('alphafill.json', json.dumps(channels_file([channel('8.10', [lining], [(0, 1.2), (8.1, 1.9)])], MOLE_CONFIG)))
     (tmp_path / 'current').symlink_to(release)
     monkeypatch.setitem(config['dirs'], 'base', str(tmp_path / 'current'))
     with TestClient(app) as client:
@@ -87,8 +95,10 @@ def tool(client, name: str, **arguments) -> tuple[bool, dict | str]:
 def test_tools(client):
     tools = rpc(client, 'tools/list')['tools']
     assert {t['name'] for t in tools} == {'describe_entry', 'describe_channel', 'lookup_entries'}
-    # Read-only, so that clients need not ask before calling them
+    # Read-only, so that clients need not ask before calling them; describe_channel asks SIFTS
     assert all(t['annotations']['readOnlyHint'] and not t['annotations']['destructiveHint'] for t in tools)
+    assert {t['name']: t['annotations']['openWorldHint'] for t in tools} == {
+        'describe_entry': False, 'describe_channel': True, 'lookup_entries': False}
 
 
 @pytest.mark.parametrize('method', ['GET', 'DELETE'])
@@ -273,3 +283,46 @@ def test_residue_not_in_the_form_has_no_parts():
     """The string stays, the parts are null rather than guessed or missing"""
     parts = mcp_server.residue_parts('GLN -0.295 C1164')
     assert parts == {'name': None, 'number': None, 'insertion_code': None, 'chain': None, 'copy': None}
+
+
+# SIFTS's mapping of 1tqn: UniProt positions to author numbers (with insertion codes, 221A) by author chain
+SIFTS = {'P08684': {'A': {'57': '57', '58': '58', '300': '221A'}, 'B': {'301': '221'}}}
+
+
+def test_uniprot_positions(client, monkeypatch):
+    monkeypatch.setattr(mcp_server, 'get_sifts', lambda pdb_id: SIFTS)
+    _, answer = tool(client, 'describe_channel', entry='1tqn', channel='cofactors/1', uniprot=True)
+    found = answer['channel']
+    # The cofactor and a chain without a mapping have none; an insertion code and a symmetry copy (by its deposited chain) map
+    assert [(r['residue'], r['uniprot'], r['uniprot_position']) for r in found['lining_residues']] == [
+        ('HEM 500 A', None, None), ('PHE 57 A', 'P08684', 57), ('GLY 58 A', 'P08684', 58), ('GLN 221 A i:A', 'P08684', 300),
+        ('GLU 221 B-2', 'P08684', 301), ('ALA -3 AA', None, None)]
+    assert [r['uniprot_position'] for r in found['bottleneck_residues']] == [57, 58]
+    assert 'uniprot' not in found.get('unavailable', {})
+    # Where the positions come from, apart from the release of the channels
+    assert found['uniprot_mapping'].startswith('SIFTS (PDBe)')
+    _, answer = tool(client, 'describe_channel', entry='1tqn', channel='cofactors/1')
+    assert 'uniprot' not in answer['channel']['lining_residues'][0]
+
+
+def test_uniprot_positions_of_an_alphafill_model(client):
+    _, answer = tool(client, 'describe_channel', entry='Q9XYZ1', channel='alphafill/1', uniprot=True)
+    found = answer['channel']
+    # Chain A is the protein, numbered as UniProt; anything else (a transplanted ligand) has no UniProt position
+    assert [(r['uniprot'], r['uniprot_position']) for r in found['lining_residues']] == [('Q9XYZ1', 87), ('Q9XYZ1', 194), (None, None)]
+    assert 'AlphaFill model' in found['uniprot_mapping']
+
+
+@pytest.mark.parametrize(('failure', 'reason'), [(HTTPException(404, 'Cannot find annotations'), 'not_in_sifts'),
+                                                 (HTTPException(502, 'PDBe server returned an error'), 'sifts_unavailable'),
+                                                 (requests.ConnectionError(), 'sifts_unavailable')])
+def test_uniprot_positions_unavailable(client, monkeypatch, failure, reason):
+    """The channel still answered, its residues without UniProt, saying why"""
+    def failing(pdb_id):
+        raise failure
+    monkeypatch.setattr(mcp_server, 'get_sifts', failing)
+    failed, answer = tool(client, 'describe_channel', entry='1tqn', channel='cofactors/1', uniprot=True)
+    found = answer['channel']
+    assert not failed and found['unavailable']['uniprot'] == reason
+    assert {r['uniprot'] for r in found['lining_residues']} == {None}
+    assert found['length'] == 25.2

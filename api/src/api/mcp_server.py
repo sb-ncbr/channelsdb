@@ -10,6 +10,7 @@ from pathlib import Path
 from zipfile import ZipFile
 
 import anyio
+import requests
 from fastapi import FastAPI
 from mcp.server.mcpserver import Context, MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
@@ -21,6 +22,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 from api.common import CHANNEL_TYPES_ALPHAFILL, CHANNEL_TYPES_PDB, PDB_ID_REGEX, UNIPROT_ID_REGEX, SourceDatabase, protein_dir
 from api.config import config
+from api.endpoints.annotations import get_sifts
 
 
 MAX_CHANNELS = 30  # of a category in describe_entry, the rest are counted
@@ -321,7 +323,40 @@ def lookup_entries_of(entries: list[str]) -> dict:
             'note': 'Not found is not a negative result: ChannelsDB has the channels found for its starting points and parameters only.'}
 
 
-def describe_channel_of(entry: str, channel: str, website: str, with_layers: bool = False, layer_offset: int = 0) -> dict:
+UNIPROT_FROM_SIFTS = 'SIFTS (PDBe), as it maps the entry now, read when asked and kept for up to a day; not of the data release'
+
+
+def uniprot_residues(source_db: SourceDatabase, protein_id: str) -> tuple[dict[tuple[str, str], tuple[str, int]] | None, str | None]:
+    """UniProt's accession and position of the residues of an entry by their deposited chain and author number with its
+    insertion code (as SIFTS writes it, 59A), or None with the reason. An AlphaFill model is its UniProt protein, chain A
+    numbered as in UniProt."""
+    if source_db == SourceDatabase.AlphaFill:
+        return None, None
+    try:
+        sifts = get_sifts(protein_id)
+    except HTTPException as e:
+        return None, 'not_in_sifts' if e.status_code == 404 else 'sifts_unavailable'
+    except requests.RequestException:
+        return None, 'sifts_unavailable'
+    return {(chain, number): (accession, int(position)) for accession, chains in sifts.items() for chain, numbers in chains.items()
+            for position, number in numbers.items() if position.lstrip('-').isdigit()}, None
+
+
+def add_uniprot(listed: list[dict], source_db: SourceDatabase, protein_id: str, mapping: dict | None) -> None:
+    """The UniProt accession and position of each residue: null for a residue SIFTS maps to none (a ligand, a chain without
+    UniProt), all null when the mapping is not available. A symmetry copy is mapped by its deposited chain."""
+    for residue in listed:
+        if residue['number'] is None:
+            found = None
+        elif source_db == SourceDatabase.AlphaFill:
+            found = (protein_id, residue['number']) if residue['chain'] == 'A' and not residue['insertion_code'] else None
+        else:
+            found = (mapping or {}).get((residue['chain'], f'{residue["number"]}{residue["insertion_code"] or ""}'))
+        residue['uniprot'], residue['uniprot_position'] = found or (None, None)
+
+
+def describe_channel_of(entry: str, channel: str, website: str, with_layers: bool = False, layer_offset: int = 0,
+                        with_uniprot: bool = False) -> dict:
     source_db, protein_id = entry_of(entry)
     answer = {'source': 'channelsdb', 'release': release(), 'entry': protein_id, 'database': str(source_db)}
     if (read := read_entry(source_db, protein_id)) is None:
@@ -354,6 +389,15 @@ def describe_channel_of(entry: str, channel: str, website: str, with_layers: boo
             summary['unavailable']['bottleneck_residues'] = summary['unavailable']['bottleneck_radius']
         else:
             summary['bottleneck_residues'] = residues([layer for layer in layers if is_bottleneck(layer)], parts=True)
+        if with_uniprot:
+            # Not of the release: SIFTS's mapping of now
+            summary['uniprot_mapping'] = (UNIPROT_FROM_SIFTS if source_db == SourceDatabase.PDB
+                                          else 'the numbering of the AlphaFill model, which is UniProt\'s')
+            mapping, reason = uniprot_residues(source_db, protein_id)
+            if reason:
+                summary.setdefault('unavailable', {})['uniprot'] = reason
+            for listed in (summary['lining_residues'], summary['bottleneck_residues'] or []):
+                add_uniprot(listed, source_db, protein_id, mapping)
     if with_layers:
         layers = layer_details(found, CATEGORIES[name][0])
         summary |= {'total_layers': len(layers), 'layers': layers[layer_offset:layer_offset + MAX_LAYERS]}
@@ -364,6 +408,8 @@ def describe_channel_of(entry: str, channel: str, website: str, with_layers: boo
 
 # The tools only read the stored data, the same answer for the same data
 READ_ONLY = ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False)
+# describe_channel asks SIFTS for the UniProt positions (uniprot)
+READ_ONLY_OPEN = READ_ONLY.model_copy(update={'open_world_hint': True})
 
 
 def create_server() -> MCPServer:
@@ -382,8 +428,9 @@ def create_server() -> MCPServer:
         entry not in ChannelsDB is found: false, not an error."""
         return await anyio.to_thread.run_sync(describe_entry_of, entry, site(ctx), category, offset)
 
-    @server.tool(annotations=READ_ONLY)
-    async def describe_channel(ctx: Context, entry: str, channel: str, layers: bool = False, layer_offset: int = 0) -> dict:
+    @server.tool(annotations=READ_ONLY_OPEN)
+    async def describe_channel(ctx: Context, entry: str, channel: str, layers: bool = False, layer_offset: int = 0,
+                               uniprot: bool = False) -> dict:
         """One channel of an entry by its ref from describe_entry (e.g. cofactors/2): its geometry, curated names with their
         references, and for MOLE its lining residues and bottleneck residues (backbone_only: only its backbone atoms line the
         channel in the stored structure; with their name, author number, insertion code and chain, and the copy of a symmetry
@@ -395,8 +442,11 @@ def create_server() -> MCPServer:
         residues (by their residue in lining_residues) and properties, to see where along the channel a residue lines it and
         how narrow it is there. A layer's min_radius is the narrowest anywhere in the layer, not
         at each of its residues; layer radii are MOLE's or CAVER's own, not the profile's. At most 40 layers at once: a channel
-        with more has next_layer_offset, to list the next ones with layers=true and layer_offset."""
-        return await anyio.to_thread.run_sync(describe_channel_of, entry, channel, site(ctx), layers, layer_offset)
+        with more has next_layer_offset, to list the next ones with layers=true and layer_offset. With uniprot: each lining and
+        bottleneck residue of MOLE with its UniProt accession and position (from SIFTS for a PDB entry), to look up what is
+        known about it, e.g. in UniProt; null for a residue without one (a ligand, a chain without UniProt), and all null with
+        the reason in unavailable when the mapping is not available."""
+        return await anyio.to_thread.run_sync(describe_channel_of, entry, channel, site(ctx), layers, layer_offset, uniprot)
 
     @server.tool(annotations=READ_ONLY)
     async def lookup_entries(entries: list[str]) -> dict:
