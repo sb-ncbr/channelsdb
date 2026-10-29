@@ -25,6 +25,7 @@ from api.config import config
 
 MAX_CHANNELS = 30  # of a category in describe_entry, the rest are counted
 MAX_ENTRIES = 100  # in a call of lookup_entries
+MAX_LAYERS = 40  # of a channel in describe_channel, about 400 characters each (long channels have hundreds)
 PROPERTIES = ('Charge', 'Hydropathy', 'Hydrophobicity', 'Polarity', 'Mutability')  # of MOLE's channels, averages over the lining residues
 
 # not in the API's log: each stateless request's end of its MCP session
@@ -168,6 +169,29 @@ def geometry(channel: dict) -> dict:
     return summary
 
 
+def properties_of(properties: dict) -> dict:
+    return {key.lower(): properties.get(key) for key in PROPERTIES}
+
+
+def layer_details(channel: dict, method: str) -> list[dict]:
+    """Each layer of a channel: where it is along the channel, its narrowest radius, whether it is the flagged bottleneck,
+    and for MOLE whether it is a local minimum of the radius, its residues and properties (CAVER's are not given)"""
+    length = channel['Profile'][-1]['Distance']
+    details = []
+    for layer in channel['Layers']['LayersInfo']:
+        geometry_ = layer['LayerGeometry']
+        detail = {'from': round(geometry_['StartDistance'], 1), 'to': round(geometry_['EndDistance'], 1),
+                  'min_radius': round(geometry_['MinRadius'], 2), 'bottleneck': is_bottleneck(layer)}
+        if geometry_['StartDistance'] > geometry_['EndDistance'] or geometry_['StartDistance'] >= length:
+            # CAVER's last layer can start after it ends, or past the profile: no location on the channel (geometry())
+            detail['outside_channel'] = True
+        if method == 'MOLE':
+            detail |= {'local_minimum': geometry_.get('LocalMinimum', False), 'residues': residues([layer]),
+                       'properties': properties_of(layer['Properties'])}
+        details.append(detail)
+    return details
+
+
 def residues(layers: list[dict]) -> list[dict]:
     """The residues of layers in the order of their first appearance, each backbone_only when only its backbone lines them"""
     found: dict[str, bool] = {}
@@ -214,7 +238,7 @@ def channel_summary(ref: str, channel: dict, annotations: list[dict], shared: di
     return summary
 
 
-def describe_entry_of(entry: str, website: str) -> dict:
+def describe_entry_of(entry: str, website: str, category_name: str | None = None, offset: int = 0) -> dict:
     source_db, protein_id = entry_of(entry)
     answer = {'source': 'channelsdb', 'release': release(), 'entry': protein_id, 'database': str(source_db)}
     if (read := read_entry(source_db, protein_id)) is None:
@@ -222,14 +246,23 @@ def describe_entry_of(entry: str, website: str) -> dict:
     answer['web'] = web_page(website, source_db, protein_id)
     answer['downloads'] = downloads(website, source_db, protein_id)
     files, annotations = read
+    if category_name is not None and category_name not in files:
+        raise ToolError(f'"{category_name}" is not a category of {protein_id}. Its categories are {", ".join(files)}.')
+    if offset < 0 or (offset and category_name is None):
+        raise ToolError('offset is the position to list the channels of one category from (from next_offset), with its category.')
     shared = shared_ids(files)
     categories = []
-    for name, data in files.items():
+    for name, data in files.items() if category_name is None else [(category_name, files[category_name])]:
         channels = channels_of(data)
-        categories.append(category(name, data) | {
+        listed = category(name, data) | {
             'total_channels': len(channels),
             'channels': [channel_summary(f'{name}/{position}', channel, annotations, shared)
-                         for position, channel in enumerate(channels[:MAX_CHANNELS], 1)]})
+                         for position, channel in enumerate(channels[offset:offset + MAX_CHANNELS], offset + 1)]}
+        if offset + MAX_CHANNELS < len(channels):
+            listed['next_offset'] = offset + MAX_CHANNELS
+        categories.append(listed)
+    if category_name is not None:
+        return answer | {'found': True, 'categories': categories}
     names = CHANNEL_TYPES_PDB if source_db == SourceDatabase.PDB else CHANNEL_TYPES_ALPHAFILL
     # Said explicitly, so that a missing category is not read as a protein without such channels
     none = [f'{method} {what}' for name, (method, what, _) in CATEGORIES.items() if name in names and name not in files]
@@ -271,13 +304,15 @@ def lookup_entries_of(entries: list[str]) -> dict:
             'note': 'Not found is not a negative result: ChannelsDB has the channels found for its starting points and parameters only.'}
 
 
-def describe_channel_of(entry: str, channel: str, website: str) -> dict:
+def describe_channel_of(entry: str, channel: str, website: str, with_layers: bool = False, layer_offset: int = 0) -> dict:
     source_db, protein_id = entry_of(entry)
     answer = {'source': 'channelsdb', 'release': release(), 'entry': protein_id, 'database': str(source_db)}
     if (read := read_entry(source_db, protein_id)) is None:
         return answer | {'found': False, 'message': NOT_COMPUTED.format(entry=protein_id)}
     answer['web'] = web_page(website, source_db, protein_id)
     files, annotations = read
+    if layer_offset < 0 or (layer_offset and not with_layers):
+        raise ToolError('layer_offset is the position to list the layers from (from next_layer_offset), with layers.')
     name, _, position = channel.strip().partition('/')
     channels = channels_of(files[name]) if name in files else []
     if not position.isdigit() or not 1 <= int(position) <= len(channels):
@@ -290,15 +325,22 @@ def describe_channel_of(entry: str, channel: str, website: str) -> dict:
         summary['unavailable'] = unavailable
     if CATEGORIES[name][0] == 'CAVER':
         summary |= {'lining_residues': None, 'bottleneck_residues': None, 'properties': None}
+        if with_layers:
+            summary['unavailable'] |= {'layer_residues': CAVER_CONVERSION, 'layer_properties': CAVER_CONVERSION,
+                                       'local_minimum': 'caver_local_minimum_always_set'}
     else:
         layers = found['Layers']['LayersInfo']
-        properties = {key.lower(): found['Properties'].get(key) for key in PROPERTIES}
-        summary |= {'lining_residues': residues(layers), 'bottleneck_residues': None, 'properties': properties}
+        summary |= {'lining_residues': residues(layers), 'bottleneck_residues': None, 'properties': properties_of(found['Properties'])}
         if summary['bottleneck_radius'] is None:
             # Unknown, not none: for the same reason as the bottleneck itself
             summary['unavailable']['bottleneck_residues'] = summary['unavailable']['bottleneck_radius']
         else:
             summary['bottleneck_residues'] = residues([layer for layer in layers if is_bottleneck(layer)])
+    if with_layers:
+        layers = layer_details(found, CATEGORIES[name][0])
+        summary |= {'total_layers': len(layers), 'layers': layers[layer_offset:layer_offset + MAX_LAYERS]}
+        if layer_offset + MAX_LAYERS < len(layers):
+            summary['next_layer_offset'] = layer_offset + MAX_LAYERS
     return answer | {'found': True, 'channel': summary}
 
 
@@ -311,22 +353,29 @@ def create_server() -> MCPServer:
     server = MCPServer('ChannelsDB', version='1.0.0', instructions=INSTRUCTIONS)
 
     @server.tool(annotations=READ_ONLY)
-    async def describe_entry(ctx: Context, entry: str) -> dict:
+    async def describe_entry(ctx: Context, entry: str, category: str | None = None, offset: int = 0) -> dict:
         """The channels ChannelsDB has for an entry, given as a PDB ID (e.g. 1tqn) or a UniProt ID of an AlphaFill model (e.g.
         P10635), by category: what they start from, the structure they were computed on, and for each channel its ref (for
         describe_channel), curated names, length, bottleneck (the method's, MOLE's not counting the start) and narrowest point
         (Å, distances along the channel from its start); web: its page on the website, showing the channels in 3D with the
         structure, on_web: where the page lists each channel; downloads: all its channels for PyMOL, Chimera (legacy UCSF
-        Chimera), VMD, as PDB or all in a ZIP. An entry not in ChannelsDB is found: false, not an error."""
-        return await anyio.to_thread.run_sync(describe_entry_of, entry, site(ctx))
+        Chimera), VMD, as PDB or all in a ZIP. At most 30 channels of a category are listed, in the order of its file: a
+        category with more has next_offset, to list the next ones with category (its file name, e.g. cocaver) and offset. An
+        entry not in ChannelsDB is found: false, not an error."""
+        return await anyio.to_thread.run_sync(describe_entry_of, entry, site(ctx), category, offset)
 
     @server.tool(annotations=READ_ONLY)
-    async def describe_channel(ctx: Context, entry: str, channel: str) -> dict:
+    async def describe_channel(ctx: Context, entry: str, channel: str, layers: bool = False, layer_offset: int = 0) -> dict:
         """One channel of an entry by its ref from describe_entry (e.g. cofactors/2): its geometry, curated names with their
         references, and for MOLE its lining residues and bottleneck residues (backbone_only: only its backbone atoms line the
         channel in the stored structure) and properties. CAVER channels have geometry only, the rest is null with the reason.
-        web: the entry's page on the website, on_web: where the page lists the channel, to show it in 3D."""
-        return await anyio.to_thread.run_sync(describe_channel_of, entry, channel, site(ctx))
+        web: the entry's page on the website, on_web: where the page lists the channel, to show it in 3D. With layers: each
+        layer along the channel (from, to: Å from its start), its narrowest radius and whether it is the flagged bottleneck;
+        for MOLE also whether it is a local minimum of the radius, its residues and properties, to see where along the
+        channel a residue lines it and how narrow it is there. A layer's min_radius is the narrowest anywhere in the layer, not
+        at each of its residues; layer radii are MOLE's or CAVER's own, not the profile's. At most 40 layers at once: a channel
+        with more has next_layer_offset, to list the next ones with layers=true and layer_offset."""
+        return await anyio.to_thread.run_sync(describe_channel_of, entry, channel, site(ctx), layers, layer_offset)
 
     @server.tool(annotations=READ_ONLY)
     async def lookup_entries(entries: list[str]) -> dict:

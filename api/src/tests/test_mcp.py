@@ -4,15 +4,17 @@ from zipfile import ZipFile
 import pytest
 from fastapi.testclient import TestClient
 
+from api import mcp_server
 from api.config import config
 from api.main import app
 
 
-def layer(start: float, end: float, radius: float, residues: list[str], bottleneck: bool = False) -> dict:
+def layer(start: float, end: float, radius: float, residues: list[str], bottleneck: bool = False, charge: int = 0) -> dict:
     # As in the data, the flag of the bottleneck only in its layer
     return {'LayerGeometry': {'MinRadius': radius, 'MinFreeRadius': radius, 'StartDistance': start, 'EndDistance': end,
                               'LocalMinimum': False} | ({'Bottleneck': True} if bottleneck else {}),
-            'Residues': residues, 'FlowIndices': [], 'Properties': {}}
+            'Residues': residues, 'FlowIndices': [],
+            'Properties': {'Charge': charge, 'Hydropathy': -0.9, 'Hydrophobicity': -0.4, 'Polarity': 20.0, 'Mutability': 70}}
 
 
 def channel(channel_id: str, layers: list[dict], profile: list[tuple[float, float]]) -> dict:
@@ -30,9 +32,9 @@ def channels_file(channels: list[dict], config_: dict) -> dict:
 MOLE_CONFIG = {'Origins': {'Points': {'Points': [{'Residues': [], 'Points': [],
                                                  'Queries': [{'Text': "Atoms('Fe').Inside(Residues('HEM'))"}]}]}}}
 # MOLE: the start narrowest, the flagged bottleneck after it; a residue lining with its backbone only
-COFACTORS = channels_file([channel('25.20', [layer(0, 2, 1.0, ['HEM 500 A', 'PHE 57 A']),
+COFACTORS = channels_file([channel('25.20', [layer(0, 2, 1.0, ['HEM 500 A', 'PHE 57 A'], charge=-1),
                                              layer(2, 9, 1.4, ['PHE 57 A Backbone', 'GLY 58 A Backbone'], bottleneck=True),
-                                             layer(9, 24, 2.2, ['GLN 221 A i:A'])],
+                                             layer(9, 24, 2.2, ['GLN 221 A i:A'], charge=2)],
                                    [(0, 1.0), (5, 1.4), (25.23, 2.6)])], MOLE_CONFIG)
 # CAVER: two flagged layers; its ID also of the MOLE channel, its flagged layer ending past the profile (as CAVER's do);
 # the flagged layer inverted (starting after it ends); the flagged layer starting at the profile's end
@@ -200,3 +202,61 @@ def test_lookup_entries(client):
 def test_lookup_entries_at_most_100(client):
     failed, text = tool(client, 'lookup_entries', entries=[f'{n}abc' for n in range(1, 10)] + [f'1{n:03}' for n in range(100)])
     assert failed and '109 entries asked, at most 100' in text
+
+
+def test_mole_layers(client):
+    """Where along the channel a residue lines it, and how narrow it is there"""
+    _, answer = tool(client, 'describe_channel', entry='1tqn', channel='cofactors/1', layers=True)
+    first, bottleneck, last = answer['channel']['layers']
+    assert {key: first[key] for key in ('from', 'to', 'min_radius', 'bottleneck', 'local_minimum')} == {
+        'from': 0, 'to': 2, 'min_radius': 1.0, 'bottleneck': False, 'local_minimum': False}
+    assert first['residues'] == [{'residue': 'HEM 500 A', 'backbone_only': False}, {'residue': 'PHE 57 A', 'backbone_only': False}]
+    # Backbone only in this layer, though not in the whole channel
+    assert (bottleneck['bottleneck'], bottleneck['residues'][0]) == (True, {'residue': 'PHE 57 A', 'backbone_only': True})
+    # Each layer's own properties, not the channel's (charge 1, hydropathy -0.5)
+    assert [layer['properties']['charge'] for layer in (first, bottleneck, last)] == [-1, 0, 2]
+    assert last['properties'] == {'charge': 2, 'hydropathy': -0.9, 'hydrophobicity': -0.4, 'polarity': 20.0, 'mutability': 70}
+    _, answer = tool(client, 'describe_channel', entry='1tqn', channel='cofactors/1')
+    assert 'layers' not in answer['channel']
+
+
+def test_caver_layers(client):
+    """Geometry only: CAVER's residues, properties and local minima are not given"""
+    _, answer = tool(client, 'describe_channel', entry='1tqn', channel='cocaver/3', layers=True)
+    found = answer['channel']
+    assert found['layers'] == [{'from': 0, 'to': 7.2, 'min_radius': 1.8, 'bottleneck': False},
+                               {'from': 7.2, 'to': 7.1, 'min_radius': 1.5, 'bottleneck': True, 'outside_channel': True}]
+    assert found['unavailable']['local_minimum'] == 'caver_local_minimum_always_set'
+    assert found['unavailable']['layer_residues'] == 'caver_conversion'
+
+
+def test_paging_a_category(client, monkeypatch):
+    monkeypatch.setattr(mcp_server, 'MAX_CHANNELS', 2)
+    _, answer = tool(client, 'describe_entry', entry='1tqn')
+    cocaver = answer['categories'][1]
+    assert [c['ref'] for c in cocaver['channels']] == ['cocaver/1', 'cocaver/2']
+    assert (cocaver['total_channels'], cocaver['next_offset']) == (4, 2)
+    _, answer = tool(client, 'describe_entry', entry='1tqn', category='cocaver', offset=2)
+    [cocaver] = answer['categories']
+    assert [c['ref'] for c in cocaver['channels']] == ['cocaver/3', 'cocaver/4']
+    assert 'next_offset' not in cocaver
+
+
+@pytest.mark.parametrize(('arguments', 'error'), [({'category': 'csa'}, 'Its categories are cofactors, cocaver, procognate'),
+                                                  ({'offset': 2}, 'with its category'),
+                                                  ({'category': 'cocaver', 'offset': -1}, 'with its category')])
+def test_paging_errors(client, arguments, error):
+    failed, text = tool(client, 'describe_entry', entry='1tqn', **arguments)
+    assert failed and error in text
+
+
+def test_paging_layers(client, monkeypatch):
+    monkeypatch.setattr(mcp_server, 'MAX_LAYERS', 2)
+    _, answer = tool(client, 'describe_channel', entry='1tqn', channel='cofactors/1', layers=True)
+    found = answer['channel']
+    assert ([layer['from'] for layer in found['layers']], found['total_layers'], found['next_layer_offset']) == ([0, 2], 3, 2)
+    _, answer = tool(client, 'describe_channel', entry='1tqn', channel='cofactors/1', layers=True, layer_offset=2)
+    assert [layer['from'] for layer in answer['channel']['layers']] == [9]
+    assert 'next_layer_offset' not in answer['channel']
+    failed, text = tool(client, 'describe_channel', entry='1tqn', channel='cofactors/1', layer_offset=2)
+    assert failed and 'with layers' in text
