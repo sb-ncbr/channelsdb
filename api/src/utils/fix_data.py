@@ -225,6 +225,30 @@ def without_member(text: str, key: str) -> str:
     return fixed
 
 
+def fix_member(name: str, content: bytes) -> tuple[bytes | None, Counter]:
+    """A file of channels of a data.zip fixed (None when no channel is left), and the numbers of what was fixed. Raises
+    FixError, or ValueError on invalid UTF-8 and JSON."""
+    if name.endswith('caver.json'):
+        fixed, counts = fix_file(content.decode('utf-8'))
+    else:
+        # MOLE's files are not rewritten, their formatting would not be kept: what nothing reads is cut out of their
+        # text
+        text = content.decode('utf-8')
+        data = json.loads(text)
+        channels = [channel for group in data['Channels'].values() for channel in group]
+        if not all(is_channel(channel) for channel in channels):
+            raise FixError('MOLE channels of a single point are not expected')
+        fixed, counts = (text if channels else None), Counter()
+        if fixed is not None:
+            for key in UNUSED_KEYS:
+                if key in data:
+                    fixed = without_member(fixed, key)
+                    counts[f'{key} removed'] += 1
+    if fixed is None:
+        return None, counts
+    return (fixed.encode('utf-8') if counts else content), counts
+
+
 def fixed_members(datafile: Path) -> tuple[list[tuple[ZipInfo, bytes]], Counter, list[str]]:
     """The members of the entry's data.zip as they are to be (the files of channels left without any are removed), the
     numbers of what was fixed (and of the files changed and removed), and the errors"""
@@ -237,24 +261,8 @@ def fixed_members(datafile: Path) -> tuple[list[tuple[ZipInfo, bytes]], Counter,
             name = info.filename
             if Path(name).stem in CHANNEL_TYPES:
                 try:
-                    if name.endswith('caver.json'):
-                        fixed, fixed_counts = fix_file(content.decode('utf-8'))
-                    else:
-                        # MOLE's files are not rewritten, their formatting would not be kept: what nothing reads is cut
-                        # out of their text
-                        text = content.decode('utf-8')
-                        data = json.loads(text)
-                        channels = [channel for group in data['Channels'].values() for channel in group]
-                        if not all(is_channel(channel) for channel in channels):
-                            raise FixError('MOLE channels of a single point are not expected')
-                        fixed, fixed_counts = (text if channels else None), Counter()
-                        if fixed is not None:
-                            for key in UNUSED_KEYS:
-                                if key in data:
-                                    fixed = without_member(fixed, key)
-                                    fixed_counts[f'{key} removed'] += 1
+                    fixed, fixed_counts = fix_member(name, content)
                 except (FixError, ValueError, KeyError) as e:
-                    # ValueError covers invalid UTF-8 and JSON
                     errors.append(f'{datafile}/{name}: {e}')
                     members.append((info, content))
                     continue
@@ -263,7 +271,7 @@ def fixed_members(datafile: Path) -> tuple[list[tuple[ZipInfo, bytes]], Counter,
                     counts['files removed'] += 1
                     continue
                 if fixed_counts:
-                    content = fixed.encode('utf-8')
+                    content = fixed
                     counts['files changed'] += 1
             members.append((info, content))
     return members, counts, errors
