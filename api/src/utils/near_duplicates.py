@@ -14,6 +14,7 @@ coordinate is X of the profile's first or last point). The analysis removed a ch
 A channel is listed in REMOVALS when it was removed in APPLIED and the log removes it, except
 - a channel with an annotation (its name in the literature), which belongs to that channel;
 - a reviewed channel removed as containing or duplicating another one (only the short ones are removed);
+- a transmembrane pore, which is not a duplicate of a tunnel within it;
 - a channel whose other one (the one it contains or duplicates) rebuild_data.py removes as cut short, which would leave
   neither;
 - a channel whose log records disagree (the log identifies a channel by its entry, Id and coordinate, which channels
@@ -36,6 +37,7 @@ from utils.validate_data import LAYERS_PAST_PROFILE
 
 RECORDED = json.loads((Path(__file__).parent / 'recorded_fixes.json').read_text('utf-8'))
 REVIEWED = ('authors.json', 'aucaver.json')
+PORES = ('pores.json', 'pocaver.json')
 KEY = re.compile(r'protein:([^,]+),id:([^,]+),first_x_coord:([-0-9.e]+)')
 # Å, the log's coordinates are rounded to 3 decimals
 COORDINATE_TOLERANCE = 0.0015
@@ -125,6 +127,8 @@ def select(source: Path, applied: Path, log: dict, entry: str) -> tuple[dict, li
             decision = 'kept: annotated'
         elif name in REVIEWED and 'REMOVE(1)' not in decisions:
             decision = 'kept: reviewed'
+        elif name in PORES:
+            decision = 'kept: pore'
         elif any(is_cut_short(c) for other in others for _, _, _, c in original if matches(c, *other)):
             decision = 'kept: the other one is cut short'
         else:

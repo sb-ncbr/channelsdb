@@ -1,4 +1,4 @@
-"""Fixes the data (DATA_FIXES.md):
+"""Fixes the data:
 
 - fix 1: the flags and numbers that CAVER's files store as text become JSON values
 - fix 2: CAVER's flag of the bottleneck layer is named Bottleneck as in MOLE's files, not bottleneck

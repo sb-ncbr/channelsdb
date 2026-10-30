@@ -220,7 +220,7 @@ def is_bottleneck(layer: dict) -> bool:
 
 
 def outside_channel(layer_geometry: dict, length: float) -> bool:
-    """CAVER's last layer can start after it ends, or past the profile (CAVER.md): no location on the channel. A layer only
+    """CAVER's last layer can start after it ends, or past the profile: no location on the channel. A layer only
     ending past the profile is not outside, CAVER's layers end up to 5 Å after it."""
     return layer_geometry['StartDistance'] > layer_geometry['EndDistance'] or layer_geometry['StartDistance'] >= length
 

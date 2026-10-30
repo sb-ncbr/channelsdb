@@ -1,4 +1,4 @@
-"""Rebuilds the released data from the original data by all the fixes released so far (DATA_FIXES.md), optionally
+"""Rebuilds the released data from the original data by all the fixes released so far, optionally
 removing listed channels first.
 
 Usage: rebuild_data.py SOURCE OUTPUT [REMOVALS]
