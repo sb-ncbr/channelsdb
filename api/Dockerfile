@@ -21,6 +21,9 @@ COPY src/api /channelsdb/code/api
 
 WORKDIR /channelsdb/code
 
+# Owned by nobody, so that a new volume mounted there is too
+RUN mkdir -p /cache/sifts && chown nobody /cache/sifts
+
 USER nobody
 
 CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]

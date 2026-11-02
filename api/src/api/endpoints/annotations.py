@@ -1,10 +1,11 @@
+import contextlib
 import gzip
 import json
 import logging
-import time
+import os
+import tempfile
 import xml.etree.ElementTree as ET
 import zlib
-from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -184,21 +185,40 @@ def get_annotations_alphafill(uniprot_id: Uniprot_ID_Format_Type) -> Annotations
     return annotations
 
 
-SIFTS_TTL = 86400  # seconds
 SIFTS_URL = 'https://ftp.ebi.ac.uk/pub/databases/msd/sifts/xml/{pdb_id}.xml.gz'
 
 
 # Every view of an entry's annotations needs its SIFTS mappings, which change only when the entry is revised, while
-# EBI's FTP server can be slow to send them. They are kept for at most SIFTS_TTL. Failures are not cached.
-# Callers must not modify the returned data.
+# EBI's FTP server can be slow to send them. They are fetched once and kept as a file shared by all workers, without
+# expiry; deleting the file makes the next request fetch them again. Failures are not kept.
 def get_sifts(pdb_id: str) -> dict[str, SiftsMapping]:
-    return _get_sifts(pdb_id, int(time.monotonic() // SIFTS_TTL))
+    path = Path(config['dirs']['sifts']) / f'{pdb_id.lower()}.json'
+    try:
+        return json.loads(path.read_text())
+    except FileNotFoundError:
+        pass
+    except (OSError, ValueError) as e:
+        # Unreadable or damaged: fetched again, and replaced if possible
+        logger.warning('Cannot read the kept SIFTS mappings of %s: %s', pdb_id, e)
+
+    data = fetch_sifts(pdb_id)
+    # Written whole under a name unique to this write (requests run in threads of several workers), then renamed:
+    # no request reads a partial file, even if several write it at once
+    tmp = None
+    try:
+        fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f'.{path.name}.')
+        with os.fdopen(fd, 'w') as f:
+            json.dump(data, f, separators=(',', ':'))
+        os.replace(tmp, path)
+    except OSError as e:
+        logger.warning('Cannot keep the SIFTS mappings of %s: %s', pdb_id, e)
+        if tmp:
+            with contextlib.suppress(OSError):
+                os.unlink(tmp)
+    return data
 
 
-# Fewer than of the PDBe summaries, the mappings of large entries take much more memory
-@lru_cache(maxsize=256)
-def _get_sifts(pdb_id: str, _time_window: int) -> dict[str, SiftsMapping]:
-    # A new time window makes the cached mappings from the previous one unused
+def fetch_sifts(pdb_id: str) -> dict[str, SiftsMapping]:
     req = session.get(SIFTS_URL.format(pdb_id=pdb_id), timeout=10)
     check_response(req, 'PDBe server', f'Cannot find annotations for PDB ID \'{pdb_id}\'')
 

@@ -7,6 +7,7 @@ services:
     command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --root-path /api --proxy-headers --forwarded-allow-ips '*' --workers 8
     volumes:
       - ${CHANNELSDB_DATA:-/data}:/data:ro
+      - sifts:/cache/sifts
     logging:
       driver: journald
       options:
@@ -29,3 +30,7 @@ services:
       driver: journald
       options:
         tag: channelsdb-web
+
+volumes:
+  # The SIFTS mappings kept by the API
+  sifts:

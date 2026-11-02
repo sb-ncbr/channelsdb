@@ -553,7 +553,7 @@ def lookup_entries_of(entries: list[str]) -> dict:
             'note': NOT_NEGATIVE}
 
 
-UNIPROT_FROM_SIFTS = 'SIFTS (PDBe), as it maps the entry now, read when asked and kept for up to a day; not of the data release'
+UNIPROT_FROM_SIFTS = 'SIFTS (PDBe), as it mapped the entry when ChannelsDB first needed it, then kept; not of the data release'
 
 
 def uniprot_residues(source_db: SourceDatabase, protein_id: str) -> tuple[dict[tuple[str, str], tuple[str, int]] | None, str | None]:
@@ -618,7 +618,7 @@ def describe_channel_of(entry: str, channel: str, website: str, with_layers: boo
         else:
             summary['bottleneck_residues'] = residues([layer for layer in layers if is_bottleneck(layer)], parts=True)
         if with_uniprot:
-            # Not of the release: SIFTS's mapping of now
+            # Not of the release: SIFTS's mapping of when it was first fetched
             summary['uniprot_mapping'] = (UNIPROT_FROM_SIFTS if source_db == SourceDatabase.PDB
                                           else 'the numbering of the AlphaFill model, which is UniProt\'s')
             mapping, reason = uniprot_residues(source_db, protein_id)

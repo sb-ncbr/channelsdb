@@ -91,6 +91,15 @@ The API reads `config.ini` next to this README. It sets the data directory, `bas
 `CHANNELSDB_BASE` in the environment overrides `base`. The image is built with `config_docker.ini` as its `config.ini`
 (`/channelsdb/config.ini`).
 
+`sifts` is a writable directory, apart from the data, where the API keeps the SIFTS mappings (PDB to UniProt residue
+numbers) it fetched from EBI, one small JSON file per entry. They are never refreshed, so that the residue annotations of an
+entry do not wait on EBI after its first view; deleting a file makes the next request fetch it again. In Docker it is
+the volume `sifts`. To fetch the mappings ahead of the first views, request the annotations of the entries once:
+
+```bash
+while read -r id; do curl -s -o /dev/null -w "$id %{http_code}\n" "https://channelsdb.ncbr.muni.cz/api/annotations/pdb/$id"; done < ids.txt
+```
+
 ## Development
 
 The API uses [uv](https://docs.astral.sh/uv/). Create `config.ini` from `config_docker.ini` with `base` pointing to

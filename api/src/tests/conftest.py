@@ -1,6 +1,8 @@
 import random
 from pathlib import Path
 
+import pytest
+
 from api.config import config
 
 
@@ -16,6 +18,15 @@ def get_stored_ids(datadir: str) -> list[str]:
 stored_pdb_ids = get_stored_ids(config['dirs']['pdb'])
 # AlphaFill directories are named by lowercased UniProt IDs
 stored_uniprot_ids = [uniprot_id.upper() for uniprot_id in get_stored_ids(config['dirs']['alphafill'])]
+
+
+@pytest.fixture(autouse=True)
+def sifts_dir(tmp_path, monkeypatch):
+    """An empty directory for the kept SIFTS mappings of each test, so that none are read from earlier runs"""
+    path = tmp_path / 'sifts'
+    path.mkdir()
+    monkeypatch.setitem(config['dirs'], 'sifts', str(path))
+    return path
 
 
 def pytest_addoption(parser):

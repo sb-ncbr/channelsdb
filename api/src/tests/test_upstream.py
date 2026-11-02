@@ -1,7 +1,10 @@
 import gzip
 import json
+import os
 import sys
+import threading
 import zipfile
+from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 import requests
@@ -11,7 +14,7 @@ from fastapi.testclient import TestClient
 from api import common
 from api.common import SourceDatabase, _get_pdbe_status, _get_pdbe_summary, get_pdbe_summary, protein_dir, session
 from api.config import config
-from api.endpoints.annotations import _get_sifts
+from api.endpoints import annotations
 from api.endpoints.assembly import get_assembly_id
 from api.main import app
 
@@ -73,14 +76,12 @@ def upstream(monkeypatch):
 
     monkeypatch.setattr(session, 'get', get)
     monkeypatch.setattr(session, 'head', lambda url, **kwargs: reply('uniprot', ''))
-    # Summaries and mappings cached by other tests would bypass the mocked responses
+    # Summaries cached by other tests would bypass the mocked responses
     _get_pdbe_summary.cache_clear()
     _get_pdbe_status.cache_clear()
-    _get_sifts.cache_clear()
     yield statuses
     _get_pdbe_summary.cache_clear()
     _get_pdbe_status.cache_clear()
-    _get_sifts.cache_clear()
 
 
 def uniprot_ids(response) -> list[str]:
@@ -116,11 +117,67 @@ def test_sifts_are_fetched_once(upstream, monkeypatch):
     assert sum('sifts' in url for url in fetched) == 1
 
 
-def test_sifts_failure_is_not_cached(upstream):
+def test_sifts_failure_is_not_cached(upstream, sifts_dir):
     upstream['sifts'] = 503
     assert client.get('/annotations/pdb/1abc').status_code == 502
+    assert not any(sifts_dir.iterdir())
     upstream['sifts'] = 200
     assert client.get('/annotations/pdb/1abc').status_code == 200
+
+
+def test_kept_sifts_are_read_without_ebi(upstream, sifts_dir):
+    assert uniprot_ids(client.get('/annotations/pdb/1ABC')) == ['P11111', 'P22222']
+    assert [path.name for path in sifts_dir.iterdir()] == ['1abc.json']
+    # As when another worker fetched them, and EBI does not answer now
+    upstream['sifts'] = 503
+    assert uniprot_ids(client.get('/annotations/pdb/1abc')) == ['P11111', 'P22222']
+
+
+def test_sifts_are_answered_when_they_cannot_be_kept(upstream, monkeypatch, sifts_dir):
+    monkeypatch.setitem(config['dirs'], 'sifts', str(sifts_dir / 'missing'))
+    assert uniprot_ids(client.get('/annotations/pdb/1abc')) == ['P11111', 'P22222']
+
+
+def test_sifts_are_answered_when_the_kept_file_cannot_be_written_nor_removed(upstream, monkeypatch, sifts_dir):
+    def fail(*args):
+        raise PermissionError('read-only')
+    monkeypatch.setattr(annotations.os, 'replace', fail)
+    monkeypatch.setattr(annotations.os, 'unlink', fail)
+    assert uniprot_ids(client.get('/annotations/pdb/1abc')) == ['P11111', 'P22222']
+
+
+@pytest.mark.parametrize('damage', ['damaged', 'unreadable'])
+def test_damaged_kept_sifts_are_fetched_again(upstream, sifts_dir, damage):
+    path = sifts_dir / '1abc.json'
+    if damage == 'damaged':
+        path.write_text('{"P11111": {"A"')
+    else:
+        # Reading a directory fails as an unreadable file does
+        path.mkdir()
+    assert uniprot_ids(client.get('/annotations/pdb/1abc')) == ['P11111', 'P22222']
+    if damage == 'damaged':
+        assert json.loads(path.read_text()) == {'P11111': {'A': {'1': '1'}}, 'P22222': {'B': {'1': '1'}}}
+
+
+def test_concurrent_sifts_writes_do_not_meet(upstream, monkeypatch, sifts_dir):
+    # Requests run in threads of one process: all fetch the entry at once, and then write it
+    threads = 8
+    barrier = threading.Barrier(threads)
+    fetch = annotations.fetch_sifts
+
+    def fetch_together(pdb_id):
+        barrier.wait()
+        return fetch(pdb_id)
+    monkeypatch.setattr(annotations, 'fetch_sifts', fetch_together)
+    written = []
+    replace = os.replace
+    monkeypatch.setattr(annotations.os, 'replace', lambda src, dst: written.append(src) or replace(src, dst))
+    with ThreadPoolExecutor(threads) as pool:
+        results = list(pool.map(annotations.get_sifts, ['1abc'] * threads))
+    assert len(set(written)) == threads
+    assert all(result == results[0] for result in results)
+    assert [path.name for path in sifts_dir.iterdir()] == ['1abc.json']
+    assert json.loads((sifts_dir / '1abc.json').read_text()) == results[0]
 
 
 @pytest.mark.parametrize('status_code', [400, 403, 429, 500, 503])
