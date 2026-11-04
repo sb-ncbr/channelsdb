@@ -8,7 +8,7 @@ from collections.abc import Iterator
 from concurrent.futures import ProcessPoolExecutor
 from itertools import pairwise, repeat
 from pathlib import Path
-from zipfile import ZipFile
+from zipfile import BadZipFile, ZipFile
 
 import api.common
 from api.common import CHANNEL_TYPES_ALPHAFILL, CHANNEL_TYPES_PDB, PDB_ID_LOWER_REGEX, UNIPROT_ID_REGEX, SourceDatabase
@@ -221,7 +221,11 @@ def datafile_errors(datafile: Path, channel_types: set[str]) -> list[str]:
     errors = []
     channel_ids: set[str] = set()
     annotations: list[dict] = []
-    with ZipFile(datafile) as z:
+    try:
+        archive = ZipFile(datafile)
+    except BadZipFile:
+        return [f'{datafile} is not a valid zip file']
+    with archive as z:
         if not any(Path(file).stem in channel_types for file in z.namelist()):
             errors.append(f'{datafile} has no channels')
         for file in z.namelist():

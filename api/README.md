@@ -68,6 +68,22 @@ src/utils/update_data.sh --add /path/to/some/data
 
 An entry is updated as a whole file, so a changed `data.zip` must contain all the channels of the entry.
 
+#### Checking new data before sending them
+
+Whoever prepares new entries can check them with the same validation as the release, on a directory holding only
+the new entries in the layout above (e.g. just `PDB/ab/9abc/data.zip`). It needs [uv](https://docs.astral.sh/uv/) and
+a clone of this repository, no data and no services:
+
+```bash
+git clone https://github.com/sb-ncbr/channelsdb.git
+cd channelsdb/api
+cp config_docker.ini config.ini
+CHANNELSDB_BASE=/path/to/new-data PYTHONPATH=src uv run --no-dev python src/utils/validate_data.py
+```
+
+It prints one line per problem and exits with 1 when there are any. The data are only read, apart from
+`.validation_cache.json`, which it writes into the directory; `update_data.sh --add` ignores it.
+
 Files unchanged since the current release are hardlinked, so a release takes only the space of the changed files.
 Never modify the files of a release in place, the change would show in all of them. Only the new and changed files are
 read to validate them and calculate the statistics, and all of them after the rules of the validation change; the

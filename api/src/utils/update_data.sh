@@ -14,7 +14,8 @@
 #
 # The validation and the statistics read only the files not read before: SOURCE may bring their caches
 # (.validation_cache.json, .statistics_cache.json) from where it was prepared, e.g. a release made elsewhere by the
-# same code, otherwise those of the current release are used.
+# same code, otherwise those of the current release are used. With --add, those of the current release are always
+# used, as the caches of SOURCE (e.g. from validating it before sending) know only its own files.
 # Before switching, the changes against the current release are shown and have to be approved (YES=1 approves
 # them without asking). Set FORCE=1 to release data with considerably fewer entries than the current ones.
 #
@@ -65,7 +66,8 @@ if (( add )); then
     rsync "${rsync_opts[@]}" "${link_dest[@]}" "$current/" "$release/"
     # rsync replaces the changed files with new ones, the hardlinked files of the current release are not modified
     echo "Adding $source to $release"
-    rsync "${rsync_opts[@]}" "${source_link_dest[@]}" "$source/" "$release/"
+    rsync "${rsync_opts[@]}" "${source_link_dest[@]}" --exclude /.validation_cache.json --exclude /.statistics_cache.json \
+        "$source/" "$release/"
 else
     echo "Copying $source to $release"
     rsync "${rsync_opts[@]}" --delete "${link_dest[@]}" "${source_link_dest[@]}" "$source/" "$release/"
