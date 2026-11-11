@@ -198,13 +198,66 @@ UPSTREAM_STATUSES = [(404, 404), (403, 502), (429, 502), (503, 502)]
 
 
 @pytest.mark.parametrize('status_code, expected', UPSTREAM_STATUSES)
-@pytest.mark.parametrize('service, path', [('pdbe', '/channels/pdb/1abc'),
+@pytest.mark.parametrize('service, path', [('pdbe', '/assembly/1abc'),
                                            ('uniprot', '/channels/alphafill/P11111'),
                                            ('sifts', '/annotations/pdb/1abc')])
 def test_upstream_status(upstream, service, path, status_code, expected):
     upstream[service] = status_code
     response = client.get(path)
     assert response.status_code == expected
+
+
+NOT_STORED_PDB_PATHS = ['/channels/pdb/1abc', '/download/pdb/1abc/json']
+
+
+@pytest.mark.parametrize('path', NOT_STORED_PDB_PATHS)
+@pytest.mark.parametrize('status_code', [403, 429, 500, 503])
+def test_not_stored_with_pdbe_failing(upstream, stored, path, status_code):
+    # Not in ChannelsDB either way: PDBe failing to word the 404 does not turn it into an upstream failure
+    upstream['pdbe'] = status_code
+    response = client.get(path)
+    assert response.status_code == 404
+    assert 'not found in ChannelsDB' in response.json()['detail']
+
+
+@pytest.mark.parametrize('path', NOT_STORED_PDB_PATHS)
+@pytest.mark.parametrize('error', [requests.ConnectionError, requests.Timeout])
+def test_not_stored_with_pdbe_unreachable(upstream, stored, monkeypatch, path, error):
+    def failing(url, **kwargs):
+        raise error(f'Unreachable: {url}')
+    monkeypatch.setattr(session, 'get', failing)
+    response = client.get(path)
+    assert response.status_code == 404
+    assert 'not found in ChannelsDB' in response.json()['detail']
+
+
+@pytest.mark.parametrize('path', NOT_STORED_PDB_PATHS)
+def test_not_stored_unknown_to_pdbe(upstream, stored, path):
+    upstream.update({'pdbe': 404, 'status': 404})
+    response = client.get(path)
+    assert response.status_code == 404
+    assert response.json() == {'detail': "Cannot find PDB ID '1abc'"}
+
+
+@pytest.mark.parametrize('path, timeout', [('/channels/pdb/1abc', common.PDBE_NOT_STORED_TIMEOUT),
+                                           ('/download/pdb/1abc/json', common.PDBE_NOT_STORED_TIMEOUT),
+                                           ('/assembly/1abc', common.PDBE_TIMEOUT)])
+def test_pdbe_timeout(upstream, stored, monkeypatch, path, timeout):
+    # Only the wording of the 404 of an entry not stored depends on PDBe, the assembly needs its data
+    upstream['pdbe'] = 404
+    timeouts = []
+    get = session.get
+    monkeypatch.setattr(session, 'get', lambda url, **kwargs: timeouts.append(kwargs['timeout']) or get(url, **kwargs))
+    client.get(path)
+    assert timeouts == [timeout, timeout]
+
+
+@pytest.mark.parametrize('error, expected', [(requests.ConnectionError, 502), (requests.Timeout, 504)])
+def test_assembly_with_pdbe_unreachable(upstream, monkeypatch, error, expected):
+    def failing(url, **kwargs):
+        raise error(f'Unreachable: {url}')
+    monkeypatch.setattr(session, 'get', failing)
+    assert client.get('/assembly/1abc').status_code == expected
 
 
 @pytest.fixture

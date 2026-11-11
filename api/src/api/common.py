@@ -81,19 +81,22 @@ def validate_uniprot_id(uniprot_id: Annotated[str, AnnotationPath(description='U
 
 PDBE_SUMMARY_TTL = 3600  # seconds
 PDBE_SUMMARY_URL = 'https://www.ebi.ac.uk/pdbe/api/pdb/entry/summary/{pdb_id}'
+PDBE_TIMEOUT = 10  # seconds
+# For the entries not stored, PDBe only words their 404, which is not worth waiting long for
+PDBE_NOT_STORED_TIMEOUT = 3  # seconds
 
 
 # Used both to validate PDB IDs and to look up assemblies, which the results page requests together.
 # Summaries are kept for at most PDBE_SUMMARY_TTL, as entries can be revised or made obsolete.
 # Failures are not cached. Callers must not modify the returned data.
-def get_pdbe_summary(pdb_id: str) -> dict:
-    return _get_pdbe_summary(pdb_id, int(time.monotonic() // PDBE_SUMMARY_TTL))
+def get_pdbe_summary(pdb_id: str, timeout: float = PDBE_TIMEOUT) -> dict:
+    return _get_pdbe_summary(pdb_id, int(time.monotonic() // PDBE_SUMMARY_TTL), timeout)
 
 
 @lru_cache(maxsize=1024)
-def _get_pdbe_summary(pdb_id: str, _time_window: int) -> dict:
+def _get_pdbe_summary(pdb_id: str, _time_window: int, timeout: float) -> dict:
     # A new time window makes the cached summaries from the previous one unused
-    req = session.get(PDBE_SUMMARY_URL.format(pdb_id=pdb_id), timeout=10)
+    req = session.get(PDBE_SUMMARY_URL.format(pdb_id=pdb_id), timeout=timeout)
     check_response(req, 'PDBe API', f'Cannot find PDB ID \'{pdb_id}\'')
     try:
         summary = req.json()[pdb_id][0]
@@ -109,14 +112,14 @@ PDBE_STATUS_URL = 'https://www.ebi.ac.uk/pdbe/api/pdb/entry/status/{pdb_id}'
 
 
 # Asked only for the PDB IDs without a summary, which PDBe does not have for obsolete entries. Kept as the summaries.
-def get_pdbe_status(pdb_id: str) -> dict | None:
+def get_pdbe_status(pdb_id: str, timeout: float = PDBE_TIMEOUT) -> dict | None:
     """PDBe's status of the entry (its status_code, since when, superceded_by, ...), None when PDBe does not know it"""
-    return _get_pdbe_status(pdb_id, int(time.monotonic() // PDBE_SUMMARY_TTL))
+    return _get_pdbe_status(pdb_id, int(time.monotonic() // PDBE_SUMMARY_TTL), timeout)
 
 
 @lru_cache(maxsize=1024)
-def _get_pdbe_status(pdb_id: str, _time_window: int) -> dict | None:
-    req = session.get(PDBE_STATUS_URL.format(pdb_id=pdb_id), timeout=10)
+def _get_pdbe_status(pdb_id: str, _time_window: int, timeout: float) -> dict | None:
+    req = session.get(PDBE_STATUS_URL.format(pdb_id=pdb_id), timeout=timeout)
     if req.status_code == 404:
         return None
     check_response(req, 'PDBe API', f'Cannot find PDB ID \'{pdb_id}\'')
@@ -131,20 +134,25 @@ def _get_pdbe_status(pdb_id: str, _time_window: int) -> dict | None:
 
 def validate_pdb_id(pdb_id: Annotated[str, AnnotationPath(description='PDB ID', pattern=PDB_ID_REGEX)]) -> str:
     pdb_id = pdb_id.lower()
-    try:
-        get_pdbe_summary(pdb_id)
-    except HTTPException as e:
-        if e.status_code == 404:
-            raise_if_obsolete(pdb_id)
-        raise
+    check_pdb_id(pdb_id, PDBE_TIMEOUT)
     return pdb_id
 
 
-def raise_if_obsolete(pdb_id: str) -> None:
+def check_pdb_id(pdb_id: str, timeout: float) -> None:
+    """Raises 404 (ObsoleteEntry for an obsolete entry) for a PDB ID PDBe does not have a summary of"""
+    try:
+        get_pdbe_summary(pdb_id, timeout)
+    except HTTPException as e:
+        if e.status_code == 404:
+            raise_if_obsolete(pdb_id, timeout)
+        raise
+
+
+def raise_if_obsolete(pdb_id: str, timeout: float) -> None:
     """Raises ObsoleteEntry when PDBe knows the entry as obsolete. A failure to tell (an error of PDBe, or none of its
     answer at all) leaves the 404 as it was, rather than reporting a confirmed absence as an upstream failure."""
     try:
-        status = get_pdbe_status(pdb_id)
+        status = get_pdbe_status(pdb_id, timeout)
     except (HTTPException, requests.RequestException):
         return
     if status is None or status.get('status_code') != 'OBS':
@@ -214,7 +222,15 @@ def is_stored(source_db: SourceDatabase, protein_id: str) -> bool:
 def stored_pdb_id(pdb_id: Annotated[str, AnnotationPath(description='PDB ID', pattern=PDB_ID_REGEX)]) -> str:
     pdb_id = pdb_id.lower()
     if not is_stored(SourceDatabase.PDB, pdb_id):
-        validate_pdb_id(pdb_id)
+        # Not in ChannelsDB either way: PDBe only tells whether the ID is unknown or obsolete. When it fails to tell,
+        # the endpoint's own 404 is answered, rather than reporting a confirmed absence as an upstream failure.
+        try:
+            check_pdb_id(pdb_id, PDBE_NOT_STORED_TIMEOUT)
+        except HTTPException as e:
+            if e.status_code == 404:
+                raise
+        except requests.RequestException:
+            pass
     return pdb_id
 
 
